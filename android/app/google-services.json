@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "614559989235",
+    "firebase_url": "https://otter-app-f9d7a-default-rtdb.firebaseio.com",
+    "project_id": "otter-app-f9d7a",
+    "storage_bucket": "otter-app-f9d7a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614559989235:android:5c6cd58404945e3ee26686",
+        "android_client_info": {
+          "package_name": "com.example.otter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOf1sBemGw4eTJgRAa97IHeK8UjZN45A4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
