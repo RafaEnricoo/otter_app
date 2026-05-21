@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Atmosphere - Smart Home',
+      title: 'Otter - Smart Home',
       theme: AppTheme.darkTheme,
       home: const MainLayout(),
     );

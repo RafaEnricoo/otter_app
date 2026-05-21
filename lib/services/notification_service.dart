@@ -40,7 +40,7 @@ class NotificationService {
     NotificationModel(
       id: 'notif_4',
       title: 'System Firmware Updated',
-      message: 'Atmosphere Core OS has successfully updated to version v4.12.0-stable with 8 security patches.',
+      message: 'Otter Core OS has successfully updated to version v4.12.0-stable with 8 security patches.',
       timestamp: DateTime.now().subtract(const Duration(days: 1)),
       category: NotificationCategory.system,
       priority: NotificationPriority.info,

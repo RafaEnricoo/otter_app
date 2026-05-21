@@ -226,7 +226,7 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
             ],
           ).createShader(bounds),
           child: Text(
-            'Atmosphere',
+            'Otter',
             style: TextStyle(
               fontSize: widget.isMobile ? 18 : 22,
               fontWeight: FontWeight.w700,

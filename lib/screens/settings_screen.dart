@@ -874,7 +874,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               ],
             ),
             content: const Text(
-              'Warning: This action will restore the Atmosphere Smart Gateway to factory defaults. All connected node configurations and rules will be wiped out.',
+              'Warning: This action will restore the Otter Smart Gateway to factory defaults. All connected node configurations and rules will be wiped out.',
               style: TextStyle(color: Color(0xFFC6C6CE), height: 1.3),
             ),
             actions: <Widget>[
