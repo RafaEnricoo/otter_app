@@ -9,6 +9,8 @@ import 'screens/home_screen.dart';
 import 'screens/devices_screen.dart';
 import 'screens/monitor_screen.dart';
 import 'screens/security_screen.dart';
+import 'screens/notification_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,20 +44,24 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       backgroundColor: Color(AppColors.surface),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(68),
+        preferredSize: Size.fromHeight(68 + topPadding),
         child: Header(
           onNotificationsPressed: () {
-            ScaffoldMessenger.of(
+            Navigator.push(
               context,
-            ).showSnackBar(const SnackBar(content: Text('Notifications')));
+              MaterialPageRoute(builder: (context) => const NotificationScreen()),
+            );
           },
           onSettingsPressed: () {
-            ScaffoldMessenger.of(
+            Navigator.push(
               context,
-            ).showSnackBar(const SnackBar(content: Text('Settings')));
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
           },
         ),
       ),

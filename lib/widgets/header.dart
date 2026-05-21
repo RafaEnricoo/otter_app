@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../models/notification_model.dart';
+import '../services/notification_service.dart';
 
 class Header extends StatelessWidget {
   final String? userName;
@@ -19,12 +21,13 @@ class Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 768;
+    final topPadding = MediaQuery.of(context).padding.top;
 
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
-          height: 68,
+          height: 68 + topPadding,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -48,73 +51,82 @@ class Header extends StatelessWidget {
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.containerPadding,
-            ),
-            child: Row(
-              children: [
-                // ─── Logo & Branding ───
-                _AnimatedLogo(isMobile: isMobile),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.containerPadding,
+              ),
+              child: Row(
+                children: [
+                  // ─── Logo & Branding ───
+                  _AnimatedLogo(isMobile: isMobile),
 
-                const Spacer(),
+                  const Spacer(),
 
-                // ─── Desktop Navigation ───
-                if (!isMobile)
-                  Row(
-                    children: [
-                      _NavLink(
-                        label: 'Home',
-                        icon: Icons.home_rounded,
-                        isActive: true,
-                        onTap: () {},
-                      ),
-                      const SizedBox(width: 6),
-                      _NavLink(
-                        label: 'Devices',
-                        icon: Icons.devices_rounded,
-                        isActive: false,
-                        onTap: () {},
-                      ),
-                      const SizedBox(width: 6),
-                      _NavLink(
-                        label: 'Analytics',
-                        icon: Icons.analytics_rounded,
-                        isActive: false,
-                        onTap: () {},
-                      ),
-                      const SizedBox(width: 6),
-                      _NavLink(
-                        label: 'Security',
-                        icon: Icons.shield_rounded,
-                        isActive: false,
-                        onTap: () {},
-                      ),
-                    ],
+                  // ─── Desktop Navigation ───
+                  if (!isMobile)
+                    Row(
+                      children: [
+                        _NavLink(
+                          label: 'Home',
+                          icon: Icons.home_rounded,
+                          isActive: true,
+                          onTap: () {},
+                        ),
+                        const SizedBox(width: 6),
+                        _NavLink(
+                          label: 'Devices',
+                          icon: Icons.devices_rounded,
+                          isActive: false,
+                          onTap: () {},
+                        ),
+                        const SizedBox(width: 6),
+                        _NavLink(
+                          label: 'Analytics',
+                          icon: Icons.analytics_rounded,
+                          isActive: false,
+                          onTap: () {},
+                        ),
+                        const SizedBox(width: 6),
+                        _NavLink(
+                          label: 'Security',
+                          icon: Icons.shield_rounded,
+                          isActive: false,
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+
+                  const SizedBox(width: AppSpacing.gutter),
+
+                  // ─── Action Buttons ───
+                  ValueListenableBuilder<List<NotificationModel>>(
+                    valueListenable: NotificationService().notificationsNotifier,
+                    builder: (context, list, child) {
+                      final count = list.where((n) => !n.isRead).length;
+                      return _NotificationButton(
+                        onPressed: onNotificationsPressed,
+                        badgeCount: count,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  _HeaderIconButton(
+                    icon: Icons.settings_outlined,
+                    onPressed: onSettingsPressed,
+                    tooltip: 'Settings',
                   ),
 
-                const SizedBox(width: AppSpacing.gutter),
+                  const SizedBox(width: AppSpacing.stackSm),
 
-                // ─── Action Buttons ───
-                _NotificationButton(
-                  onPressed: onNotificationsPressed,
-                  badgeCount: 3,
-                ),
-                const SizedBox(width: 4),
-                _HeaderIconButton(
-                  icon: Icons.settings_outlined,
-                  onPressed: onSettingsPressed,
-                  tooltip: 'Settings',
-                ),
-
-                const SizedBox(width: AppSpacing.stackSm),
-
-                // ─── User Avatar ───
-                _UserAvatar(
-                  userName: userName,
-                  userImageUrl: userImageUrl,
-                ),
-              ],
+                  // ─── User Avatar ───
+                  _UserAvatar(
+                    userName: userName,
+                    userImageUrl: userImageUrl,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -292,6 +304,7 @@ class _NavLinkState extends State<_NavLink>
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
         child: AnimatedBuilder(
           animation: _hoverAnimation,
           builder: (context, child) {
@@ -375,6 +388,7 @@ class _HeaderIconButtonState extends State<_HeaderIconButton> {
         message: widget.tooltip,
         child: GestureDetector(
           onTap: widget.onPressed,
+          behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
@@ -460,6 +474,7 @@ class _NotificationButtonState extends State<_NotificationButton>
         message: 'Notifications',
         child: GestureDetector(
           onTap: widget.onPressed,
+          behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
