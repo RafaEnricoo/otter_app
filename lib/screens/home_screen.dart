@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../models/device_model.dart';
+import '../services/firebase_service.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -10,208 +12,257 @@ class HomeScreen extends StatelessWidget {
     final isMobile = MediaQuery.of(context).size.width < 768;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        children: [
-          SizedBox(height: isMobile ? 20 : AppSpacing.stackLg),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.containerPadding,
+    return ValueListenableBuilder<SmarthomeState?>(
+      valueListenable: FirebaseService().stateNotifier,
+      builder: (context, state, child) {
+        if (state == null) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(80.0),
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F4FE)),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ═══════════════════════════════════════════
-                // GREETING SECTION with time-based greeting
-                // ═══════════════════════════════════════════
-                _GreetingSection(),
+          );
+        }
 
-                const SizedBox(height: 28),
+        final sensor = state.sensor;
+        final perangkat = state.perangkat;
 
-                // ═══════════════════════════════════════════
-                // QUICK STATUS BANNER
-                // ═══════════════════════════════════════════
-                _QuickStatusBanner(),
+        // Calculate occupancy or active device count
+        int activeCount = 0;
+        if (perangkat.lampuKamar) activeCount++;
+        if (perangkat.lampuTamu) activeCount++;
+        if (perangkat.lampuKamarMandi) activeCount++;
+        if (perangkat.lampuDapur) activeCount++;
+        if (perangkat.kipasKamar) activeCount++;
+        if (perangkat.buzzerDapur) activeCount++;
+        if (perangkat.buzzerTamu) activeCount++;
+        if (perangkat.ledMerahDapur) activeCount++;
 
-                const SizedBox(height: 28),
-
-                // ═══════════════════════════════════════════
-                // SENSOR CARDS (Temperature & Humidity)
-                // ═══════════════════════════════════════════
-                _SectionHeader(title: 'Environment', trailing: 'Live'),
-                const SizedBox(height: 14),
-                Row(
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              SizedBox(height: isMobile ? 20 : AppSpacing.stackLg),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.containerPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _SensorCard(
-                        icon: Icons.device_thermostat_rounded,
-                        trend: Icons.trending_up_rounded,
-                        value: '24°C',
-                        label: 'Temperature',
-                        trendLabel: '+2° today',
-                        trendColor: Color(AppColors.secondaryContainer),
-                        accentColor: const Color(0xFFFF8A65),
+                    // ═══════════════════════════════════════════
+                    // GREETING SECTION with time-based greeting
+                    // ═══════════════════════════════════════════
+                    _GreetingSection(),
+
+                    const SizedBox(height: 28),
+
+                    // ═══════════════════════════════════════════
+                    // QUICK STATUS BANNER
+                    // ═══════════════════════════════════════════
+                    _QuickStatusBanner(
+                      activeCount: activeCount,
+                      isLocked: perangkat.kunciPintuRfid,
+                      hasSiren: perangkat.buzzerDapur || perangkat.buzzerTamu,
+                      hasGas: sensor.dapurAsapApi > 0,
+                    ),
+
+                    const SizedBox(height: 28),
+
+                    // ═══════════════════════════════════════════
+                    // SENSOR CARDS (Temperature & Humidity)
+                    // ═══════════════════════════════════════════
+                    _SectionHeader(title: 'Environment', trailing: 'Live'),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SensorCard(
+                            icon: Icons.device_thermostat_rounded,
+                            trend: Icons.trending_up_rounded,
+                            value: '${sensor.kamarSuhu.toStringAsFixed(1)}°C',
+                            label: 'Room Temp',
+                            trendLabel: 'Optimal',
+                            trendColor: const Color(0xFF81C784),
+                            accentColor: const Color(0xFFFF8A65),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.gutter),
+                        Expanded(
+                          child: _SensorCard(
+                            icon: Icons.water_drop_rounded,
+                            trend: Icons.trending_flat_rounded,
+                            value: '${sensor.kamarKelembapan.toInt()}%',
+                            label: 'Room Humidity',
+                            trendLabel: 'Stable',
+                            trendColor: const Color(0xFF00F4FE),
+                            accentColor: const Color(0xFF4FC3F7),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // ═══════════════════════════════════════════
+                    // FAVORITE DEVICES
+                    // ═══════════════════════════════════════════
+                    _SectionHeader(
+                      title: 'Favorite Devices',
+                      trailing: 'See All',
+                      onTrailingTap: () {},
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      height: isMobile ? 160 : 180,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        clipBehavior: Clip.none,
+                        children: [
+                          _DeviceCard(
+                            icon: Icons.lightbulb_rounded,
+                            title: 'Living Room',
+                            subtitle: perangkat.lampuTamu ? 'Lights • On' : 'Lights • Off',
+                            isActive: perangkat.lampuTamu,
+                            accentColor: const Color(0xFFFFD54F),
+                            width: isMobile ? screenWidth * 0.42 : 180,
+                            onTap: () {
+                              FirebaseService().updatePerangkat('lampu_tamu', !perangkat.lampuTamu);
+                            },
+                          ),
+                          const SizedBox(width: 12),
+                          _DeviceCard(
+                            icon: Icons.door_front_door_rounded,
+                            title: 'Main Door',
+                            subtitle: perangkat.kunciPintuRfid ? 'Locked' : 'Unlocked',
+                            isActive: perangkat.kunciPintuRfid,
+                            accentColor: Color(AppColors.secondaryContainer),
+                            badgeText: perangkat.kunciPintuRfid ? 'Secured' : 'Open',
+                            width: isMobile ? screenWidth * 0.42 : 180,
+                            onTap: () {
+                              FirebaseService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
+                            },
+                          ),
+                          const SizedBox(width: 12),
+                          _DeviceCard(
+                            icon: Icons.air_rounded,
+                            title: 'AC / Fan Room',
+                            subtitle: perangkat.kipasKamar 
+                                ? 'On • Speed ${perangkat.kecepatanKipas == 255 ? 3 : perangkat.kecepatanKipas == 170 ? 2 : 1}' 
+                                : 'Off',
+                            isActive: perangkat.kipasKamar,
+                            accentColor: const Color(0xFF81C784),
+                            width: isMobile ? screenWidth * 0.42 : 180,
+                            onTap: () {
+                              FirebaseService().updatePerangkat('kipas_kamar', !perangkat.kipasKamar);
+                            },
+                          ),
+                          const SizedBox(width: 12),
+                          _DeviceCard(
+                            icon: Icons.kitchen_rounded,
+                            title: 'Kitchen Light',
+                            subtitle: perangkat.lampuDapur ? 'On' : 'Off',
+                            isActive: perangkat.lampuDapur,
+                            accentColor: const Color(0xFFFFB74D),
+                            width: isMobile ? screenWidth * 0.42 : 180,
+                            onTap: () {
+                              FirebaseService().updatePerangkat('lampu_dapur', !perangkat.lampuDapur);
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.gutter),
-                    Expanded(
-                      child: _SensorCard(
-                        icon: Icons.water_drop_rounded,
-                        trend: Icons.trending_flat_rounded,
-                        value: '45%',
-                        label: 'Humidity',
-                        trendLabel: 'Stable',
-                        trendColor: Color(AppColors.tertiary),
-                        accentColor: const Color(0xFF4FC3F7),
-                      ),
+
+                    const SizedBox(height: 32),
+
+                    // ═══════════════════════════════════════════
+                    // ROOMS OVERVIEW
+                    // ═══════════════════════════════════════════
+                    _SectionHeader(title: 'Rooms', trailing: 'Manage'),
+                    const SizedBox(height: 14),
+                    GridView.count(
+                      crossAxisCount: isMobile ? 2 : 4,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: isMobile ? 1.6 : 1.8,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _RoomTile(
+                          icon: Icons.weekend_rounded,
+                          name: 'Living Room',
+                          deviceCount: 3, // Tamu light, buzzer, motion
+                          accentColor: const Color(0xFF81C784),
+                        ),
+                        _RoomTile(
+                          icon: Icons.bed_rounded,
+                          name: 'Bedroom',
+                          deviceCount: 2, // Room light, fan
+                          accentColor: const Color(0xFF9FA8DA),
+                        ),
+                        _RoomTile(
+                          icon: Icons.kitchen_rounded,
+                          name: 'Kitchen',
+                          deviceCount: 4, // Kitchen light, warning LED, buzzer, gas sensor
+                          accentColor: const Color(0xFFFFB74D),
+                        ),
+                        _RoomTile(
+                          icon: Icons.bathtub_rounded,
+                          name: 'Bathroom',
+                          deviceCount: 1, // Bathroom light
+                          accentColor: const Color(0xFF4DD0E1),
+                        ),
+                      ],
                     ),
+
+                    const SizedBox(height: 32),
+
+                    // ═══════════════════════════════════════════
+                    // ENERGY USAGE
+                    // ═══════════════════════════════════════════
+                    _SectionHeader(title: 'Energy Usage', trailing: 'This Week'),
+                    const SizedBox(height: 14),
+                    _EnergyCard(),
+
+                    const SizedBox(height: 32),
+
+                    // ═══════════════════════════════════════════
+                    // RECENT ACTIVITY
+                    // ═══════════════════════════════════════════
+                    _SectionHeader(title: 'Recent Activity'),
+                    const SizedBox(height: 14),
+                    _ActivityTile(
+                      icon: Icons.lock_rounded,
+                      title: perangkat.kunciPintuRfid ? 'Front door locked' : 'Front door unlocked',
+                      subtitle: 'Live Telemetry',
+                      accentColor: Color(AppColors.secondaryContainer),
+                    ),
+                    const SizedBox(height: 8),
+                    _ActivityTile(
+                      icon: Icons.lightbulb_outline_rounded,
+                      title: perangkat.lampuTamu ? 'Living room lights turned on' : 'Living room lights turned off',
+                      subtitle: 'Synced with Firebase',
+                      accentColor: const Color(0xFFFFD54F),
+                    ),
+                    const SizedBox(height: 8),
+                    _ActivityTile(
+                      icon: Icons.thermostat_rounded,
+                      title: 'Room Temp calibrated at ${sensor.kamarSuhu.toStringAsFixed(1)}°C',
+                      subtitle: 'Live Sensor Telemetry',
+                      accentColor: const Color(0xFFFF8A65),
+                    ),
+
+                    const SizedBox(height: 100),
                   ],
                 ),
-
-                const SizedBox(height: 32),
-
-                // ═══════════════════════════════════════════
-                // FAVORITE DEVICES
-                // ═══════════════════════════════════════════
-                _SectionHeader(
-                  title: 'Favorite Devices',
-                  trailing: 'See All',
-                  onTrailingTap: () {},
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: isMobile ? 160 : 180,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    clipBehavior: Clip.none,
-                    children: [
-                      _DeviceCard(
-                        icon: Icons.lightbulb_rounded,
-                        title: 'Living Room',
-                        subtitle: 'Lights • 80%',
-                        isActive: true,
-                        accentColor: const Color(0xFFFFD54F),
-                        width: isMobile ? screenWidth * 0.42 : 180,
-                      ),
-                      const SizedBox(width: 12),
-                      _DeviceCard(
-                        icon: Icons.door_front_door_rounded,
-                        title: 'Main Door',
-                        subtitle: 'Locked',
-                        isActive: true,
-                        accentColor: Color(AppColors.secondaryContainer),
-                        badgeText: 'Secured',
-                        width: isMobile ? screenWidth * 0.42 : 180,
-                      ),
-                      const SizedBox(width: 12),
-                      _DeviceCard(
-                        icon: Icons.air_rounded,
-                        title: 'AC Bedroom',
-                        subtitle: 'Off',
-                        isActive: false,
-                        accentColor: const Color(0xFF90A4AE),
-                        width: isMobile ? screenWidth * 0.42 : 180,
-                      ),
-                      const SizedBox(width: 12),
-                      _DeviceCard(
-                        icon: Icons.speaker_rounded,
-                        title: 'Smart Speaker',
-                        subtitle: 'Playing',
-                        isActive: true,
-                        accentColor: const Color(0xFFCE93D8),
-                        width: isMobile ? screenWidth * 0.42 : 180,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // ═══════════════════════════════════════════
-                // ROOMS OVERVIEW
-                // ═══════════════════════════════════════════
-                _SectionHeader(title: 'Rooms', trailing: 'Manage'),
-                const SizedBox(height: 14),
-                GridView.count(
-                  crossAxisCount: isMobile ? 2 : 4,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: isMobile ? 1.6 : 1.8,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: const [
-                    _RoomTile(
-                      icon: Icons.weekend_rounded,
-                      name: 'Living Room',
-                      deviceCount: 5,
-                      accentColor: Color(0xFF81C784),
-                    ),
-                    _RoomTile(
-                      icon: Icons.bed_rounded,
-                      name: 'Bedroom',
-                      deviceCount: 3,
-                      accentColor: Color(0xFF9FA8DA),
-                    ),
-                    _RoomTile(
-                      icon: Icons.kitchen_rounded,
-                      name: 'Kitchen',
-                      deviceCount: 4,
-                      accentColor: Color(0xFFFFB74D),
-                    ),
-                    _RoomTile(
-                      icon: Icons.bathtub_rounded,
-                      name: 'Bathroom',
-                      deviceCount: 2,
-                      accentColor: Color(0xFF4DD0E1),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 32),
-
-                // ═══════════════════════════════════════════
-                // ENERGY USAGE
-                // ═══════════════════════════════════════════
-                _SectionHeader(title: 'Energy Usage', trailing: 'This Week'),
-                const SizedBox(height: 14),
-                _EnergyCard(),
-
-                const SizedBox(height: 32),
-
-                // ═══════════════════════════════════════════
-                // RECENT ACTIVITY
-                // ═══════════════════════════════════════════
-                _SectionHeader(title: 'Recent Activity'),
-                const SizedBox(height: 14),
-                _ActivityTile(
-                  icon: Icons.lock_rounded,
-                  title: 'Front door locked',
-                  subtitle: '2 minutes ago',
-                  accentColor: Color(AppColors.secondaryContainer),
-                ),
-                const SizedBox(height: 8),
-                _ActivityTile(
-                  icon: Icons.lightbulb_outline_rounded,
-                  title: 'Living room lights turned on',
-                  subtitle: '15 minutes ago',
-                  accentColor: const Color(0xFFFFD54F),
-                ),
-                const SizedBox(height: 8),
-                _ActivityTile(
-                  icon: Icons.thermostat_rounded,
-                  title: 'Temperature adjusted to 24°C',
-                  subtitle: '1 hour ago',
-                  accentColor: const Color(0xFFFF8A65),
-                ),
-
-                const SizedBox(height: 100),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -269,39 +320,63 @@ class _GreetingSection extends StatelessWidget {
 // QUICK STATUS BANNER
 // ═══════════════════════════════════════════════════════════
 class _QuickStatusBanner extends StatelessWidget {
+  final int activeCount;
+  final bool isLocked;
+  final bool hasSiren;
+  final bool hasGas;
+
+  const _QuickStatusBanner({
+    required this.activeCount,
+    required this.isLocked,
+    required this.hasSiren,
+    required this.hasGas,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final bool isAlert = hasGas || hasSiren;
+    
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(AppColors.secondaryContainer).withOpacity(0.08),
-            Color(AppColors.primary).withOpacity(0.04),
-          ],
+          colors: isAlert
+              ? [
+                  const Color(AppColors.error).withOpacity(0.12),
+                  const Color(AppColors.error).withOpacity(0.04),
+                ]
+              : [
+                  Color(AppColors.secondaryContainer).withOpacity(0.08),
+                  Color(AppColors.primary).withOpacity(0.04),
+                ],
         ),
         border: Border.all(
-          color: Color(AppColors.secondaryContainer).withOpacity(0.15),
+          color: isAlert
+              ? const Color(AppColors.error).withOpacity(0.35)
+              : Color(AppColors.secondaryContainer).withOpacity(0.15),
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          // Shield icon
+          // Shield / Warning icon
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: Color(AppColors.secondaryContainer).withOpacity(0.12),
+              color: isAlert
+                  ? const Color(AppColors.error).withOpacity(0.12)
+                  : Color(AppColors.secondaryContainer).withOpacity(0.12),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
-                Icons.verified_user_rounded,
-                color: Color(AppColors.secondaryContainer),
+                isAlert ? Icons.warning_rounded : Icons.verified_user_rounded,
+                color: isAlert ? const Color(AppColors.error) : Color(AppColors.secondaryContainer),
                 size: 22,
               ),
             ),
@@ -312,17 +387,25 @@ class _QuickStatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Home is secure',
+                  hasGas 
+                      ? 'CRITICAL: Gas/Smoke detected!'
+                      : hasSiren
+                          ? 'EMERGENCY: Siren Active!'
+                          : 'Home is secure',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(AppColors.onSurface),
+                    color: isAlert ? const Color(AppColors.error) : Color(AppColors.onSurface),
                     letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '6 devices active • All doors locked',
+                  hasGas
+                      ? 'Kitchen gas levels are abnormal. Act immediately!'
+                      : hasSiren
+                          ? 'Emergency sirens are active.'
+                          : '$activeCount devices active • RFID lock ${isLocked ? "engaged" : "released"}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
@@ -338,10 +421,10 @@ class _QuickStatusBanner extends StatelessWidget {
             height: 10,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF66BB6A),
+              color: isAlert ? const Color(AppColors.error) : const Color(0xFF66BB6A),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF66BB6A).withOpacity(0.5),
+                  color: (isAlert ? const Color(AppColors.error) : const Color(0xFF66BB6A)).withOpacity(0.5),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),
@@ -650,6 +733,7 @@ class _DeviceCard extends StatefulWidget {
   final Color accentColor;
   final String? badgeText;
   final double width;
+  final VoidCallback? onTap;
 
   const _DeviceCard({
     required this.icon,
@@ -659,6 +743,7 @@ class _DeviceCard extends StatefulWidget {
     required this.accentColor,
     this.badgeText,
     required this.width,
+    this.onTap,
   });
 
   @override
@@ -672,7 +757,10 @@ class _DeviceCardState extends State<_DeviceCard> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
-      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        if (widget.onTap != null) widget.onTap!();
+      },
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedScale(
         scale: _isPressed ? 0.95 : 1.0,

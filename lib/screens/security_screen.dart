@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
+import '../models/device_model.dart';
+import '../services/firebase_service.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -12,9 +14,7 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStateMixin {
-  // ─── Security States ───
-  bool _isAlarmActive = false;
-  bool _isUnlocked = false;
+  // ─── Security Settings ───
   bool _isAutoLockOn = true;
   String _activeFilter = 'All'; // 'All', 'Alerts', 'Routine'
   bool _isLogExpanded = false;
@@ -29,67 +29,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
   late AnimationController _pulseController;         // Soundwave concentric pulse
   late AnimationController _sirenFlashController;    // Edge flash red vignette
   late AnimationController _biometricScannerController; // Biometric scan line sliding
-
-  // ─── Simulated Log Database ───
-  final List<_SecurityLogItem> _allLogs = [
-    _SecurityLogItem(
-      title: 'Motion Detected (Backyard)',
-      subtitle: 'Unrecognized movement recorded by Cam-04. Alert sent to primary device.',
-      timestamp: '10:42 PM',
-      type: _LogType.alert,
-      icon: Icons.sensor_door_rounded,
-    ),
-    _SecurityLogItem(
-      title: 'Front Door Unlocked',
-      subtitle: 'RFID tag \'Alex_Keys\' authenticated successfully.',
-      timestamp: '06:15 PM',
-      type: _LogType.routine,
-      icon: Icons.vpn_key_rounded,
-    ),
-    _SecurityLogItem(
-      title: 'System Armed (Away Mode)',
-      subtitle: 'Scheduled automation engaged. All external sensors active.',
-      timestamp: '08:00 AM',
-      type: _LogType.routine,
-      icon: Icons.shield_rounded,
-    ),
-    _SecurityLogItem(
-      title: 'Low Battery (Garage Sensor)',
-      subtitle: 'Sensor battery at 15%. Recommend replacement soon.',
-      timestamp: 'Yesterday',
-      type: _LogType.warning,
-      icon: Icons.battery_alert_rounded,
-    ),
-    // Expanded Logs
-    _SecurityLogItem(
-      title: 'Backyard Cam-04 Recalibrated',
-      subtitle: 'Auto-exposure values balanced due to dusk transition.',
-      timestamp: 'Yesterday',
-      type: _LogType.routine,
-      icon: Icons.video_camera_back_rounded,
-    ),
-    _SecurityLogItem(
-      title: 'Fire Alarm System Self-Test',
-      subtitle: 'All smoke detector sirens verified online and responsive.',
-      timestamp: '2 days ago',
-      type: _LogType.routine,
-      icon: Icons.local_fire_department_rounded,
-    ),
-    _SecurityLogItem(
-      title: 'Emergency Contacts Updated',
-      subtitle: 'Primary user updated primary phone numbers inside application portal.',
-      timestamp: '3 days ago',
-      type: _LogType.routine,
-      icon: Icons.contact_phone_rounded,
-    ),
-    _SecurityLogItem(
-      title: 'RFID Database Synchronized',
-      subtitle: 'Local gateway synced 5 keys with secure cloud storage.',
-      timestamp: '4 days ago',
-      type: _LogType.routine,
-      icon: Icons.sync_lock_rounded,
-    ),
-  ];
 
   @override
   void initState() {
@@ -124,15 +63,15 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
   }
 
   // ─── Custom Alarm Siren Trigger ───
-  void _toggleAlarm() {
-    if (_isAlarmActive) {
+  void _toggleAlarm(bool isCurrentlyActive) {
+    if (isCurrentlyActive) {
       // Disarm Alarm
       HapticFeedback.heavyImpact();
       _sirenFlashController.stop();
       _sirenFlashController.reset();
-      setState(() {
-        _isAlarmActive = false;
-      });
+      FirebaseService().updatePerangkat('buzzer_tamu', false);
+      FirebaseService().updatePerangkat('buzzer_dapur', false);
+      FirebaseService().updatePerangkat('led_merah_dapur', false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('🚨 Siren disarmed successfully. System in standby mode.'),
@@ -143,25 +82,27 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
       // Arm / Trigger active Alarm
       HapticFeedback.vibrate();
       _sirenFlashController.repeat(reverse: true);
-      setState(() {
-        _isAlarmActive = true;
-      });
-      // Start a continuous vibration sequence
+      FirebaseService().updatePerangkat('buzzer_tamu', true);
+      FirebaseService().updatePerangkat('buzzer_dapur', true);
+      FirebaseService().updatePerangkat('led_merah_dapur', true);
       _triggerContinuousAlarmHaptics();
     }
   }
 
   // Periodic vibration when emergency alarm is active
   void _triggerContinuousAlarmHaptics() async {
-    while (_isAlarmActive) {
+    while (mounted) {
+      final state = FirebaseService().stateNotifier.value;
+      if (state == null) break;
+      final active = state.perangkat.buzzerTamu || state.perangkat.buzzerDapur;
+      if (!active) break;
       await Future.delayed(const Duration(milliseconds: 900));
-      if (!_isAlarmActive) break;
       HapticFeedback.vibrate();
     }
   }
 
   // ─── Biometric Scanner Unlock Trigger ───
-  void _triggerBiometricUnlock() {
+  void _triggerBiometricUnlock(bool currentLockedState) {
     HapticFeedback.mediumImpact();
     setState(() {
       _isBiometricScanning = true;
@@ -184,20 +125,23 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
         HapticFeedback.mediumImpact();
         setState(() {
           _isBiometricScanning = false;
-          _isUnlocked = !_isUnlocked;
         });
 
+        // Toggle state in Firebase
+        final nextLockedState = !currentLockedState;
+        FirebaseService().updatePerangkat('kunci_pintu_rfid', nextLockedState);
+
         // Trigger Auto-Lock timers if configured
-        if (_isUnlocked && _isAutoLockOn) {
+        if (!nextLockedState && _isAutoLockOn) {
           _triggerAutoLockTimer();
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isUnlocked 
-                ? '🔓 Front door unlocked successfully!' 
-                : '🔒 Front door locked successfully!'),
-            backgroundColor: _isUnlocked 
+            content: Text(!nextLockedState 
+                ? '🔓 Pintu utama berhasil dibuka!' 
+                : '🔒 Pintu utama berhasil dikunci!'),
+            backgroundColor: !nextLockedState 
                 ? const Color(0xFF00F4FE).withOpacity(0.12)
                 : const Color(AppColors.surfaceContainerHigh),
           ),
@@ -206,20 +150,19 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     });
   }
 
-  // Simulates automatic locking after 5 seconds for demonstration,
-  // indicating it engages in 5 minutes in a production scenario.
   void _triggerAutoLockTimer() {
     Future.delayed(const Duration(seconds: 8), () {
-      if (mounted && _isUnlocked && _isAutoLockOn) {
-        HapticFeedback.mediumImpact();
-        setState(() {
-          _isUnlocked = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🔒 Front Door secured automatically (Auto-Lock active).'),
-          ),
-        );
+      if (mounted && _isAutoLockOn) {
+        final state = FirebaseService().stateNotifier.value;
+        if (state != null && !state.perangkat.kunciPintuRfid) {
+          HapticFeedback.mediumImpact();
+          FirebaseService().updatePerangkat('kunci_pintu_rfid', true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('🔒 Front Door secured automatically (Auto-Lock active).'),
+            ),
+          );
+        }
       }
     });
   }
@@ -229,124 +172,183 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 768;
 
-    // Filter event log list based on selected filter
-    final List<_SecurityLogItem> filteredLogs = _allLogs.where((log) {
-      if (_activeFilter == 'All') return true;
-      if (_activeFilter == 'Alerts') return log.type == _LogType.alert || log.type == _LogType.warning;
-      if (_activeFilter == 'Routine') return log.type == _LogType.routine;
-      return true;
-    }).toList();
-
-    // Limit active visible items depending on expand/collapse state
-    final int displayCount = _isLogExpanded 
-        ? filteredLogs.length 
-        : math.min(filteredLogs.length, 4);
-
-    return Stack(
-      children: [
-        // ─── Core Content Scroll ───
-        SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.containerPadding,
-              vertical: isMobile ? 16.0 : AppSpacing.stackMd,
+    return ValueListenableBuilder<SmarthomeState?>(
+      valueListenable: FirebaseService().stateNotifier,
+      builder: (context, state, child) {
+        if (state == null) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F4FE)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Header Row
-                _buildHeader(isMobile),
-                
-                SizedBox(height: isMobile ? 24.0 : AppSpacing.stackLg),
+          );
+        }
 
-                // 2. Bento Responsive Layout
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final double width = constraints.maxWidth;
+        final sensor = state.sensor;
+        final perangkat = state.perangkat;
+
+        final bool isAlarmActive = perangkat.buzzerTamu || perangkat.buzzerDapur;
+        final bool isUnlocked = !perangkat.kunciPintuRfid;
+
+        // Sync siren flash vignette reactive loop
+        if (isAlarmActive) {
+          if (!_sirenFlashController.isAnimating) {
+            _sirenFlashController.repeat(reverse: true);
+          }
+        } else {
+          if (_sirenFlashController.isAnimating) {
+            _sirenFlashController.stop();
+            _sirenFlashController.reset();
+          }
+        }
+
+        // Live telemetry actions log
+        final List<_SecurityLogItem> dynamicSecurityLogs = [
+          if (sensor.dapurAsapApi > 0)
+            _SecurityLogItem(
+              title: 'Suhu Dapur atau Asap Tinggi!',
+              subtitle: 'Kadar gas dapur terdeteksi tidak wajar. Mengaktifkan sistem proteksi.',
+              timestamp: 'LIVE',
+              type: _LogType.alert,
+              icon: Icons.local_fire_department_rounded,
+            ),
+          if (sensor.tamuGerak)
+            _SecurityLogItem(
+              title: 'Deteksi Gerakan (Ruang Tamu)',
+              subtitle: 'Sensor gerak PIR mendeteksi pergerakan di ruang utama.',
+              timestamp: 'LIVE',
+              type: _LogType.alert,
+              icon: Icons.sensors_rounded,
+            ),
+          _SecurityLogItem(
+            title: perangkat.kunciPintuRfid ? 'RFID Engaged (Locked)' : 'RFID Released (Unlocked)',
+            subtitle: perangkat.kunciPintuRfid 
+                ? "Sistem penguncian RFID pintu utama aktif dan aman." 
+                : "RFID pintu utama dirilis menggunakan kartu atau biometrik.",
+            timestamp: 'Updated',
+            type: _LogType.routine,
+            icon: Icons.vpn_key_rounded,
+          ),
+          if (perangkat.buzzerTamu || perangkat.buzzerDapur)
+            _SecurityLogItem(
+              title: 'Megaphone Siren System Active',
+              subtitle: 'Siren keamanan darurat dipicu secara manual atau sistem.',
+              timestamp: 'Active',
+              type: _LogType.warning,
+              icon: Icons.campaign_rounded,
+            ),
+        ];
+
+        // Filter event log list based on selected filter
+        final List<_SecurityLogItem> filteredLogs = dynamicSecurityLogs.where((log) {
+          if (_activeFilter == 'All') return true;
+          if (_activeFilter == 'Alerts') return log.type == _LogType.alert || log.type == _LogType.warning;
+          if (_activeFilter == 'Routine') return log.type == _LogType.routine;
+          return true;
+        }).toList();
+
+        final int displayCount = _isLogExpanded 
+            ? filteredLogs.length 
+            : math.min(filteredLogs.length, 4);
+
+        return Stack(
+          children: [
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.containerPadding,
+                  vertical: isMobile ? 16.0 : AppSpacing.stackMd,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(isMobile, isAlarmActive),
                     
-                    if (width > 850) {
-                      // Desktop Side-by-Side 2 Column Bento Grid
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Left Column: Alarm Siren & RFID Controls (5/12 cols)
-                          Expanded(
-                            flex: 5,
-                            child: Column(
-                              children: [
-                                _buildBuzzerAlarmCard(),
-                                const SizedBox(height: AppSpacing.gutter),
-                                _buildRFIDControlCard(),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.gutter),
-                          // Right Column: Log Event History (7/12 cols)
-                          Expanded(
-                            flex: 7,
-                            child: _buildEventLogCard(filteredLogs, displayCount),
-                          ),
-                        ],
-                      );
-                    } else {
-                      // Mobile/Tablet Vertical Stack Bento Grid
-                      return Column(
-                        children: [
-                          _buildBuzzerAlarmCard(),
-                          const SizedBox(height: AppSpacing.gutter),
-                          _buildRFIDControlCard(),
-                          const SizedBox(height: AppSpacing.gutter),
-                          _buildEventLogCard(filteredLogs, displayCount),
-                        ],
-                      );
-                    }
+                    SizedBox(height: isMobile ? 24.0 : AppSpacing.stackLg),
+
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double width = constraints.maxWidth;
+                        
+                        if (width > 850) {
+                          // Desktop Grid
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: Column(
+                                  children: [
+                                    _buildBuzzerAlarmCard(isAlarmActive),
+                                    const SizedBox(height: AppSpacing.gutter),
+                                    _buildRFIDControlCard(perangkat.kunciPintuRfid, isUnlocked),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.gutter),
+                              Expanded(
+                                flex: 7,
+                                child: _buildEventLogCard(filteredLogs, displayCount),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Mobile Layout
+                          return Column(
+                            children: [
+                              _buildBuzzerAlarmCard(isAlarmActive),
+                              const SizedBox(height: AppSpacing.gutter),
+                              _buildRFIDControlCard(perangkat.kunciPintuRfid, isUnlocked),
+                              const SizedBox(height: AppSpacing.gutter),
+                              _buildEventLogCard(filteredLogs, displayCount),
+                            ],
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 60),
+                  ],
+                ),
+              ),
+            ),
+
+            // ─── Flashing Siren Vignette ───
+            if (isAlarmActive)
+              IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _sirenFlashController,
+                  builder: (context, _) {
+                    return Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(AppColors.error).withOpacity(_sirenFlashController.value * 0.45),
+                          width: 24.0,
+                        ),
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.transparent,
+                            const Color(AppColors.error).withOpacity(_sirenFlashController.value * 0.18),
+                          ],
+                          stops: const [0.55, 1.0],
+                        ),
+                      ),
+                    );
                   },
                 ),
-                const SizedBox(height: 60),
-              ],
-            ),
-          ),
-        ),
+              ),
 
-        // ─── Full-screen Flashing Siren Vignette ───
-        if (_isAlarmActive)
-          IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _sirenFlashController,
-              builder: (context, _) {
-                return Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: const Color(AppColors.error).withOpacity(_sirenFlashController.value * 0.45),
-                      width: 24.0,
-                    ),
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.transparent,
-                        const Color(AppColors.error).withOpacity(_sirenFlashController.value * 0.18),
-                      ],
-                      stops: const [0.55, 1.0],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-        // ─── Biometric Scanner Glass Simulation Overlay ───
-        if (_isBiometricScanning)
-          _buildBiometricScannerOverlay(),
-      ],
+            // ─── Biometric Scanner Glass Overlay ───
+            if (_isBiometricScanning)
+              _buildBiometricScannerOverlay(perangkat.kunciPintuRfid),
+          ],
+        );
+      },
     );
   }
 
-  // ─────────────────────────────────────────────────
-  // A. Header Widget
-  // ─────────────────────────────────────────────────
-  Widget _buildHeader(bool isMobile) {
+  Widget _buildHeader(bool isMobile, bool isAlarmActive) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.end,
@@ -368,20 +370,19 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
               const SizedBox(height: 6),
               Row(
                 children: [
-                  // Pulsing status LED dot
                   _BlinkingLedDot(
-                    color: _isAlarmActive 
+                    color: isAlarmActive 
                         ? const Color(AppColors.error) 
                         : const Color(0xFF00F4FE),
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _isAlarmActive ? 'CRITICAL: EMERGENCY ACTIVE' : 'System Armed & Monitoring',
+                    isAlarmActive ? 'CRITICAL: EMERGENCY ACTIVE' : 'System Armed & Monitoring',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: _isAlarmActive 
+                      color: isAlarmActive 
                           ? const Color(AppColors.error) 
                           : const Color(AppColors.onSurfaceVariant).withOpacity(0.7),
                     ),
@@ -391,7 +392,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
             ],
           ),
         ),
-        // Online Pll / Battery level Indicators
         if (!isMobile)
           Row(
             children: [
@@ -404,43 +404,17 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     color: Colors.white.withOpacity(0.06),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
-                    const Icon(Icons.wifi_rounded, size: 14, color: Color(0xFF00F4FE)),
-                    const SizedBox(width: 6),
+                    Icon(Icons.wifi_rounded, size: 14, color: Color(0xFF00F4FE)),
+                    SizedBox(width: 6),
                     Text(
-                      'Online',
+                      'Firebase Online',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: const Color(AppColors.onSurfaceVariant).withOpacity(0.8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: const Color(AppColors.surfaceContainerLow),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.06),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.battery_full_rounded, size: 14, color: Color(0xFF00F4FE)),
-                    const SizedBox(width: 6),
-                    Text(
-                      '100%',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(AppColors.onSurfaceVariant).withOpacity(0.8),
+                        color: Colors.white70,
                       ),
                     ),
                   ],
@@ -452,15 +426,11 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     );
   }
 
-  // ─────────────────────────────────────────────────
-  // B. Bento Card 1: Emergency System Alarm Button
-  // ─────────────────────────────────────────────────
-  Widget _buildBuzzerAlarmCard() {
+  Widget _buildBuzzerAlarmCard(bool isAlarmActive) {
     return _SecurityGlassCard(
-      glowColor: _isAlarmActive ? const Color(AppColors.error).withOpacity(0.12) : null,
+      glowColor: isAlarmActive ? const Color(AppColors.error).withOpacity(0.12) : null,
       child: Stack(
         children: [
-          // Dynamic red background glow overlay
           Positioned(
             top: 0,
             left: 0,
@@ -472,7 +442,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    _isAlarmActive 
+                    isAlarmActive 
                         ? const Color(AppColors.error).withOpacity(0.12) 
                         : const Color(AppColors.error).withOpacity(0.02),
                     Colors.transparent,
@@ -484,7 +454,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
           
           Column(
             children: [
-              // Card Title Headers
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -492,12 +461,12 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     children: [
                       Icon(
                         Icons.warning_amber_rounded,
-                        color: _isAlarmActive ? const Color(AppColors.error) : const Color(AppColors.tertiary),
+                        color: isAlarmActive ? const Color(AppColors.error) : const Color(AppColors.tertiary),
                         size: 20,
                       ),
                       const SizedBox(width: 10),
                       const Text(
-                        'EMERGENCY SYSTEM',
+                        'EMERGENCY SIREN SYSTEM',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 10,
@@ -512,22 +481,22 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
-                      color: _isAlarmActive 
+                      color: isAlarmActive 
                           ? const Color(AppColors.error).withOpacity(0.15) 
                           : const Color(AppColors.surfaceContainerHigh),
                       border: Border.all(
-                        color: _isAlarmActive 
+                        color: isAlarmActive 
                             ? const Color(AppColors.error).withOpacity(0.3) 
                             : Colors.white.withOpacity(0.06),
                       ),
                     ),
                     child: Text(
-                      _isAlarmActive ? '🚨 TRIGGERED' : 'Standby',
+                      isAlarmActive ? '🚨 TRIGGERED' : 'Standby',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
-                        color: _isAlarmActive ? const Color(AppColors.error) : const Color(AppColors.onSurfaceVariant),
+                        color: isAlarmActive ? const Color(AppColors.error) : const Color(AppColors.onSurfaceVariant),
                       ),
                     ),
                   ),
@@ -536,24 +505,22 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
               
               const SizedBox(height: 32),
 
-              // Concentric Pulsing Soundwave Alarm Button
               Center(
                 child: GestureDetector(
-                  onTap: _toggleAlarm,
+                  onTap: () => _toggleAlarm(isAlarmActive),
                   child: SizedBox(
                     width: 180,
                     height: 180,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Concentric waves
                         AnimatedBuilder(
                           animation: _pulseController,
                           builder: (context, child) {
                             return CustomPaint(
                               painter: _SoundwavePainter(
                                 progress: _pulseController.value,
-                                color: _isAlarmActive 
+                                color: isAlarmActive 
                                     ? const Color(AppColors.error) 
                                     : const Color(AppColors.error).withOpacity(0.5),
                               ),
@@ -562,14 +529,13 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                           },
                         ),
                         
-                        // Central Solid Alarm Button Ring
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _isAlarmActive 
+                            color: isAlarmActive 
                                 ? const Color(AppColors.errorContainer) 
                                 : const Color(AppColors.surfaceContainerHigh),
                             border: Border.all(
@@ -578,8 +544,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(AppColors.error).withOpacity(_isAlarmActive ? 0.45 : 0.08),
-                                blurRadius: _isAlarmActive ? 24 : 10,
+                                color: const Color(AppColors.error).withOpacity(isAlarmActive ? 0.45 : 0.08),
+                                blurRadius: isAlarmActive ? 24 : 10,
                               ),
                             ],
                           ),
@@ -589,11 +555,11 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                               Icon(
                                 Icons.campaign_rounded,
                                 size: 36,
-                                color: _isAlarmActive ? const Color(AppColors.onSurface) : const Color(AppColors.error),
+                                color: isAlarmActive ? const Color(AppColors.onSurface) : const Color(AppColors.error),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _isAlarmActive ? 'DISARM' : 'ALARM',
+                                isAlarmActive ? 'DISARM' : 'PANIC ALARM',
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 11,
@@ -611,9 +577,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
               ),
 
               const SizedBox(height: 24),
-
               const Text(
-                'Triggers high-decibel siren and notifies emergency contacts.',
+                'Mengaktifkan sirine darurat diseluruh penjuru rumah.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Inter',
@@ -621,7 +586,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   color: Color(AppColors.onSurfaceVariant),
                 ),
               ),
-              const SizedBox(height: 4),
             ],
           ),
         ],
@@ -629,15 +593,11 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     );
   }
 
-  // ─────────────────────────────────────────────────
-  // C. Bento Card 2: Front Door RFID Controller
-  // ─────────────────────────────────────────────────
-  Widget _buildRFIDControlCard() {
+  Widget _buildRFIDControlCard(bool kunciPintuRfid, bool isUnlocked) {
     return _SecurityGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row Header Lock details
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -654,7 +614,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       ),
                     ),
                     child: Icon(
-                      _isUnlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+                      isUnlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
                       color: const Color(0xFF00F4FE),
                       size: 18,
                     ),
@@ -664,7 +624,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'FRONT DOOR RFID',
+                        'KUNCI PINTU RFID',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 10,
@@ -675,7 +635,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Status: ${_isUnlocked ? 'Unlocked' : 'Locked'}',
+                        'Status: ${isUnlocked ? 'Unlocked' : 'Locked'}',
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 13,
@@ -687,16 +647,15 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   ),
                 ],
               ),
-              // Lock indicator status LED
               Container(
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _isUnlocked ? const Color(0xFF00F4FE) : const Color(AppColors.error),
+                  color: isUnlocked ? const Color(0xFF00F4FE) : const Color(AppColors.error),
                   boxShadow: [
                     BoxShadow(
-                      color: (_isUnlocked ? const Color(0xFF00F4FE) : const Color(AppColors.error)).withOpacity(0.6),
+                      color: (isUnlocked ? const Color(0xFF00F4FE) : const Color(AppColors.error)).withOpacity(0.6),
                       blurRadius: 8,
                     )
                   ],
@@ -707,7 +666,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
           const SizedBox(height: 24),
 
-          // Auto-Lock toggle sub-card
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -734,7 +692,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Engages after 5m',
+                      'Kunci pintu setelah 8 detik',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 10,
@@ -744,7 +702,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   ],
                 ),
                 
-                // Custom stateful Switch toggle sliding pill
                 GestureDetector(
                   onTap: () {
                     HapticFeedback.lightImpact();
@@ -803,9 +760,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
           const SizedBox(height: 18),
 
-          // Biometric Scan Unlock Button
           GestureDetector(
-            onTap: _triggerBiometricUnlock,
+            onTap: () => _triggerBiometricUnlock(kunciPintuRfid),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -827,7 +783,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _isUnlocked ? 'SECURE LOCK DOOR' : 'EMERGENCY UNLOCK',
+                    kunciPintuRfid ? 'EMERGENCY BIOMETRIC UNLOCK' : 'SECURE RFID LOCK',
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 12,
@@ -845,15 +801,11 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     );
   }
 
-  // ─────────────────────────────────────────────────
-  // D. Bento Card 3: Security Event History Log
-  // ─────────────────────────────────────────────────
   Widget _buildEventLogCard(List<_SecurityLogItem> filteredLogs, int displayCount) {
     return _SecurityGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Event log Card Header with popup filters
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -867,7 +819,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 ),
               ),
               
-              // Filter Popup selector trigger
               PopupMenuButton<String>(
                 icon: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -914,7 +865,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
           const SizedBox(height: 18),
 
-          // Log list with height-changing animations
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -926,7 +876,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
               itemBuilder: (context, index) {
                 final _SecurityLogItem log = filteredLogs[index];
                 
-                // Styling depends on log type (Alert, Warning, Routine)
                 final bool isAlert = log.type == _LogType.alert;
                 final bool isWarning = log.type == _LogType.warning;
                 
@@ -953,7 +902,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   ),
                   child: Row(
                     children: [
-                      // Red Accent left boundary indicator
                       Container(
                         width: 3.5,
                         height: 72,
@@ -961,7 +909,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       ),
                       const SizedBox(width: 14),
                       
-                      // Icon Indicator
                       Icon(
                         log.icon,
                         size: 20,
@@ -974,7 +921,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       
                       const SizedBox(width: 14),
                       
-                      // Details texts
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
@@ -1032,7 +978,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
           const SizedBox(height: 12),
 
-          // View archive expand trigger
           if (filteredLogs.length > 4)
             GestureDetector(
               onTap: () {
@@ -1061,10 +1006,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     );
   }
 
-  // ─────────────────────────────────────────────────
-  // E. Biometric Scanner Fullscreen Modal Overlay
-  // ─────────────────────────────────────────────────
-  Widget _buildBiometricScannerOverlay() {
+  Widget _buildBiometricScannerOverlay(bool currentLockedState) {
     return Positioned.fill(
       child: Container(
         color: Colors.black.withOpacity(0.75),
@@ -1094,14 +1036,12 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 10),
-                  // Biometric Scanning visual line container
                   SizedBox(
                     width: 110,
                     height: 110,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Static glowing ring boundary
                         Container(
                           width: 110,
                           height: 110,
@@ -1114,18 +1054,15 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                           ),
                         ),
                         
-                        // Fingerprint main active center
                         const Icon(
                           Icons.fingerprint_rounded,
                           size: 72,
                           color: Color(0xFF00F4FE),
                         ),
 
-                        // Moving scanning line overlay
                         AnimatedBuilder(
                           animation: _biometricScannerController,
                           builder: (context, _) {
-                            // Translate scan line between top and bottom offsets (-40 to 40)
                             final double translation = -36.0 + (_biometricScannerController.value * 72.0);
                             return Transform.translate(
                               offset: Offset(0, translation),
@@ -1172,7 +1109,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
                   const SizedBox(height: 14),
 
-                  // Horizontal mini scanning track bar
                   Container(
                     width: 180,
                     height: 4,
@@ -1210,9 +1146,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
   }
 }
 
-// ─────────────────────────────────────────────────
-// BLINKING LED DOT SIMULATOR
-// ─────────────────────────────────────────────────
 class _BlinkingLedDot extends StatefulWidget {
   final Color color;
   const _BlinkingLedDot({required this.color});
@@ -1269,9 +1202,6 @@ class _BlinkingLedDotState extends State<_BlinkingLedDot> with SingleTickerProvi
   }
 }
 
-// ─────────────────────────────────────────────────
-// SOUNDWAVE PAINTER VECTOR
-// ─────────────────────────────────────────────────
 class _SoundwavePainter extends CustomPainter {
   final double progress;
   final Color color;
@@ -1287,12 +1217,10 @@ class _SoundwavePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    // Draw three concentric dynamic circles
     for (int i = 0; i < 3; i++) {
       double p = (progress + i / 3.0) % 1.0;
       double radius = p * maxRadius;
       
-      // Arc opacity drops as circles expand
       double opacity = (1.0 - p).clamp(0.0, 1.0);
       paint.color = color.withOpacity(opacity * 0.35);
       
@@ -1306,9 +1234,6 @@ class _SoundwavePainter extends CustomPainter {
   }
 }
 
-// ─────────────────────────────────────────────────
-// UNIFORM SECURITY GLASS CONTAINER
-// ─────────────────────────────────────────────────
 class _SecurityGlassCard extends StatelessWidget {
   final Widget child;
   final Color? glowColor;
@@ -1348,7 +1273,6 @@ class _SecurityGlassCard extends StatelessWidget {
   }
 }
 
-// ─── Helpers Structs ───
 enum _LogType { alert, routine, warning }
 
 class _SecurityLogItem {

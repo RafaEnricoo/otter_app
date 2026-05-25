@@ -1,0 +1,31 @@
+{
+  "otter_smarthome": {
+    "sensor": {
+      "cahaya_atap": 80,
+      "dapur_suhu": 32.5,
+      "dapur_kelembapan": 60.0,
+      "dapur_asap_api": 0,
+      "kamar_suhu": 28.0,
+      "kamar_kelembapan": 55.0,
+      "tamu_gerak": false
+    },
+    "perangkat": {
+      "lampu_kamar": false,
+      "lampu_tamu": false,
+      "lampu_kamar_mandi": false,
+      "lampu_dapur": false,
+      "kipas_kamar": false,
+      "kecepatan_kipas": 255,
+      "buzzer_dapur": false,
+      "buzzer_tamu": false,
+      "led_merah_dapur": false,
+      "kunci_pintu_rfid": true
+    },
+    "otomatisasi": {
+      "mode_auto_lampu": true,
+      "mode_auto_kipas": true,
+      "batas_gelap_lampu": 30,
+      "batas_panas_kamar": 29.0
+    }
+  }
+}

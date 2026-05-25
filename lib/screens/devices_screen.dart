@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
+import '../models/device_model.dart';
+import '../services/firebase_service.dart';
 
 class DevicesScreen extends StatefulWidget {
   const DevicesScreen({super.key});
@@ -11,324 +13,339 @@ class DevicesScreen extends StatefulWidget {
 }
 
 class _DevicesScreenState extends State<DevicesScreen> {
-  // ─── Environment / Sensors Simulated State ───
-  double _ambientLightLdr = 42.0; // 0% (Dark) to 100% (Bright)
-  double _temperatureCelsius = 26.5; // 15°C to 35°C
-  double _humidityPercentage = 60.0; // 0% to 100%
-  bool _isRaining = true;
-
-  // ─── Devices Interactive State ───
-  // 1. Living Room: Main Lights
-  bool _mainLightsAuto = true;
-  bool _mainLightsOn = true;
-  double _mainLightsBrightness = 58.0; // 100 - LDR in Auto
-
-  // 2. Living Room: Ceiling Fan
-  bool _ceilingFanAuto = true;
-  bool _ceilingFanOn = true;
-  double _ceilingFanSpeed = 2.0; // Controlled by temp in Auto
-
-  // 3. Bedroom: Bedside Lamp
-  bool _bedsideLampAuto = false;
-  bool _bedsideLampOn = false;
-  double _bedsideLampBrightness = 0.0;
-
-  // 4. Garage: Main Garage Door
-  bool _garageLocked = true;
-
-  // 5. Garage: Siren System
-  bool _sirenArmed = false;
-
-  // 6. Garage: Smart Clothesline
-  bool _clotheslineAuto = true;
-  bool _clotheslineClosed = true; // Closed (Raining) in Auto
-
-  @override
-  void initState() {
-    super.initState();
-    _updateAutoDevices();
-  }
-
-  // ─── Automatic Logic Rules ───
-  void _updateAutoDevices() {
-    setState(() {
-      // 1. Main Lights Auto Logic (Based on LDR)
-      if (_mainLightsAuto) {
-        double calcBrightness = 100 - _ambientLightLdr;
-        if (_ambientLightLdr > 85) {
-          // Very bright outside, turn lights completely off
-          _mainLightsOn = false;
-          _mainLightsBrightness = 0.0;
-        } else {
-          _mainLightsOn = true;
-          _mainLightsBrightness = calcBrightness.clamp(10.0, 100.0);
-        }
-      }
-
-      // 2. Bedroom Bedside Lamp Auto Logic (Same LDR but dimmed)
-      if (_bedsideLampAuto) {
-        double calcBrightness = (100 - _ambientLightLdr) * 0.7; // dim bedtime lamp
-        if (_ambientLightLdr > 70) {
-          _bedsideLampOn = false;
-          _bedsideLampBrightness = 0.0;
-        } else {
-          _bedsideLampOn = true;
-          _bedsideLampBrightness = calcBrightness.clamp(5.0, 80.0);
-        }
-      }
-
-      // 3. Ceiling Fan Auto Logic (Based on Temperature)
-      if (_ceilingFanAuto) {
-        if (_temperatureCelsius < 22.0) {
-          _ceilingFanOn = false;
-          _ceilingFanSpeed = 0.0;
-        } else {
-          _ceilingFanOn = true;
-          if (_temperatureCelsius >= 22.0 && _temperatureCelsius < 25.0) {
-            _ceilingFanSpeed = 1.0;
-          } else if (_temperatureCelsius >= 25.0 && _temperatureCelsius < 28.0) {
-            _ceilingFanSpeed = 2.0;
-          } else {
-            _ceilingFanSpeed = 3.0;
-          }
-        }
-      }
-
-      // 4. Smart Clothesline Auto Logic (Based on Rain/Humidity)
-      if (_clotheslineAuto) {
-        // If it is raining or humidity is high (> 75%), close clothesline
-        if (_isRaining || _humidityPercentage > 75.0) {
-          _clotheslineClosed = true;
-        } else {
-          _clotheslineClosed = false;
-        }
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 768;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.containerPadding,
-          vertical: isMobile ? 16.0 : AppSpacing.stackMd,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ─── Page Intro header (Desktop only) ───
-            if (!isMobile) ...[
-              const Text(
-                'Smart Devices',
-                style: TextStyle(
-                  fontFamily: 'Sora',
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Color(AppColors.onSurface),
-                  letterSpacing: -0.8,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Interactive control panel synced with ambient light (LDR), temperature, and humidity sensors.',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 16,
-                  color: Color(AppColors.onSurfaceVariant).withOpacity(0.7),
-                ),
-              ),
-              const SizedBox(height: 32),
-            ],
+    return ValueListenableBuilder<SmarthomeState?>(
+      valueListenable: FirebaseService().stateNotifier,
+      builder: (context, state, child) {
+        if (state == null) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F4FE)),
+            ),
+          );
+        }
 
-            // ─── Room: Living Room ───
-            _buildRoomSection(
-              roomTitle: 'Living Room',
+        final sensor = state.sensor;
+        final perangkat = state.perangkat;
+        final otomatisasi = state.otomatisasi;
+
+        // Map speeds to levels 0-3
+        double fanSpeedLevel = 0;
+        if (perangkat.kecepatanKipas >= 200) {
+          fanSpeedLevel = 3.0;
+        } else if (perangkat.kecepatanKipas >= 120) {
+          fanSpeedLevel = 2.0;
+        } else if (perangkat.kecepatanKipas >= 50) {
+          fanSpeedLevel = 1.0;
+        }
+
+        // Show a banner if smoke/gas warning is triggered
+        final bool isSmokeWarning = sensor.dapurAsapApi > 0;
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.containerPadding,
+              vertical: isMobile ? 16.0 : AppSpacing.stackMd,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Main Lights LED Card
-                _buildLEDCard(
-                  title: 'Main Lights',
-                  isOn: _mainLightsOn,
-                  brightness: _mainLightsBrightness,
-                  isAuto: _mainLightsAuto,
-                  icon: Icons.lightbulb_rounded,
-                  onModeChanged: (val) {
-                    setState(() {
-                      _mainLightsAuto = val;
-                      _updateAutoDevices();
-                    });
-                  },
-                  onToggle: (val) {
-                    setState(() {
-                      _mainLightsOn = val;
-                      if (val && _mainLightsBrightness == 0) _mainLightsBrightness = 75.0;
-                    });
-                  },
-                  onSliderChanged: (val) {
-                    setState(() {
-                      _mainLightsBrightness = val;
-                      _mainLightsOn = val > 0;
-                    });
-                  },
-                  isFullWidth: true,
+                // ─── Emergency GAS LEAK Notification overlay banner ───
+                if (isSmokeWarning) ...[
+                  _buildEmergencyBanner(),
+                  const SizedBox(height: 16),
+                ],
+
+                // ─── Page Intro header (Desktop only) ───
+                if (!isMobile) ...[
+                  const Text(
+                    'Smart Devices',
+                    style: TextStyle(
+                      fontFamily: 'Sora',
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(AppColors.onSurface),
+                      letterSpacing: -0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Interactive control panel synced with ambient light (LDR), temperature, and humidity sensors.',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      color: Color(AppColors.onSurfaceVariant).withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+
+                // ─── Room: Living Room ───
+                _buildRoomSection(
+                  roomTitle: 'Living Room',
+                  children: [
+                    // 1. Lampu Tamu LED Card
+                    _buildLEDCard(
+                      title: 'Lampu Tamu',
+                      isOn: perangkat.lampuTamu,
+                      brightness: 100.0,
+                      isAuto: otomatisasi.modeAutoLampu,
+                      icon: Icons.lightbulb_rounded,
+                      onModeChanged: (val) {
+                        FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                      },
+                      onToggle: (val) {
+                        FirebaseService().updatePerangkat('lampu_tamu', val);
+                      },
+                      onSliderChanged: (val) {},
+                      hasSlider: false,
+                      isFullWidth: true,
+                    ),
+
+                    // 2. Sensor Gerak Tamu Card
+                    _buildSensorCard(
+                      title: 'Living Room Motion',
+                      value: sensor.tamuGerak ? 'ACTIVE' : 'QUIET',
+                      unit: '',
+                      badgeText: 'PIR Sensor',
+                      icon: sensor.tamuGerak ? Icons.run_circle_rounded : Icons.motion_photos_off_rounded,
+                      onTap: () => _showMotionSimulationSheet(sensor.tamuGerak),
+                      infoText: sensor.tamuGerak ? '🚨 Motion Detected' : 'No Movement',
+                      isActive: sensor.tamuGerak,
+                    ),
+
+                    // 3. Siren Tamu System Card
+                    _buildToggleCard(
+                      title: 'Siren Tamu',
+                      statusText: perangkat.buzzerTamu ? 'TRIGGERED (Alarm)' : 'Disarmed',
+                      isOn: perangkat.buzzerTamu,
+                      icon: Icons.campaign_rounded,
+                      onToggle: (val) {
+                        FirebaseService().updatePerangkat('buzzer_tamu', val);
+                      },
+                    ),
+                  ],
                 ),
 
-                // 2. LDR Light Sensor Card (Simulation trigger)
-                _buildSensorCard(
-                  title: 'Ambient Light',
-                  value: _ambientLightLdr.toInt().toString(),
-                  unit: '%',
-                  badgeText: 'LDR Sensor',
-                  icon: Icons.sensors_rounded,
-                  onTap: _showLdrSimulationSheet,
-                  infoText: _mainLightsAuto ? 'Auto Dimmed' : 'Manual Mode',
+                const SizedBox(height: AppSpacing.stackLg),
+
+                // ─── Room: Bedroom ───
+                _buildRoomSection(
+                  roomTitle: 'Bedroom',
+                  children: [
+                    // 1. Lampu Kamar LED Card
+                    _buildLEDCard(
+                      title: 'Lampu Kamar',
+                      isOn: perangkat.lampuKamar,
+                      brightness: 100.0,
+                      isAuto: otomatisasi.modeAutoLampu,
+                      icon: Icons.lightbulb_outline_rounded,
+                      onModeChanged: (val) {
+                        FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                      },
+                      onToggle: (val) {
+                        FirebaseService().updatePerangkat('lampu_kamar', val);
+                      },
+                      onSliderChanged: (val) {},
+                      hasSlider: false,
+                      isFullWidth: true,
+                    ),
+
+                    // 2. Kipas Kamar Card with Spinning Blades
+                    _buildFanCard(
+                      title: 'Kipas Kamar',
+                      isOn: perangkat.kipasKamar,
+                      speed: fanSpeedLevel,
+                      isAuto: otomatisasi.modeAutoKipas,
+                      onModeChanged: (val) {
+                        FirebaseService().updateOtomatisasi('mode_auto_kipas', val);
+                      },
+                      onToggle: (val) {
+                        FirebaseService().updatePerangkat('kipas_kamar', val);
+                        if (val && fanSpeedLevel == 0) {
+                          FirebaseService().updatePerangkat('kecepatan_kipas', 255);
+                        }
+                      },
+                      onSpeedChanged: (val) {
+                        int mappedSpeed = 0;
+                        if (val == 1.0) mappedSpeed = 85;
+                        if (val == 2.0) mappedSpeed = 170;
+                        if (val == 3.0) mappedSpeed = 255;
+                        FirebaseService().updatePerangkat('kecepatan_kipas', mappedSpeed);
+                        FirebaseService().updatePerangkat('kipas_kamar', val > 0);
+                      },
+                      isFullWidth: true,
+                    ),
+
+                    // 3. Temp & Humidity Sensor Card Bedroom
+                    _buildSensorCard(
+                      title: 'Bedroom Climate',
+                      value: '${sensor.kamarSuhu.toStringAsFixed(1)}°C',
+                      unit: ' / ${sensor.kamarKelembapan.toInt()}%',
+                      badgeText: 'DHT11 Sensor',
+                      icon: Icons.thermostat_rounded,
+                      onTap: () => _showClimateSimulationSheet(
+                        title: 'Bedroom Climate',
+                        isBedroom: true,
+                        currentTemp: sensor.kamarSuhu,
+                        currentHumid: sensor.kamarKelembapan,
+                      ),
+                      infoText: otomatisasi.modeAutoKipas ? 'Fan Auto Enabled' : 'Manual climate control',
+                    ),
+                  ],
                 ),
 
-                // 3. Ceiling Fan Card with Spinning Fan Blades
-                _buildFanCard(
-                  title: 'Ceiling Fan',
-                  isOn: _ceilingFanOn,
-                  speed: _ceilingFanSpeed,
-                  isAuto: _ceilingFanAuto,
-                  onModeChanged: (val) {
-                    setState(() {
-                      _ceilingFanAuto = val;
-                      _updateAutoDevices();
-                    });
-                  },
-                  onToggle: (val) {
-                    setState(() {
-                      _ceilingFanOn = val;
-                    });
-                  },
-                  onSpeedChanged: (val) {
-                    setState(() {
-                      _ceilingFanSpeed = val;
-                      _ceilingFanOn = val > 0;
-                    });
-                  },
-                  isFullWidth: true,
+                const SizedBox(height: AppSpacing.stackLg),
+
+                // ─── Room: Kitchen ───
+                _buildRoomSection(
+                  roomTitle: 'Kitchen',
+                  children: [
+                    // 1. Lampu Dapur LED Card
+                    _buildLEDCard(
+                      title: 'Lampu Dapur',
+                      isOn: perangkat.lampuDapur,
+                      brightness: 100.0,
+                      isAuto: false,
+                      icon: Icons.lightbulb_rounded,
+                      onModeChanged: (val) {},
+                      onToggle: (val) {
+                        FirebaseService().updatePerangkat('lampu_dapur', val);
+                      },
+                      onSliderChanged: (val) {},
+                      hasSlider: false,
+                      hasAutoMode: false,
+                      isFullWidth: true,
+                    ),
+
+                    // 2. Gas & Smoke Sensor Card (Simulation trigger)
+                    _buildSensorCard(
+                      title: 'Kitchen Smoke & Gas',
+                      value: sensor.dapurAsapApi > 0 ? 'LEAK' : 'CLEAR',
+                      unit: '',
+                      badgeText: 'MQ-2 Gas Sensor',
+                      icon: Icons.local_fire_department_rounded,
+                      onTap: () => _showSmokeSimulationSheet(sensor.dapurAsapApi > 0),
+                      infoText: sensor.dapurAsapApi > 0 ? '🔥 Gas Leak Triggered!' : 'Air quality optimal',
+                      isActive: sensor.dapurAsapApi > 0,
+                    ),
+
+                    // 3. Kitchen warning LED
+                    _buildToggleCard(
+                      title: 'LED Merah Peringatan',
+                      statusText: perangkat.ledMerahDapur ? 'WARNING ACTIVE' : 'Standby',
+                      isOn: perangkat.ledMerahDapur,
+                      icon: Icons.circle_notifications_rounded,
+                      onToggle: (val) {
+                        FirebaseService().updatePerangkat('led_merah_dapur', val);
+                      },
+                      activeColor: Colors.redAccent,
+                    ),
+
+                    // 4. Kitchen Alarm Buzzer Card
+                    _buildToggleCard(
+                      title: 'Siren Dapur',
+                      statusText: perangkat.buzzerDapur ? 'SIREN ACTIVE' : 'Disarmed',
+                      isOn: perangkat.buzzerDapur,
+                      icon: Icons.campaign_rounded,
+                      onToggle: (val) {
+                        FirebaseService().updatePerangkat('buzzer_dapur', val);
+                      },
+                    ),
+
+                    // 5. Kitchen Climate Sensor
+                    _buildSensorCard(
+                      title: 'Kitchen Climate',
+                      value: '${sensor.dapurSuhu.toStringAsFixed(1)}°C',
+                      unit: ' / ${sensor.dapurKelembapan.toInt()}%',
+                      badgeText: 'DHT11 Sensor',
+                      icon: Icons.thermostat_rounded,
+                      onTap: () => _showClimateSimulationSheet(
+                        title: 'Kitchen Climate',
+                        isBedroom: false,
+                        currentTemp: sensor.dapurSuhu,
+                        currentHumid: sensor.dapurKelembapan,
+                      ),
+                      infoText: 'Indoor kitchen sensors',
+                    ),
+                  ],
                 ),
 
-                // 4. Temp & Humidity Sensor Card (Simulation trigger)
-                _buildSensorCard(
-                  title: 'Temp & Humidity',
-                  value: '${_temperatureCelsius.toStringAsFixed(1)}°C',
-                  unit: ' / ${_humidityPercentage.toInt()}%',
-                  badgeText: 'Climate Sensor',
-                  icon: Icons.thermostat_rounded,
-                  onTap: _showClimateSimulationSheet,
-                  infoText: _isRaining ? 'Raining Outside' : 'Dry & Sunny',
+                const SizedBox(height: AppSpacing.stackLg),
+
+                // ─── Room: Bathroom ───
+                _buildRoomSection(
+                  roomTitle: 'Bathroom',
+                  children: [
+                    // 1. Lampu Kamar Mandi
+                    _buildToggleCard(
+                      title: 'Lampu Kamar Mandi',
+                      statusText: perangkat.lampuKamarMandi ? 'On' : 'Off',
+                      isOn: perangkat.lampuKamarMandi,
+                      icon: Icons.bathroom_rounded,
+                      onToggle: (val) {
+                        FirebaseService().updatePerangkat('lampu_kamar_mandi', val);
+                      },
+                    ),
+                  ],
                 ),
+
+                const SizedBox(height: AppSpacing.stackLg),
+
+                // ─── Room: Exterior & Security ───
+                _buildRoomSection(
+                  roomTitle: 'Exterior & Security Gate',
+                  children: [
+                    // 1. RFID Door Lock
+                    _buildActionCard(
+                      title: 'Kunci Pintu RFID',
+                      statusText: perangkat.kunciPintuRfid ? 'Locked (Secured)' : 'Unlocked (Open)',
+                      badgeText: perangkat.kunciPintuRfid ? 'Secured' : 'Access Open',
+                      icon: Icons.meeting_room_rounded,
+                      footerIcon: perangkat.kunciPintuRfid ? Icons.lock_rounded : Icons.lock_open_rounded,
+                      footerText: perangkat.kunciPintuRfid ? 'RFID Engaged' : 'RFID Released',
+                      isActive: perangkat.kunciPintuRfid,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        FirebaseService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
+                      },
+                    ),
+
+                    // 2. Roof Light Sensor Card
+                    _buildSensorCard(
+                      title: 'Sensor Cahaya Atap',
+                      value: '${sensor.cahayaAtap}',
+                      unit: '%',
+                      badgeText: 'LDR Photoresistor',
+                      icon: Icons.wb_sunny_rounded,
+                      onTap: () => _showLdrSimulationSheet(sensor.cahayaAtap),
+                      infoText: otomatisasi.modeAutoLampu ? 'Syncing lights...' : 'Manual mode',
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.stackLg),
+
+                // ─── Section: Automation Rules Panel ───
+                _buildAutomationPanel(otomatisasi),
+
+                const SizedBox(height: 48),
               ],
             ),
-
-            const SizedBox(height: AppSpacing.stackLg),
-
-            // ─── Room: Bedroom ───
-            _buildRoomSection(
-              roomTitle: 'Bedroom',
-              children: [
-                // 1. Bedside Lamp LED Card
-                _buildLEDCard(
-                  title: 'Bedside Lamp',
-                  isOn: _bedsideLampOn,
-                  brightness: _bedsideLampBrightness,
-                  isAuto: _bedsideLampAuto,
-                  icon: Icons.lightbulb_outline_rounded,
-                  onModeChanged: (val) {
-                    setState(() {
-                      _bedsideLampAuto = val;
-                      _updateAutoDevices();
-                    });
-                  },
-                  onToggle: (val) {
-                    setState(() {
-                      _bedsideLampOn = val;
-                      if (val && _bedsideLampBrightness == 0) _bedsideLampBrightness = 50.0;
-                    });
-                  },
-                  onSliderChanged: (val) {
-                    setState(() {
-                      _bedsideLampBrightness = val;
-                      _bedsideLampOn = val > 0;
-                    });
-                  },
-                  isFullWidth: true,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: AppSpacing.stackLg),
-
-            // ─── Room: Garage & Exterior ───
-            _buildRoomSection(
-              roomTitle: 'Garage & Exterior',
-              children: [
-                // 1. RFID Garage Door
-                _buildActionCard(
-                  title: 'Main Garage Door',
-                  statusText: _garageLocked ? 'Locked' : 'Unlocked',
-                  badgeText: _garageLocked ? 'Locked' : 'Open',
-                  icon: Icons.meeting_room_rounded,
-                  footerIcon: _garageLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
-                  footerText: _garageLocked ? 'Secured' : 'Access Open',
-                  isActive: _garageLocked,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      _garageLocked = !_garageLocked;
-                    });
-                  },
-                ),
-
-                // 2. Siren System Card
-                _buildToggleCard(
-                  title: 'Siren System',
-                  statusText: _sirenArmed ? 'Armed' : 'Disarmed',
-                  isOn: _sirenArmed,
-                  icon: Icons.campaign_rounded,
-                  onToggle: (val) {
-                    setState(() {
-                      _sirenArmed = val;
-                    });
-                  },
-                ),
-
-                // 3. Smart Clothesline Card with Auto (Rain Sensor) Sync
-                _buildClotheslineCard(
-                  title: 'Smart Clothesline',
-                  isClosed: _clotheslineClosed,
-                  isAuto: _clotheslineAuto,
-                  icon: Icons.umbrella_rounded,
-                  onModeChanged: (val) {
-                    setState(() {
-                      _clotheslineAuto = val;
-                      _updateAutoDevices();
-                    });
-                  },
-                  onToggle: (val) {
-                    setState(() {
-                      _clotheslineClosed = !val; // Open is Active, Closed is Inactive
-                    });
-                  },
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 48),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
   // ─────────────────────────────────────────────────
-  // Room Section Responsive Grid Layout
+  // Room Section Grid Layout
   // ─────────────────────────────────────────────────
   Widget _buildRoomSection({
     required String roomTitle,
@@ -356,7 +373,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
             const double spacing = AppSpacing.gutter;
 
             if (width > 900) {
-              // 4 columns Desktop Grid layout
               final double colWidth = (width - (spacing * 3)) / 4;
               return Wrap(
                 spacing: spacing,
@@ -366,7 +382,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 }).toList(),
               );
             } else if (width > 600) {
-              // 3 columns Tablet Grid layout
               final double colWidth = (width - (spacing * 2)) / 3;
               return Wrap(
                 spacing: spacing,
@@ -376,7 +391,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 }).toList(),
               );
             } else {
-              // 2 columns Mobile Grid layout (cards wrap or scale down)
               final double halfWidth = (width - spacing) / 2;
               return Wrap(
                 spacing: spacing,
@@ -384,7 +398,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 children: children.map((widget) {
                   double cardWidth = halfWidth;
                   if (widget is _CardWidthWrapper && widget.isFullWidth) {
-                    cardWidth = width; // spans full width on mobile
+                    cardWidth = width;
                   }
                   return SizedBox(width: cardWidth, child: widget);
                 }).toList(),
@@ -397,11 +411,163 @@ class _DevicesScreenState extends State<DevicesScreen> {
   }
 
   // ─────────────────────────────────────────────────
-  // Interactive Simulation Sheet Panels
+  // Automation Panel Configurations
+  // ─────────────────────────────────────────────────
+  Widget _buildAutomationPanel(SmarthomeOtomatisasi otomatisasi) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: AppSpacing.stackSm),
+          child: Text(
+            'Konfigurasi Otomatisasi',
+            style: TextStyle(
+              fontFamily: 'Sora',
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(AppColors.onSurface),
+              letterSpacing: -0.5,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.white.withOpacity(0.04),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.08),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              // Rule 1: Auto Light
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Mode Otomatis Lampu',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(AppColors.onSurface),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Aktifkan lampu saat LDR cahaya atap di bawah ambang batas',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            color: Color(AppColors.onSurfaceVariant).withOpacity(0.65),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CustomToggleSwitch(
+                    value: otomatisasi.modeAutoLampu,
+                    onChanged: (val) {
+                      FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Text('Ambang Batas Gelap (LDR):', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                  const Spacer(),
+                  Text('${otomatisasi.batasGelapLampu}%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00F4FE))),
+                ],
+              ),
+              Slider(
+                value: otomatisasi.batasGelapLampu.toDouble(),
+                min: 0,
+                max: 100,
+                activeColor: const Color(0xFF00F4FE),
+                inactiveColor: const Color(0xFF1E2020),
+                onChanged: (val) {
+                  FirebaseService().updateOtomatisasi('batas_gelap_lampu', val.toInt());
+                },
+              ),
+
+              const Divider(color: Colors.white10, height: 32),
+
+              // Rule 2: Auto Fan
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Mode Otomatis Kipas',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(AppColors.onSurface),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Nyalakan kipas kamar dan atur kecepatan saat suhu kamar panas',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            color: Color(AppColors.onSurfaceVariant).withOpacity(0.65),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CustomToggleSwitch(
+                    value: otomatisasi.modeAutoKipas,
+                    onChanged: (val) {
+                      FirebaseService().updateOtomatisasi('mode_auto_kipas', val);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Text('Ambang Batas Panas Kamar:', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                  const Spacer(),
+                  Text('${otomatisasi.batasPanasKamar.toStringAsFixed(1)}°C', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00F4FE))),
+                ],
+              ),
+              Slider(
+                value: otomatisasi.batasPanasKamar,
+                min: 15.0,
+                max: 35.0,
+                activeColor: const Color(0xFF00F4FE),
+                inactiveColor: const Color(0xFF1E2020),
+                onChanged: (val) {
+                  FirebaseService().updateOtomatisasi('batas_panas_kamar', val);
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────────
+  // Simulation Bottom Sheets Triggers
   // ─────────────────────────────────────────────────
   
-  // A. LDR Ambient Light Sensor Simulation
-  void _showLdrSimulationSheet() {
+  // A. LDR Light Sensor Simulation
+  void _showLdrSimulationSheet(int currentVal) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
@@ -410,20 +576,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return _SimulationModalWrapper(
-              title: 'LDR Ambient Light Sensor',
-              description: 'Drag the slider to simulate room ambient light. In Auto mode, the Main Lights & Bedside Lamp dim automatically in response.',
-              icon: Icons.sensors_rounded,
+              title: 'Sensor Cahaya Atap (LDR)',
+              description: 'Seret slider untuk mensimulasikan intensitas cahaya luar ruangan. Pada mode Otomatis, Lampu Kamar & Lampu Tamu akan merespon jika intensitas di bawah ambang batas.',
+              icon: Icons.wb_sunny_rounded,
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _ambientLightLdr < 30 
-                            ? '🌑 Room is Dark' 
-                            : _ambientLightLdr < 75 
-                                ? '⛅ Room is Dim' 
-                                : '☀️ Room is Bright',
+                        currentVal < 30 
+                            ? '🌑 Suhu/Kondisi Gelap Gulita' 
+                            : currentVal < 70 
+                                ? '⛅ Kondisi Redup / Berawan' 
+                                : '☀️ Kondisi Terang Benderang',
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 14,
@@ -432,7 +598,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         ),
                       ),
                       Text(
-                        '${_ambientLightLdr.toInt()}%',
+                        '$currentVal%',
                         style: const TextStyle(
                           fontFamily: 'Sora',
                           fontSize: 20,
@@ -443,31 +609,16 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: const Color(0xFF00F4FE),
-                      inactiveTrackColor: const Color(0xFF1E2020),
-                      thumbColor: Colors.white,
-                      trackHeight: 6,
-                      overlayColor: const Color(0xFF00F4FE).withOpacity(0.15),
-                    ),
-                    child: Slider(
-                      value: _ambientLightLdr,
-                      min: 0.0,
-                      max: 100.0,
-                      onChanged: (val) {
-                        setSheetState(() => _ambientLightLdr = val);
-                        setState(() {
-                          _ambientLightLdr = val;
-                          _updateAutoDevices();
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildSyncStatusBox(
-                    label: 'Sync Status (Auto Mode):',
-                    details: 'Main Lights: ${_mainLightsAuto ? "${_mainLightsBrightness.toInt()}% Brightness" : "Manual override"} \nBedside Lamp: ${_bedsideLampAuto ? "${_bedsideLampBrightness.toInt()}% Brightness" : "Manual override"}',
+                  Slider(
+                    value: currentVal.toDouble(),
+                    min: 0.0,
+                    max: 100.0,
+                    activeColor: const Color(0xFF00F4FE),
+                    inactiveColor: const Color(0xFF1E2020),
+                    onChanged: (val) {
+                      setSheetState(() => currentVal = val.toInt());
+                      FirebaseService().updateSensor('cahaya_atap', val.toInt());
+                    },
                   ),
                 ],
               ),
@@ -478,8 +629,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  // B. Temperature, Humidity, and Rain Sensor Simulation
-  void _showClimateSimulationSheet() {
+  // B. Climate Simulation Sheet
+  void _showClimateSimulationSheet({
+    required String title,
+    required bool isBedroom,
+    required double currentTemp,
+    required double currentHumid,
+  }) {
     HapticFeedback.mediumImpact();
     showModalBottomSheet(
       context: context,
@@ -488,133 +644,48 @@ class _DevicesScreenState extends State<DevicesScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return _SimulationModalWrapper(
-              title: 'Climate Sensor (Temp & Humidity)',
-              description: 'Adjust temperature and humidity parameters to trigger system rules. Fan speed scales with temperature, and clothesline closes when raining.',
+              title: 'Simulasi $title',
+              description: 'Atur parameter suhu dan kelembapan untuk mensimulasikan perubahan iklim ruangan.',
               icon: Icons.thermostat_rounded,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Temperature Slider
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Ambient Temperature',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Color(AppColors.onSurfaceVariant),
-                        ),
-                      ),
-                      Text(
-                        '${_temperatureCelsius.toStringAsFixed(1)}°C',
-                        style: const TextStyle(
-                          fontFamily: 'Sora',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF00F4FE),
-                        ),
-                      ),
+                      const Text('Suhu Udara', style: TextStyle(color: Colors.white70)),
+                      Text('${currentTemp.toStringAsFixed(1)}°C', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF00F4FE))),
                     ],
                   ),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: const Color(0xFF00F4FE),
-                      inactiveTrackColor: const Color(0xFF1E2020),
-                      thumbColor: Colors.white,
-                      trackHeight: 6,
-                    ),
-                    child: Slider(
-                      value: _temperatureCelsius,
-                      min: 15.0,
-                      max: 35.0,
-                      onChanged: (val) {
-                        setSheetState(() => _temperatureCelsius = val);
-                        setState(() {
-                          _temperatureCelsius = val;
-                          _updateAutoDevices();
-                        });
-                      },
-                    ),
+                  Slider(
+                    value: currentTemp,
+                    min: 15.0,
+                    max: 35.0,
+                    activeColor: const Color(0xFF00F4FE),
+                    inactiveColor: const Color(0xFF1E2020),
+                    onChanged: (val) {
+                      setSheetState(() => currentTemp = val);
+                      FirebaseService().updateSensor(isBedroom ? 'kamar_suhu' : 'dapur_suhu', val);
+                    },
                   ),
                   const SizedBox(height: 16),
-
-                  // 2. Humidity Slider
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Humidity Level',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Color(AppColors.onSurfaceVariant),
-                        ),
-                      ),
-                      Text(
-                        '${_humidityPercentage.toInt()}%',
-                        style: const TextStyle(
-                          fontFamily: 'Sora',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF00F4FE),
-                        ),
-                      ),
+                      const Text('Kelembapan Udara', style: TextStyle(color: Colors.white70)),
+                      Text('${currentHumid.toInt()}%', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF00F4FE))),
                     ],
                   ),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: const Color(0xFF00F4FE),
-                      inactiveTrackColor: const Color(0xFF1E2020),
-                      thumbColor: Colors.white,
-                      trackHeight: 6,
-                    ),
-                    child: Slider(
-                      value: _humidityPercentage,
-                      min: 0.0,
-                      max: 100.0,
-                      onChanged: (val) {
-                        setSheetState(() => _humidityPercentage = val);
-                        setState(() {
-                          _humidityPercentage = val;
-                          _updateAutoDevices();
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 3. Rain Sensor Switch Toggle
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Rain Sensor Triggered',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(AppColors.onSurface),
-                        ),
-                      ),
-                      CustomToggleSwitch(
-                        value: _isRaining,
-                        onChanged: (val) {
-                          setSheetState(() => _isRaining = val);
-                          setState(() {
-                            _isRaining = val;
-                            _updateAutoDevices();
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildSyncStatusBox(
-                    label: 'Sync Status (Auto Mode):',
-                    details: 'Ceiling Fan: ${_ceilingFanAuto ? "Active (Speed ${_ceilingFanSpeed.toInt()})" : "Manual override"} \nSmart Clothesline: ${_clotheslineAuto ? (_clotheslineClosed ? "Closed (Raining)" : "Open (Dry)") : "Manual override"}',
+                  Slider(
+                    value: currentHumid,
+                    min: 0.0,
+                    max: 100.0,
+                    activeColor: const Color(0xFF00F4FE),
+                    inactiveColor: const Color(0xFF1E2020),
+                    onChanged: (val) {
+                      setSheetState(() => currentHumid = val);
+                      FirebaseService().updateSensor(isBedroom ? 'kamar_kelembapan' : 'dapur_kelembapan', val);
+                    },
                   ),
                 ],
               ),
@@ -625,54 +696,150 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  // Helper Widget: status box
-  Widget _buildSyncStatusBox({
-    required String label,
-    required String details,
-  }) {
+  // C. Gas/Smoke Warning Simulation Trigger
+  void _showSmokeSimulationSheet(bool hasSmoke) {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return _SimulationModalWrapper(
+              title: 'Sensor Asap & Api (MQ-2)',
+              description: 'Mensimulasikan kebocoran gas atau asap di dapur. Jika diaktifkan, Siren Dapur & LED Peringatan Merah akan langsung menyala otomatis!',
+              icon: Icons.local_fire_department_rounded,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    hasSmoke ? '🚨 GAS / ASAP TERDETEKSI' : '✅ KONDISI UDARA AMAN',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: hasSmoke ? const Color(AppColors.error) : Colors.green,
+                    ),
+                  ),
+                  CustomToggleSwitch(
+                    value: hasSmoke,
+                    onChanged: (val) {
+                      setSheetState(() => hasSmoke = val);
+                      FirebaseService().updateSensor('dapur_asap_api', val ? 1 : 0);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // D. Living Room Motion Simulation Trigger
+  void _showMotionSimulationSheet(bool hasMotion) {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return _SimulationModalWrapper(
+              title: 'Sensor Gerak Tamu (PIR)',
+              description: 'Simulasikan pergerakan di ruang tamu. Berguna untuk mendeteksi keamanan rumah.',
+              icon: Icons.run_circle_rounded,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    hasMotion ? '🚨 ADA PERGERAKAN' : '✅ KONDISI SUNYI / AMAN',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: hasMotion ? Colors.orange : Colors.green,
+                    ),
+                  ),
+                  CustomToggleSwitch(
+                    value: hasMotion,
+                    onChanged: (val) {
+                      setSheetState(() => hasMotion = val);
+                      FirebaseService().updateSensor('tamu_gerak', val);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Helper Widget: Emergency gas leak banner
+  Widget _buildEmergencyBanner() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(AppColors.error).withOpacity(0.12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.06),
+          color: const Color(AppColors.error).withOpacity(0.4),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(AppColors.error).withOpacity(0.08),
+            blurRadius: 16,
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF00F4FE),
-              letterSpacing: 0.5,
+          const Icon(Icons.warning_rounded, color: Color(AppColors.error), size: 24),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '🚨 BAHAYA: KEBOCORAN ASAP / GAS!',
+                  style: TextStyle(
+                    fontFamily: 'Sora',
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(AppColors.error),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Sensor dapur mendeteksi asap tebal. Kipas dapur & alarm siren menyala otomatis.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 11,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            details,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              height: 1.4,
-              color: const Color(AppColors.onSurfaceVariant).withOpacity(0.85),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(AppColors.error),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
+            onPressed: () {
+              // Clear alarm by setting smoke to 0
+              FirebaseService().updateSensor('dapur_asap_api', 0);
+            },
+            child: const Text('CLEAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // ─────────────────────────────────────────────────
-  // Custom High-Fidelity Device Cards Builders
-  // ─────────────────────────────────────────────────
-
-  // 1. LED Card with Auto/Manual mode toggle
+  // Helper Widget: Custom Glass Card Builders for LED Card
   Widget _buildLEDCard({
     required String title,
     required bool isOn,
@@ -682,6 +849,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required ValueChanged<bool> onModeChanged,
     required ValueChanged<bool> onToggle,
     required ValueChanged<double> onSliderChanged,
+    bool hasSlider = true,
+    bool hasAutoMode = true,
     bool isFullWidth = false,
   }) {
     final bool canControlManually = !isAuto;
@@ -694,7 +863,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Header Row: Icon (Left), Auto/Manual Switch (Right)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -703,10 +871,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   isActive: isOn,
                   glowColor: const Color(0xFF00F4FE),
                 ),
-                ModeSelector(
-                  isAuto: isAuto,
-                  onChanged: onModeChanged,
-                ),
+                if (hasAutoMode)
+                  ModeSelector(
+                    isAuto: isAuto,
+                    onChanged: onModeChanged,
+                  ),
               ],
             ),
             const SizedBox(height: 24),
@@ -730,7 +899,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Manual Switch (Only shown/enabled if Manual, or disabled system state display)
                     Opacity(
                       opacity: canControlManually ? 1.0 : 0.5,
                       child: CustomToggleSwitch(
@@ -743,8 +911,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 const SizedBox(height: 4),
                 Text(
                   isAuto
-                      ? 'Auto: ${isOn ? "${brightness.toInt()}% (LDR Sync)" : "Off (Bright Day)"}'
-                      : isOn ? '${brightness.toInt()}% Brightness' : 'Off',
+                      ? 'Auto (Sensor Sync)'
+                      : isOn ? 'Active' : 'Off',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
@@ -754,31 +922,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         : Color(AppColors.tertiary).withOpacity(0.7),
                   ),
                 ),
-                const SizedBox(height: 12),
-                // Brightness Slider
-                SizedBox(
-                  height: 20,
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: const Color(0xFF00F4FE),
-                      inactiveTrackColor: const Color(0xFF1E2020),
-                      trackHeight: 4,
-                      thumbColor: Colors.white,
-                      thumbShape: RoundSliderThumbShape(
-                        enabledThumbRadius: canControlManually ? 8 : 4,
-                        elevation: canControlManually ? 4 : 0,
-                      ),
-                      overlayColor: const Color(0xFF00F4FE).withOpacity(0.15),
-                      trackShape: const RectangularSliderTrackShape(),
-                    ),
+                if (hasSlider) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 20,
                     child: Slider(
                       value: isOn ? brightness : 0.0,
                       min: 0.0,
                       max: 100.0,
+                      activeColor: const Color(0xFF00F4FE),
+                      inactiveColor: const Color(0xFF1E2020),
                       onChanged: canControlManually && isOn ? onSliderChanged : null,
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ],
@@ -787,7 +944,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  // 2. Sensor Card (LDR / Climate) - Displays values, clickable triggers simulation
+  // Sensor Card displaying values
   Widget _buildSensorCard({
     required String title,
     required String value,
@@ -796,9 +953,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required IconData icon,
     required VoidCallback onTap,
     required String infoText,
+    bool isActive = false,
   }) {
     return _DeviceGlassCard(
-      isActive: false,
+      isActive: isActive,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -809,32 +967,32 @@ class _DevicesScreenState extends State<DevicesScreen> {
             children: [
               Icon(
                 icon,
-                color: const Color(0xFF00F4FE),
+                color: isActive ? Colors.redAccent : const Color(0xFF00F4FE),
                 size: 32,
                 shadows: [
                   Shadow(
-                    color: const Color(0xFF00F4FE).withOpacity(0.4),
+                    color: (isActive ? Colors.redAccent : const Color(0xFF00F4FE)).withOpacity(0.4),
                     blurRadius: 10,
                   )
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(9999),
-                  color: const Color(0xFF00F4FE).withOpacity(0.08),
+                  color: (isActive ? Colors.redAccent : const Color(0xFF00F4FE)).withOpacity(0.08),
                   border: Border.all(
-                    color: const Color(0xFF00F4FE).withOpacity(0.2),
+                    color: (isActive ? Colors.redAccent : const Color(0xFF00F4FE)).withOpacity(0.2),
                     width: 1,
                   ),
                 ),
-                child: const Text(
-                  'Tap Simulate',
+                child: Text(
+                  badgeText,
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF00F4FE),
+                    color: isActive ? Colors.redAccent : const Color(0xFF00F4FE),
                   ),
                 ),
               ),
@@ -859,26 +1017,27 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 children: [
                   Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Sora',
-                      fontSize: 26,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Color(AppColors.onSurface),
+                      color: isActive ? Colors.redAccent : const Color(AppColors.onSurface),
                       height: 1.0,
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 2, bottom: 2),
-                    child: Text(
-                      unit,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(AppColors.tertiary).withOpacity(0.7),
+                  if (unit.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2, bottom: 2),
+                      child: Text(
+                        unit,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(AppColors.tertiary).withOpacity(0.7),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 6),
@@ -888,7 +1047,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   fontFamily: 'Inter',
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: Color(AppColors.tertiary).withOpacity(0.5),
+                  color: isActive ? Colors.redAccent.withOpacity(0.8) : Color(AppColors.tertiary).withOpacity(0.55),
                 ),
               ),
             ],
@@ -898,7 +1057,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  // 3. Fan Card with custom rotating aerodynamic blades
+  // Fan Card with spinning blade animation
   Widget _buildFanCard({
     required String title,
     required bool isOn,
@@ -922,7 +1081,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Custom aerodynamic rotating fan blade widget!
                 _SpinningFanBlade(
                   isSpinning: isOn,
                   speed: speed,
@@ -966,7 +1124,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 const SizedBox(height: 4),
                 Text(
                   isAuto
-                      ? 'Auto: ${isOn ? "Speed ${speed.toInt()} (Temp Sync)" : "Off (< 22°C)"}'
+                      ? 'Auto (Suhu Sync)'
                       : isOn ? 'Speed ${speed.toInt()}' : 'Off',
                   style: TextStyle(
                     fontFamily: 'Inter',
@@ -978,29 +1136,16 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Discrete slider (0 to 3)
                 SizedBox(
                   height: 20,
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: const Color(0xFF00F4FE),
-                      inactiveTrackColor: const Color(0xFF1E2020),
-                      trackHeight: 4,
-                      thumbColor: Colors.white,
-                      thumbShape: RoundSliderThumbShape(
-                        enabledThumbRadius: canControlManually ? 8 : 4,
-                        elevation: canControlManually ? 4 : 0,
-                      ),
-                      overlayColor: const Color(0xFF00F4FE).withOpacity(0.15),
-                      trackShape: const RectangularSliderTrackShape(),
-                    ),
-                    child: Slider(
-                      value: isOn ? speed : 0.0,
-                      min: 0.0,
-                      max: 3.0,
-                      divisions: 3,
-                      onChanged: canControlManually && isOn ? onSpeedChanged : null,
-                    ),
+                  child: Slider(
+                    value: isOn ? speed : 0.0,
+                    min: 0.0,
+                    max: 3.0,
+                    divisions: 3,
+                    activeColor: const Color(0xFF00F4FE),
+                    inactiveColor: const Color(0xFF1E2020),
+                    onChanged: canControlManually && isOn ? onSpeedChanged : null,
                   ),
                 ),
               ],
@@ -1011,7 +1156,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  // 4. RFID Door Card
+  // Biometric door card
   Widget _buildActionCard({
     required String title,
     required String statusText,
@@ -1107,13 +1252,14 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  // 5. Toggle Card (Siren Alarm)
+  // Toggle switch card
   Widget _buildToggleCard({
     required String title,
     required String statusText,
     required bool isOn,
     required IconData icon,
     required ValueChanged<bool> onToggle,
+    Color activeColor = const Color(0xFF00F4FE),
   }) {
     return _DeviceGlassCard(
       isActive: isOn,
@@ -1127,7 +1273,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
               _buildGlowingIcon(
                 icon: icon,
                 isActive: isOn,
-                glowColor: const Color(0xFF00F4FE),
+                glowColor: activeColor,
               ),
               CustomToggleSwitch(
                 value: isOn,
@@ -1156,7 +1302,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: isOn
-                      ? const Color(0xFF00F4FE)
+                      ? activeColor
                       : Color(AppColors.tertiary).withOpacity(0.6),
                 ),
               ),
@@ -1167,92 +1313,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  // 6. Clothesline Card (Custom Auto/Manual support)
-  Widget _buildClotheslineCard({
-    required String title,
-    required bool isClosed,
-    required bool isAuto,
-    required IconData icon,
-    required ValueChanged<bool> onModeChanged,
-    required ValueChanged<bool> onToggle,
-  }) {
-    final bool isOpen = !isClosed;
-    final bool canControlManually = !isAuto;
-
-    return _DeviceGlassCard(
-      isActive: isOpen,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildGlowingIcon(
-                icon: icon,
-                isActive: isOpen,
-                glowColor: const Color(0xFF00F4FE),
-              ),
-              ModeSelector(
-                isAuto: isAuto,
-                onChanged: onModeChanged,
-              ),
-            ],
-          ),
-          const SizedBox(height: 36),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(AppColors.onSurface),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Opacity(
-                    opacity: canControlManually ? 1.0 : 0.5,
-                    child: CustomToggleSwitch(
-                      value: isOpen,
-                      onChanged: canControlManually ? onToggle : (val) {},
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                isAuto 
-                    ? 'Auto: ${isClosed ? "Closed (Wet/Rain)" : "Open (Dry)"}'
-                    : isOpen ? 'Open' : 'Closed',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isOpen
-                      ? const Color(0xFF00F4FE)
-                      : Color(AppColors.tertiary).withOpacity(0.6),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────────────
-  // UI Helpers
-  // ─────────────────────────────────────────────────
   Widget _buildGlowingIcon({
     required IconData icon,
     required bool isActive,
@@ -1315,7 +1375,6 @@ class _SpinningFanBladeState extends State<_SpinningFanBlade>
     super.didUpdateWidget(oldWidget);
     if (widget.isSpinning != oldWidget.isSpinning || widget.speed != oldWidget.speed) {
       if (widget.isSpinning) {
-        // Dynamic speed controller: speed 3 is fastest, 1 is slowest
         double speedDuration = widget.speed == 3
             ? 0.6
             : widget.speed == 2
@@ -1363,9 +1422,6 @@ class _SpinningFanBladeState extends State<_SpinningFanBlade>
   }
 }
 
-// ─────────────────────────────────────────────────
-// CUSTOM FAN BLADES VECTOR PAINTER
-// ─────────────────────────────────────────────────
 class FanBladePainter extends CustomPainter {
   final Color color;
 
@@ -1380,17 +1436,14 @@ class FanBladePainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    // Draw central circular spinner cap
     canvas.drawCircle(center, radius * 0.24, paint);
     
-    // Draw depth border ring
     final borderPaint = Paint()
       ..color = Colors.black.withOpacity(0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
     canvas.drawCircle(center, radius * 0.24, borderPaint);
 
-    // Draw 4 aerodynamic curved ceiling fan blades
     final double bladeWidth = radius * 0.26;
     for (int i = 0; i < 4; i++) {
       final double angle = i * math.pi / 2;
@@ -1401,7 +1454,6 @@ class FanBladePainter extends CustomPainter {
       final path = Path();
       path.moveTo(0, 0);
       
-      // Contoured swept-wing design
       path.cubicTo(
         -bladeWidth * 0.35, -radius * 0.25, 
         -bladeWidth * 1.0, -radius * 0.7, 
@@ -1421,7 +1473,6 @@ class FanBladePainter extends CustomPainter {
 
       canvas.drawPath(path, paint);
       
-      // Accent contour line details on blades
       final linePaint = Paint()
         ..color = Colors.white.withOpacity(0.12)
         ..style = PaintingStyle.stroke
@@ -1431,7 +1482,6 @@ class FanBladePainter extends CustomPainter {
       canvas.restore();
     }
     
-    // Tiny glowing center pin
     final centerDotPaint = Paint()
       ..color = Colors.white.withOpacity(0.7)
       ..style = PaintingStyle.fill;
@@ -1443,9 +1493,6 @@ class FanBladePainter extends CustomPainter {
       oldDelegate.color != color;
 }
 
-// ─────────────────────────────────────────────────
-// CUSTOM GLASS CARD CONTAINER (Uniform Border)
-// ─────────────────────────────────────────────────
 class _DeviceGlassCard extends StatelessWidget {
   final Widget child;
   final bool isActive;
@@ -1464,6 +1511,7 @@ class _DeviceGlassCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
+        height: 180,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -1494,9 +1542,6 @@ class _DeviceGlassCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────
-// Grid card layout spacer wrapper
-// ─────────────────────────────────────────────────
 class _CardWidthWrapper extends StatelessWidget {
   final Widget child;
   final bool isFullWidth;
@@ -1512,9 +1557,6 @@ class _CardWidthWrapper extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────
-// PREMIUM SLIDING MODE SELECTOR (Auto vs Manual)
-// ─────────────────────────────────────────────────
 class ModeSelector extends StatelessWidget {
   final bool isAuto;
   final ValueChanged<bool> onChanged;
@@ -1547,7 +1589,6 @@ class ModeSelector extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Slide background pill
             AnimatedAlign(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
@@ -1569,7 +1610,6 @@ class ModeSelector extends StatelessWidget {
                 ),
               ),
             ),
-            // "Auto" Text Label
             Align(
               alignment: Alignment.centerLeft,
               child: SizedBox(
@@ -1587,7 +1627,6 @@ class ModeSelector extends StatelessWidget {
                 ),
               ),
             ),
-            // "Manual" Text Label
             Align(
               alignment: Alignment.centerRight,
               child: SizedBox(
@@ -1612,9 +1651,6 @@ class ModeSelector extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────
-// PREMIUM CUSTOM SWITCH (With glow and slide animation)
-// ─────────────────────────────────────────────────
 class CustomToggleSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -1677,9 +1713,6 @@ class CustomToggleSwitch extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────
-// SIMULATION SHEET CONTAINER WRAPPER (Glow glass design)
-// ─────────────────────────────────────────────────
 class _SimulationModalWrapper extends StatelessWidget {
   final String title;
   final String description;
@@ -1716,7 +1749,6 @@ class _SimulationModalWrapper extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle indicator
           Center(
             child: Container(
               width: 36,
@@ -1728,7 +1760,6 @@ class _SimulationModalWrapper extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Title area with glowing icon
           Row(
             children: [
               Icon(

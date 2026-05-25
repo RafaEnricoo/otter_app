@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
+import '../models/device_model.dart';
+import '../services/firebase_service.dart';
 
 class MonitorScreen extends StatefulWidget {
   const MonitorScreen({super.key});
@@ -17,8 +19,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─── Chart Tooltip Hover State ───
   int _hoveredBarIndex = -1;
 
-  // ─── Interactive Luminance State ───
-  double _luminancePercent = 75.0;
+  // ─── Interactive Luminance Local State (to avoid Firebase sync lag) ───
+  double? _localLuminance;
   double _lastHapticPercent = 75.0;
 
   // ─── Activity Log Expansion State ───
@@ -27,73 +29,27 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─── Static / Simulated Chart Data Sets ───
   final Map<String, _ChartData> _datasets = {
     '24H': _ChartData(
-      avgText: '71.2°',
+      avgText: '28.2°C',
       deltaText: '+0.4°',
       isDeltaPositive: true,
-      values: [65.0, 68.0, 74.0, 76.0, 72.0, 66.0],
+      values: [26.0, 27.5, 29.0, 28.5, 27.2, 26.8],
       labels: ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
     ),
     '7D': _ChartData(
-      avgText: '72.0°',
+      avgText: '28.0°C',
       deltaText: '+1.2°',
       isDeltaPositive: true,
-      values: [68.0, 70.0, 73.0, 71.0, 75.0, 77.0, 74.0],
+      values: [26.5, 27.0, 28.2, 27.8, 28.8, 29.5, 28.1],
       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     ),
     '30D': _ChartData(
-      avgText: '70.8°',
+      avgText: '27.6°C',
       deltaText: '-0.6°',
       isDeltaPositive: false,
-      values: [69.0, 71.0, 73.0, 72.0, 70.0, 68.0],
+      values: [27.2, 28.0, 28.5, 27.9, 27.1, 26.8],
       labels: ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6'],
     ),
   };
-
-  // ─── Activity Log Mock Data ───
-  final List<_LogItem> _logItems = [
-    _LogItem(
-      icon: Icons.mic_rounded,
-      title: 'Voice command: "Open Gate"',
-      subtitle: 'Just now • Perimeter Security',
-      accentColor: const Color(0xFF00F4FE),
-      isVoice: true,
-    ),
-    _LogItem(
-      icon: Icons.lightbulb_rounded,
-      title: 'Lights dimmed to 20%',
-      subtitle: '10:00 PM • Living Room',
-      accentColor: const Color(AppColors.tertiary),
-      isVoice: false,
-    ),
-    _LogItem(
-      icon: Icons.thermostat_auto_rounded,
-      title: 'Climate schedule activated (Night)',
-      subtitle: '09:30 PM • HVAC System',
-      accentColor: const Color(AppColors.tertiary),
-      isVoice: false,
-    ),
-    _LogItem(
-      icon: Icons.lock_rounded,
-      title: 'Main Garage Door locked',
-      subtitle: '08:15 PM • Garage & Security',
-      accentColor: const Color(0xFF00F4FE),
-      isVoice: false,
-    ),
-    _LogItem(
-      icon: Icons.umbrella_rounded,
-      title: 'Clothesline closed automatically',
-      subtitle: '07:45 PM • Rain Sensor Sync',
-      accentColor: const Color(0xFF00F4FE),
-      isVoice: false,
-    ),
-    _LogItem(
-      icon: Icons.sensors_rounded,
-      title: 'Light sensor (LDR) calibrated',
-      subtitle: '06:00 PM • Home Automation',
-      accentColor: const Color(AppColors.tertiary),
-      isVoice: false,
-    ),
-  ];
 
   // Drag logic calculations for Dial Circular gesture
   void _updateDialGesture(Offset localPosition, Size size) {
@@ -123,8 +79,10 @@ class _MonitorScreenState extends State<MonitorScreen> {
     }
 
     setState(() {
-      _luminancePercent = percentage;
+      _localLuminance = percentage;
     });
+
+    FirebaseService().updateSensor('cahaya_atap', percentage.toInt());
   }
 
   @override
@@ -133,116 +91,172 @@ class _MonitorScreenState extends State<MonitorScreen> {
     final bool isMobile = screenWidth < 768;
     final _ChartData activeData = _datasets[_selectedTimeline]!;
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.containerPadding,
-          vertical: isMobile ? 16.0 : AppSpacing.stackMd,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ─── Header Section ───
-            _buildHeader(isMobile),
-            
-            SizedBox(height: isMobile ? 24.0 : AppSpacing.stackLg),
-
-            // ─── Responsive Bento Grid ───
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final double width = constraints.maxWidth;
-
-                if (width > 900) {
-                  // Desktop 2-Row Bento Grid
-                  return Column(
-                    children: [
-                      // Row 1: Chart Card (8 cols) & Circular Dial Card (4 cols)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: _buildTempChartCard(activeData),
-                          ),
-                          const SizedBox(width: AppSpacing.gutter),
-                          Expanded(
-                            flex: 1,
-                            child: _buildLuminanceCard(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.gutter),
-                      // Row 2: Humidity Progress (4 cols) & Logs Card (8 cols)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 1,
-                            child: _buildHumidityCard(),
-                          ),
-                          const SizedBox(width: AppSpacing.gutter),
-                          Expanded(
-                            flex: 2,
-                            child: _buildActivityCard(),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                } else if (width > 600) {
-                  // Tablet Balanced 2-Column Layout
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left Column
-                      Expanded(
-                        child: Column(
-                          children: [
-                            _buildTempChartCard(activeData),
-                            const SizedBox(height: AppSpacing.gutter),
-                            _buildHumidityCard(),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.gutter),
-                      // Right Column
-                      Expanded(
-                        child: Column(
-                          children: [
-                            _buildLuminanceCard(),
-                            const SizedBox(height: AppSpacing.gutter),
-                            _buildActivityCard(),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                } else {
-                  // Mobile Single-Column Vertical Stack Layout
-                  return Column(
-                    children: [
-                      _buildTempChartCard(activeData),
-                      const SizedBox(height: AppSpacing.gutter),
-                      _buildLuminanceCard(),
-                      const SizedBox(height: AppSpacing.gutter),
-                      _buildHumidityCard(),
-                      const SizedBox(height: AppSpacing.gutter),
-                      _buildActivityCard(),
-                    ],
-                  );
-                }
-              },
+    return ValueListenableBuilder<SmarthomeState?>(
+      valueListenable: FirebaseService().stateNotifier,
+      builder: (context, state, child) {
+        if (state == null) {
+          return const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F4FE)),
             ),
-            const SizedBox(height: 48),
-          ],
-        ),
-      ),
+          );
+        }
+
+        final sensor = state.sensor;
+        final perangkat = state.perangkat;
+
+        // Initialize local dial value if not set
+        _localLuminance ??= sensor.cahayaAtap.toDouble();
+
+        // Activity logs built dynamically from live states
+        final List<_LogItem> dynamicLogs = [
+          if (sensor.dapurAsapApi > 0)
+            _LogItem(
+              icon: Icons.warning_rounded,
+              title: 'CRITICAL: Dapur Gas leak detected!',
+              subtitle: 'Just now • Kitchen Smoke Alert',
+              accentColor: Colors.redAccent,
+              isVoice: false,
+            ),
+          if (perangkat.buzzerTamu || perangkat.buzzerDapur)
+            _LogItem(
+              icon: Icons.campaign_rounded,
+              title: 'Emergency Alarm active',
+              subtitle: 'Active now • Sirens Triggered',
+              accentColor: Colors.redAccent,
+              isVoice: false,
+            ),
+          _LogItem(
+            icon: Icons.lock_rounded,
+            title: perangkat.kunciPintuRfid ? 'RFID Main gate secured' : 'RFID Main gate opened',
+            subtitle: 'Real-time • Security Sync',
+            accentColor: const Color(0xFF00F4FE),
+            isVoice: false,
+          ),
+          _LogItem(
+            icon: Icons.lightbulb_rounded,
+            title: perangkat.lampuTamu ? 'Living Room light turned On' : 'Living Room light turned Off',
+            subtitle: 'Live update • Home automation',
+            accentColor: const Color(AppColors.tertiary),
+            isVoice: false,
+          ),
+          _LogItem(
+            icon: Icons.sensors_rounded,
+            title: 'Roof light sensor updated to ${sensor.cahayaAtap}%',
+            subtitle: 'LDR Telemetry • Live',
+            accentColor: const Color(AppColors.tertiary),
+            isVoice: false,
+          ),
+        ];
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.containerPadding,
+              vertical: isMobile ? 16.0 : AppSpacing.stackMd,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ─── Header Section ───
+                _buildHeader(isMobile),
+                
+                SizedBox(height: isMobile ? 24.0 : AppSpacing.stackLg),
+
+                // ─── Responsive Bento Grid ───
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double width = constraints.maxWidth;
+
+                    if (width > 900) {
+                      // Desktop 2-Row Bento Grid
+                      return Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: _buildTempChartCard(activeData, sensor.kamarSuhu),
+                              ),
+                              const SizedBox(width: AppSpacing.gutter),
+                              Expanded(
+                                flex: 1,
+                                child: _buildLuminanceCard(_localLuminance!),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.gutter),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: _buildHumidityCard(sensor.kamarKelembapan),
+                              ),
+                              const SizedBox(width: AppSpacing.gutter),
+                              Expanded(
+                                flex: 2,
+                                child: _buildActivityCard(dynamicLogs),
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    } else if (width > 600) {
+                      // Tablet Layout
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _buildTempChartCard(activeData, sensor.kamarSuhu),
+                                const SizedBox(height: AppSpacing.gutter),
+                                _buildHumidityCard(sensor.kamarKelembapan),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.gutter),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                _buildLuminanceCard(_localLuminance!),
+                                const SizedBox(height: AppSpacing.gutter),
+                                _buildActivityCard(dynamicLogs),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    } else {
+                      // Mobile Layout
+                      return Column(
+                        children: [
+                          _buildTempChartCard(activeData, sensor.kamarSuhu),
+                          const SizedBox(height: AppSpacing.gutter),
+                          _buildLuminanceCard(_localLuminance!),
+                          const SizedBox(height: AppSpacing.gutter),
+                          _buildHumidityCard(sensor.kamarKelembapan),
+                          const SizedBox(height: AppSpacing.gutter),
+                          _buildActivityCard(dynamicLogs),
+                        ],
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 48),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
   // ─────────────────────────────────────────────────
-  // A. Header Widget (Title & Premium Timeline Selectors)
+  // A. Header Widget
   // ─────────────────────────────────────────────────
   Widget _buildHeader(bool isMobile) {
     return Row(
@@ -339,13 +353,12 @@ class _MonitorScreenState extends State<MonitorScreen> {
   }
 
   // ─────────────────────────────────────────────────
-  // B. Card 1: Temperature Custom Animated Bar Chart
+  // B. Card 1: Temperature Chart Card
   // ─────────────────────────────────────────────────
-  Widget _buildTempChartCard(_ChartData activeData) {
+  Widget _buildTempChartCard(_ChartData activeData, double liveTemp) {
     return _MonitorGlassCard(
       child: Stack(
         children: [
-          // Ambient Radial backglow
           Positioned(
             bottom: -50,
             right: -50,
@@ -364,11 +377,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
             ),
           ),
 
-          // Main Content
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header description row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -395,7 +406,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'AVG TEMP',
+                            'LIVE ROOM TEMP',
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 10,
@@ -409,7 +420,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                             textBaseline: TextBaseline.alphabetic,
                             children: [
                               Text(
-                                activeData.avgText,
+                                '${liveTemp.toStringAsFixed(1)}°C',
                                 style: const TextStyle(
                                   fontFamily: 'Sora',
                                   fontSize: 24,
@@ -445,7 +456,6 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
               const SizedBox(height: 24),
 
-              // Bar Chart Layout with dynamic hover tooltips!
               SizedBox(
                 height: 140,
                 child: Row(
@@ -453,8 +463,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: List.generate(activeData.values.length, (index) {
                     final double originalVal = activeData.values[index];
-                    // Normalize bar height inside our 100px range
-                    final double normalizedHeight = ((originalVal - 60.0) / 25.0).clamp(0.15, 1.0) * 96;
+                    final double normalizedHeight = ((originalVal - 15.0) / 20.0).clamp(0.15, 1.0) * 96;
                     final String label = activeData.labels[index];
                     final bool isHovered = _hoveredBarIndex == index;
 
@@ -467,11 +476,10 @@ class _MonitorScreenState extends State<MonitorScreen> {
                           });
                         },
                         child: Container(
-                          color: Colors.transparent, // expand gesture detector area
+                          color: Colors.transparent,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              // Floating numeric popup tooltip
                               AnimatedOpacity(
                                 duration: const Duration(milliseconds: 150),
                                 opacity: isHovered ? 1.0 : 0.0,
@@ -488,7 +496,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                     ],
                                   ),
                                   child: Text(
-                                    '${originalVal.toInt()}°',
+                                    '${originalVal.toStringAsFixed(1)}°',
                                     style: const TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 10,
@@ -499,7 +507,6 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              // Rounded Bar Container
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
                                 child: AnimatedContainer(
@@ -532,7 +539,6 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              // X-Axis labels
                               Text(
                                 label,
                                 maxLines: 1,
@@ -562,19 +568,18 @@ class _MonitorScreenState extends State<MonitorScreen> {
   }
 
   // ─────────────────────────────────────────────────
-  // C. Card 2: Interactive Luminance Circular Dial
+  // C. Card 2: Interactive circular dial
   // ─────────────────────────────────────────────────
-  Widget _buildLuminanceCard() {
-    // Generate description based on active percentage value
-    final String statusText = _luminancePercent < 30.0 
+  Widget _buildLuminanceCard(double activeLuminance) {
+    final String statusText = activeLuminance < 30.0 
         ? 'Low Ambient' 
-        : _luminancePercent < 70.0 
+        : activeLuminance < 70.0 
             ? 'Optimal' 
             : 'Overexposed';
 
-    final Color statusColor = _luminancePercent < 30.0
+    final Color statusColor = activeLuminance < 30.0
         ? const Color(AppColors.tertiary)
-        : _luminancePercent < 70.0
+        : activeLuminance < 70.0
             ? const Color(0xFF00F4FE)
             : const Color(AppColors.error);
 
@@ -583,7 +588,6 @@ class _MonitorScreenState extends State<MonitorScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header info
           Row(
             children: [
               const Icon(
@@ -607,11 +611,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
           const SizedBox(height: 16),
 
-          // Central circular canvas Dial
           Center(
             child: GestureDetector(
               onPanUpdate: (details) {
-                // Dial container is 140x140
                 _updateDialGesture(details.localPosition, const Size(140, 140));
               },
               onTapDown: (details) {
@@ -620,24 +622,22 @@ class _MonitorScreenState extends State<MonitorScreen> {
               child: Container(
                 width: 140,
                 height: 140,
-                color: Colors.transparent, // gesture hit-testing
+                color: Colors.transparent,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Canvas paint stroke arc
                     SizedBox(
                       width: 124,
                       height: 124,
                       child: CustomPaint(
                         painter: _RadialDialPainter(
-                          percentage: _luminancePercent,
+                          percentage: activeLuminance,
                           trackColor: Colors.white.withOpacity(0.04),
                           progressColor: const Color(0xFF00F4FE),
                         ),
                       ),
                     ),
 
-                    // Central values text
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -647,7 +647,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             Text(
-                              '${_luminancePercent.toInt()}',
+                              '${activeLuminance.toInt()}',
                               style: const TextStyle(
                                 fontFamily: 'Sora',
                                 fontSize: 32,
@@ -692,10 +692,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
           
           const SizedBox(height: 8),
           
-          // Instruction tip
           Center(
             child: Text(
-              'Drag along the dial to adjust',
+              'Drag along the dial to simulate sunlight',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 9,
@@ -711,7 +710,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─────────────────────────────────────────────────
   // D. Card 3: Humidity Gradient Progress Card
   // ─────────────────────────────────────────────────
-  Widget _buildHumidityCard() {
+  Widget _buildHumidityCard(double liveHumid) {
     return _MonitorGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,7 +748,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Indoor',
+                  'Room Sensor',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 9,
@@ -763,9 +762,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
           const SizedBox(height: 20),
 
-          const Text(
-            '45%',
-            style: TextStyle(
+          Text(
+            '${liveHumid.toInt()}%',
+            style: const TextStyle(
               fontFamily: 'Sora',
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -775,9 +774,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
           const SizedBox(height: 12),
 
-          // Horizontal Progress Bar with gradient
           TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: 0.45),
+            tween: Tween<double>(begin: 0.0, end: liveHumid / 100.0),
             duration: const Duration(seconds: 1),
             curve: Curves.easeOutCubic,
             builder: (context, val, _) {
@@ -816,17 +814,15 @@ class _MonitorScreenState extends State<MonitorScreen> {
   }
 
   // ─────────────────────────────────────────────────
-  // E. Card 4: Recent Activity Action Logs list
+  // E. Card 4: Recent Action Logs
   // ─────────────────────────────────────────────────
-  Widget _buildActivityCard() {
-    // Determine how many items to display
-    final int displayCount = _isLogExpanded ? _logItems.length : 3;
+  Widget _buildActivityCard(List<_LogItem> activeLogs) {
+    final int displayCount = _isLogExpanded ? activeLogs.length : 3;
 
     return _MonitorGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -872,7 +868,6 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
           const SizedBox(height: 16),
 
-          // Lists Items with smooth heights transition
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
@@ -882,7 +877,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
               itemCount: displayCount,
               separatorBuilder: (context, index) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
-                final _LogItem item = _logItems[index];
+                final _LogItem item = activeLogs[index];
 
                 return Container(
                   padding: const EdgeInsets.all(12),
@@ -893,7 +888,6 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Log Icon with neon glow on voice actions
                       Icon(
                         item.icon,
                         size: 20,
@@ -947,7 +941,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
 }
 
 // ─────────────────────────────────────────────────
-// SHARED MONITOR GLASS CONTAINER (Uniform Border)
+// SHARED MONITOR GLASS CONTAINER
 // ─────────────────────────────────────────────────
 class _MonitorGlassCard extends StatelessWidget {
   final Widget child;
@@ -1008,7 +1002,6 @@ class _RadialDialPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.width - strokeWidth) / 2;
 
-    // Track Circle Paint
     final trackPaint = Paint()
       ..color = trackColor
       ..style = PaintingStyle.stroke
@@ -1016,7 +1009,6 @@ class _RadialDialPainter extends CustomPainter {
 
     canvas.drawCircle(center, radius, trackPaint);
 
-    // Progress Arc Paint
     final progressPaint = Paint()
       ..color = progressColor
       ..style = PaintingStyle.stroke
@@ -1025,7 +1017,6 @@ class _RadialDialPainter extends CustomPainter {
 
     final double sweepAngle = 2 * math.pi * (percentage / 100.0);
 
-    // Draw active neon progress arc from top 12 o'clock (-pi/2)
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
@@ -1034,7 +1025,6 @@ class _RadialDialPainter extends CustomPainter {
       progressPaint,
     );
 
-    // Dynamic blur/glow filter arc
     final glowPaint = Paint()
       ..color = progressColor.withOpacity(0.3)
       ..style = PaintingStyle.stroke
@@ -1059,7 +1049,6 @@ class _RadialDialPainter extends CustomPainter {
   }
 }
 
-// ─── Chart Data Helper Struct ───
 class _ChartData {
   final String avgText;
   final String deltaText;
@@ -1076,7 +1065,6 @@ class _ChartData {
   });
 }
 
-// ─── Log Item Helper Struct ───
 class _LogItem {
   final IconData icon;
   final String title;
