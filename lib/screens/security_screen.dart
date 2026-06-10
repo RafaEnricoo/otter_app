@@ -27,7 +27,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
   // ─── Animation Controllers ───
   late AnimationController _pulseController;         // Soundwave concentric pulse
-  late AnimationController _sirenFlashController;    // Edge flash red vignette
   late AnimationController _biometricScannerController; // Biometric scan line sliding
 
   @override
@@ -40,12 +39,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
       vsync: this,
     )..repeat();
 
-    // 2. Siren red vignette flash animation
-    _sirenFlashController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
     // 3. Biometric scanner glowing horizontal line
     _biometricScannerController = AnimationController(
       duration: const Duration(milliseconds: 1500),
@@ -56,7 +49,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
   @override
   void dispose() {
     _pulseController.dispose();
-    _sirenFlashController.dispose();
     _biometricScannerController.dispose();
     _biometricTimer?.cancel();
     super.dispose();
@@ -67,37 +59,89 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     if (isCurrentlyActive) {
       // Disarm Alarm
       HapticFeedback.heavyImpact();
-      _sirenFlashController.stop();
-      _sirenFlashController.reset();
       FirebaseService().updatePerangkat('buzzer_tamu', false);
       FirebaseService().updatePerangkat('buzzer_dapur', false);
       FirebaseService().updatePerangkat('led_merah_dapur', false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('🚨 Sirine berhasil dinonaktifkan. Sistem dalam mode siaga.'),
-          backgroundColor: Color(AppColors.surfaceContainerHigh),
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          duration: const Duration(seconds: 3),
+          content: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(AppColors.surfaceContainerHigh).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF00F4FE).withOpacity(0.35),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF00F4FE).withOpacity(0.1),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00F4FE).withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.campaign_rounded,
+                    color: Color(0xFF00F4FE),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Sirine Dinonaktifkan',
+                        style: TextStyle(
+                          fontFamily: 'Sora',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Sistem keamanan dalam mode siaga.',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     } else {
       // Arm / Trigger active Alarm
       HapticFeedback.vibrate();
-      _sirenFlashController.repeat(reverse: true);
       FirebaseService().updatePerangkat('buzzer_tamu', true);
       FirebaseService().updatePerangkat('buzzer_dapur', true);
       FirebaseService().updatePerangkat('led_merah_dapur', true);
-      _triggerContinuousAlarmHaptics();
-    }
-  }
-
-  // Periodic vibration when emergency alarm is active
-  void _triggerContinuousAlarmHaptics() async {
-    while (mounted) {
-      final state = FirebaseService().stateNotifier.value;
-      if (state == null) break;
-      final active = state.perangkat.buzzerTamu || state.perangkat.buzzerDapur;
-      if (!active) break;
-      await Future.delayed(const Duration(milliseconds: 900));
-      HapticFeedback.vibrate();
     }
   }
 
@@ -189,17 +233,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
         final bool isAlarmActive = perangkat.buzzerTamu || perangkat.buzzerDapur;
         final bool isUnlocked = !perangkat.kunciPintuRfid;
 
-        // Sync siren flash vignette reactive loop
-        if (isAlarmActive) {
-          if (!_sirenFlashController.isAnimating) {
-            _sirenFlashController.repeat(reverse: true);
-          }
-        } else {
-          if (_sirenFlashController.isAnimating) {
-            _sirenFlashController.stop();
-            _sirenFlashController.reset();
-          }
-        }
+        // Alarm active check done reactively
 
         // Live telemetry actions log
         final List<_SecurityLogItem> dynamicSecurityLogs = [
@@ -312,32 +346,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
               ),
             ),
 
-            // ─── Flashing Siren Vignette ───
-            if (isAlarmActive)
-              IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: _sirenFlashController,
-                  builder: (context, _) {
-                    return Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(AppColors.error).withOpacity(_sirenFlashController.value * 0.45),
-                          width: 24.0,
-                        ),
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.transparent,
-                            const Color(AppColors.error).withOpacity(_sirenFlashController.value * 0.18),
-                          ],
-                          stops: const [0.55, 1.0],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+            // Vignette is now globally handled in main.dart
 
             // ─── Biometric Scanner Glass Overlay ───
             if (_isBiometricScanning)
@@ -1212,19 +1221,74 @@ class _SoundwavePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final maxRadius = size.width / 2;
-    
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
 
+    // Draw concentric expanding soundwaves (propagating from the button edge)
     for (int i = 0; i < 3; i++) {
       double p = (progress + i / 3.0) % 1.0;
-      double radius = p * maxRadius;
-      
+      // Propagate from the button edge (radius 60) to outer edge (maxRadius = 90)
+      double radius = 60.0 + (p * (maxRadius - 60.0));
+
       double opacity = (1.0 - p).clamp(0.0, 1.0);
-      paint.color = color.withOpacity(opacity * 0.35);
-      
-      canvas.drawCircle(center, radius, paint);
+
+      // 1. Soft filled ripple
+      final fillPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = color.withOpacity(opacity * 0.04);
+      canvas.drawCircle(center, radius, fillPaint);
+
+      // 2. Soft glowing stroke (blur)
+      final glowPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.0
+        ..color = color.withOpacity(opacity * 0.12)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+      canvas.drawCircle(center, radius, glowPaint);
+
+      // 3. Sharp boundary line
+      final strokePaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0
+        ..color = color.withOpacity(opacity * 0.25);
+      canvas.drawCircle(center, radius, strokePaint);
+    }
+
+    // Draw rotating outer dashed HUD ring (slightly outside the button)
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    // Rotate slowly (1 full rotation every 8 seconds)
+    canvas.rotate(progress * 0.5 * math.pi);
+
+    final dashPaint = Paint()
+      ..color = color.withOpacity(0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    const int dashCount = 36;
+    const double dashAngle = (2 * math.pi) / dashCount;
+    for (int i = 0; i < dashCount; i++) {
+      canvas.drawArc(
+        Rect.fromCircle(center: Offset.zero, radius: 66),
+        i * dashAngle,
+        dashAngle * 0.4,
+        false,
+        dashPaint,
+      );
+    }
+    canvas.restore();
+
+    // Draw 4 static corner radar crosshair tick marks
+    final tickPaint = Paint()
+      ..color = color.withOpacity(0.3)
+      ..strokeWidth = 1.5;
+    for (int angle = 0; angle < 360; angle += 90) {
+      final double rad = angle * math.pi / 180;
+      final double startDist = 63.0;
+      final double endDist = 72.0;
+      canvas.drawLine(
+        Offset(center.dx + startDist * math.cos(rad), center.dy + startDist * math.sin(rad)),
+        Offset(center.dx + endDist * math.cos(rad), center.dy + endDist * math.sin(rad)),
+        tickPaint,
+      );
     }
   }
 

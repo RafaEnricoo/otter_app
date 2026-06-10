@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../models/device_model.dart';
+import '../services/firebase_service.dart';
 import '../screens/voice_assistant_screen.dart';
 
 class BottomNavBar extends StatefulWidget {
@@ -45,81 +47,90 @@ class _BottomNavBarState extends State<BottomNavBar>
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withOpacity(0.07),
-                width: 1,
-              ),
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(AppColors.surface).withOpacity(0.85),
-                Color(AppColors.surfaceContainer).withOpacity(0.95),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.4),
-                blurRadius: 24,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              height: 70,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _NavBarItem(
-                    icon: Icons.home_rounded,
-                    activeIcon: Icons.home_filled,
-                    isActive: widget.currentIndex == 0,
-                    onTap: () => widget.onTabSelected(0),
-                    label: 'Beranda',
-                  ),
-                  _NavBarItem(
-                    icon: Icons.grid_view_outlined,
-                    activeIcon: Icons.grid_view_rounded,
-                    isActive: widget.currentIndex == 1,
-                    onTap: () => widget.onTabSelected(1),
-                    label: 'Perangkat',
-                  ),
+    return ValueListenableBuilder<SmarthomeState?>(
+      valueListenable: FirebaseService().stateNotifier,
+      builder: (context, state, child) {
+        final bool isAlarmActive = state != null &&
+            (state.perangkat.buzzerTamu || state.perangkat.buzzerDapur);
 
-                  // ─── Central Mic Button (inline) ───
-                  _MicFab(
-                    glowAnimation: _fabGlowAnimation,
-                    onTap: () => showVoiceAssistant(context),
+        return ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.white.withOpacity(0.07),
+                    width: 1,
                   ),
-
-                  _NavBarItem(
-                    icon: Icons.analytics_outlined,
-                    activeIcon: Icons.analytics_rounded,
-                    isActive: widget.currentIndex == 2,
-                    onTap: () => widget.onTabSelected(2),
-                    label: 'Monitor',
-                  ),
-                  _NavBarItem(
-                    icon: Icons.shield_outlined,
-                    activeIcon: Icons.shield_rounded,
-                    isActive: widget.currentIndex == 3,
-                    onTap: () => widget.onTabSelected(3),
-                    label: 'Keamanan',
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(AppColors.surface).withOpacity(0.85),
+                    Color(AppColors.surfaceContainer).withOpacity(0.95),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 24,
+                    offset: const Offset(0, -4),
                   ),
                 ],
               ),
+              child: SafeArea(
+                top: false,
+                child: SizedBox(
+                  height: 70,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _NavBarItem(
+                        icon: Icons.home_rounded,
+                        activeIcon: Icons.home_filled,
+                        isActive: widget.currentIndex == 0,
+                        onTap: () => widget.onTabSelected(0),
+                        label: 'Beranda',
+                      ),
+                      _NavBarItem(
+                        icon: Icons.grid_view_outlined,
+                        activeIcon: Icons.grid_view_rounded,
+                        isActive: widget.currentIndex == 1,
+                        onTap: () => widget.onTabSelected(1),
+                        label: 'Perangkat',
+                      ),
+
+                      // ─── Central Mic Button (inline) ───
+                      _MicFab(
+                        glowAnimation: _fabGlowAnimation,
+                        onTap: () => showVoiceAssistant(context),
+                      ),
+
+                      _NavBarItem(
+                        icon: Icons.analytics_outlined,
+                        activeIcon: Icons.analytics_rounded,
+                        isActive: widget.currentIndex == 2,
+                        onTap: () => widget.onTabSelected(2),
+                        label: 'Monitor',
+                      ),
+                      _NavBarItem(
+                        icon: Icons.shield_outlined,
+                        activeIcon: Icons.shield_rounded,
+                        isActive: widget.currentIndex == 3,
+                        onTap: () => widget.onTabSelected(3),
+                        label: 'Keamanan',
+                        isAlarmActive: isAlarmActive,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -279,6 +290,7 @@ class _NavBarItem extends StatefulWidget {
   final bool isActive;
   final VoidCallback onTap;
   final String label;
+  final bool isAlarmActive;
 
   const _NavBarItem({
     required this.icon,
@@ -286,6 +298,7 @@ class _NavBarItem extends StatefulWidget {
     required this.isActive,
     required this.onTap,
     required this.label,
+    this.isAlarmActive = false,
   });
 
   @override
@@ -293,9 +306,12 @@ class _NavBarItem extends StatefulWidget {
 }
 
 class _NavBarItemState extends State<_NavBarItem>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
+
+  late AnimationController _alarmController;
+  late Animation<double> _alarmOpacityAnimation;
 
   @override
   void initState() {
@@ -311,6 +327,18 @@ class _NavBarItemState extends State<_NavBarItem>
     if (widget.isActive) {
       _controller.value = 0.0; // Active but not "pressed"
     }
+
+    _alarmController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _alarmOpacityAnimation = Tween<double>(begin: 0.25, end: 1.0).animate(
+      CurvedAnimation(parent: _alarmController, curve: Curves.easeInOut),
+    );
+
+    if (widget.isAlarmActive) {
+      _alarmController.repeat(reverse: true);
+    }
   }
 
   @override
@@ -320,11 +348,21 @@ class _NavBarItemState extends State<_NavBarItem>
     if (widget.isActive && !oldWidget.isActive) {
       _controller.forward().then((_) => _controller.reverse());
     }
+
+    if (widget.isAlarmActive != oldWidget.isAlarmActive) {
+      if (widget.isAlarmActive) {
+        _alarmController.repeat(reverse: true);
+      } else {
+        _alarmController.stop();
+        _alarmController.reset();
+      }
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _alarmController.dispose();
     super.dispose();
   }
 
@@ -347,47 +385,57 @@ class _NavBarItemState extends State<_NavBarItem>
             scale: _scaleAnimation.value,
             child: SizedBox(
               width: 60,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Icon with animated color and optional glow
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOut,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: widget.isActive
-                          ? Color(
-                              AppColors.secondaryContainer,
-                            ).withOpacity(0.12)
-                          : Colors.transparent,
-                    ),
-                    child: Icon(
-                      widget.isActive ? widget.activeIcon : widget.icon,
-                      color: widget.isActive
+              child: AnimatedBuilder(
+                animation: _alarmOpacityAnimation,
+                builder: (context, child) {
+                  final double opacity = widget.isAlarmActive ? _alarmOpacityAnimation.value : 1.0;
+                  final Color iconColor = widget.isAlarmActive
+                      ? Colors.redAccent.withOpacity(opacity)
+                      : (widget.isActive
                           ? Color(AppColors.secondaryContainer)
-                          : Color(AppColors.onSurfaceVariant).withOpacity(0.6),
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  // Label
-                  AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 250),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight:
-                          widget.isActive ? FontWeight.w700 : FontWeight.w500,
-                      color: widget.isActive
+                          : Color(AppColors.onSurfaceVariant).withOpacity(0.6));
+                  final Color containerColor = widget.isActive
+                      ? (widget.isAlarmActive
+                          ? Colors.redAccent.withOpacity(0.12 * opacity)
+                          : Color(AppColors.secondaryContainer).withOpacity(0.12))
+                      : Colors.transparent;
+                  final Color labelColor = widget.isAlarmActive
+                      ? Colors.redAccent.withOpacity(opacity)
+                      : (widget.isActive
                           ? Color(AppColors.secondaryContainer)
-                          : Color(AppColors.onSurfaceVariant).withOpacity(0.5),
-                      letterSpacing: 0.3,
-                    ),
-                    child: Text(widget.label),
-                  ),
-                ],
+                          : Color(AppColors.onSurfaceVariant).withOpacity(0.5));
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Icon with animated color and optional glow
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: containerColor,
+                        ),
+                        child: Icon(
+                          widget.isActive ? widget.activeIcon : widget.icon,
+                          color: iconColor,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      // Label
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: widget.isActive ? FontWeight.w700 : FontWeight.w500,
+                          color: labelColor,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           );

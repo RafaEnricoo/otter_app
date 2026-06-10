@@ -111,19 +111,15 @@ class Header extends StatelessWidget {
                       );
                     },
                   ),
-                  const SizedBox(width: 4),
-                  _HeaderIconButton(
-                    icon: Icons.settings_outlined,
-                    onPressed: onSettingsPressed,
-                    tooltip: 'Pengaturan',
-                  ),
-
                   const SizedBox(width: AppSpacing.stackSm),
 
-                  // ─── User Avatar ───
-                  _UserAvatar(
-                    userName: userName,
-                    userImageUrl: userImageUrl,
+                  // ─── User Avatar (Opens Profile/Settings) ───
+                  GestureDetector(
+                    onTap: onSettingsPressed,
+                    child: _UserAvatar(
+                      userName: userName,
+                      userImageUrl: userImageUrl,
+                    ),
                   ),
                 ],
               ),
@@ -361,66 +357,7 @@ class _NavLinkState extends State<_NavLink>
 // ─────────────────────────────────────────────────────────
 // Header Icon Button with hover glow
 // ─────────────────────────────────────────────────────────
-class _HeaderIconButton extends StatefulWidget {
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final String tooltip;
 
-  const _HeaderIconButton({
-    required this.icon,
-    this.onPressed,
-    required this.tooltip,
-  });
-
-  @override
-  State<_HeaderIconButton> createState() => _HeaderIconButtonState();
-}
-
-class _HeaderIconButtonState extends State<_HeaderIconButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: Tooltip(
-        message: widget.tooltip,
-        child: GestureDetector(
-          onTap: widget.onPressed,
-          behavior: HitTestBehavior.opaque,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _isHovered
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.transparent,
-              border: Border.all(
-                color: _isHovered
-                    ? Colors.white.withOpacity(0.12)
-                    : Colors.transparent,
-                width: 1,
-              ),
-            ),
-            child: Center(
-              child: Icon(
-                widget.icon,
-                size: 20,
-                color: _isHovered
-                    ? Color(AppColors.onSurface)
-                    : Color(AppColors.onSurfaceVariant),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────
 // Notification Button with animated badge
