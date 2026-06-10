@@ -137,14 +137,38 @@ class FirebaseService {
   Future<void> updatePerangkat(String key, dynamic value) async {
     if (_localState == null) return;
 
+    final bool disableAutoLampu = (key == 'lampu_kamar' || key == 'lampu_tamu' || key == 'lampu_dapur');
+    final bool disableAutoKipas = (key == 'kipas_kamar');
+
     if (_isUsingFallback) {
       final perangkatMap = _localState!.perangkat.toMap();
       perangkatMap[key] = value;
-      _localState = _localState!.copyWith(perangkat: SmarthomePerangkat.fromMap(perangkatMap));
+      
+      SmarthomeOtomatisasi newOto = _localState!.otomatisasi;
+      if (disableAutoLampu || disableAutoKipas) {
+        final otoMap = _localState!.otomatisasi.toMap();
+        if (disableAutoLampu) otoMap['mode_auto_lampu'] = false;
+        if (disableAutoKipas) otoMap['mode_auto_kipas'] = false;
+        newOto = SmarthomeOtomatisasi.fromMap(otoMap);
+      }
+
+      _localState = _localState!.copyWith(
+        perangkat: SmarthomePerangkat.fromMap(perangkatMap),
+        otomatisasi: newOto,
+      );
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } else {
-      await _dbRef.child('perangkat/$key').set(value);
+      final Map<String, dynamic> updates = {
+        'perangkat/$key': value,
+      };
+      if (disableAutoLampu) {
+        updates['otomatisasi/mode_auto_lampu'] = false;
+      }
+      if (disableAutoKipas) {
+        updates['otomatisasi/mode_auto_kipas'] = false;
+      }
+      await _dbRef.update(updates);
     }
   }
 

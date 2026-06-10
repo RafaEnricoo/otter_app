@@ -193,7 +193,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'Notifications',
+                  'Notifikasi',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -204,7 +204,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  unreadCount > 0 ? '$unreadCount unread event${unreadCount > 1 ? 's' : ''}' : 'All caught up!',
+                  unreadCount > 0 ? '$unreadCount pesan belum dibaca' : 'Semua sudah terbaca!',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -219,14 +219,14 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
           if (unreadCount > 0)
             IconButton(
               icon: const Icon(Icons.done_all_rounded, color: Color(0xFF00F4FE), size: 22),
-              tooltip: 'Mark all as read',
+              tooltip: 'Tandai semua terbaca',
               onPressed: () {
                 HapticFeedback.mediumImpact();
                 setState(() {
                   _service.markAllAsRead();
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('All notifications marked as read.')),
+                  const SnackBar(content: Text('Semua notifikasi ditandai sudah dibaca.')),
                 );
               },
             ),
@@ -236,7 +236,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               color: Colors.white.withOpacity(0.7),
               size: 22,
             ),
-            tooltip: 'Clear all',
+            tooltip: 'Hapus semua',
             onPressed: () {
               HapticFeedback.heavyImpact();
               _showClearAllDialog();
@@ -294,7 +294,11 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                     : [],
               ),
               child: Text(
-                cat,
+                cat == 'All' ? 'Semua' :
+                cat == 'Security' ? 'Keamanan' :
+                cat == 'Climate' ? 'Iklim' :
+                cat == 'Energy' ? 'Energi' :
+                cat == 'System' ? 'Sistem' : cat,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -326,16 +330,16 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               children: const [
                 Icon(Icons.warning_amber_rounded, color: Color(0xFFFF4963), size: 24),
                 SizedBox(width: 8),
-                Text('Clear Inbox?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                Text('Hapus Kotak Masuk?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
               ],
             ),
             content: const Text(
-              'Are you sure you want to permanently clear all notifications? This action cannot be undone.',
+              'Apakah Anda yakin ingin menghapus semua notifikasi? Tindakan ini tidak dapat dibatalkan.',
               style: TextStyle(color: Color(0xFFC6C6CE), height: 1.3),
             ),
             actions: <Widget>[
               TextButton(
-                child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+                child: Text('Batal', style: TextStyle(color: Colors.white.withOpacity(0.7))),
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   Navigator.of(context).pop();
@@ -347,7 +351,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                   backgroundColor: const Color(0xFF93000A).withOpacity(0.3),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('Clear All', style: TextStyle(fontWeight: FontWeight.w600)),
+                child: const Text('Hapus Semua', style: TextStyle(fontWeight: FontWeight.w600)),
                 onPressed: () {
                   HapticFeedback.mediumImpact();
                   setState(() {
@@ -413,7 +417,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               ),
               const SizedBox(height: 24),
               const Text(
-                'Inbox Cleared',
+                'Kotak Masuk Kosong',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -426,7 +430,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
                 child: Text(
-                  'Your smart home is operating correctly. Pull down to scan for system updates.',
+                  'Rumah pintar Anda berjalan normal. Tarik ke bawah untuk memindai pembaruan sistem.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -449,7 +453,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                   ),
                 ),
                 icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text('Scan Devices', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                label: const Text('Pindai Perangkat', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                 onPressed: _handleRefresh,
               ),
               const SizedBox(height: 80), // Offset for list scroll feel

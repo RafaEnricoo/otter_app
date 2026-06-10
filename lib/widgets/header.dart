@@ -12,7 +12,7 @@ class Header extends StatelessWidget {
 
   const Header({
     super.key,
-    this.userName = 'Alex Rivers',
+    this.userName = 'Mimah Dudim',
     this.userImageUrl,
     this.onNotificationsPressed,
     this.onSettingsPressed,
@@ -69,28 +69,28 @@ class Header extends StatelessWidget {
                     Row(
                       children: [
                         _NavLink(
-                          label: 'Home',
+                          label: 'Beranda',
                           icon: Icons.home_rounded,
                           isActive: true,
                           onTap: () {},
                         ),
                         const SizedBox(width: 6),
                         _NavLink(
-                          label: 'Devices',
+                          label: 'Perangkat',
                           icon: Icons.devices_rounded,
                           isActive: false,
                           onTap: () {},
                         ),
                         const SizedBox(width: 6),
                         _NavLink(
-                          label: 'Analytics',
+                          label: 'Monitor',
                           icon: Icons.analytics_rounded,
                           isActive: false,
                           onTap: () {},
                         ),
                         const SizedBox(width: 6),
                         _NavLink(
-                          label: 'Security',
+                          label: 'Keamanan',
                           icon: Icons.shield_rounded,
                           isActive: false,
                           onTap: () {},
@@ -115,7 +115,7 @@ class Header extends StatelessWidget {
                   _HeaderIconButton(
                     icon: Icons.settings_outlined,
                     onPressed: onSettingsPressed,
-                    tooltip: 'Settings',
+                    tooltip: 'Pengaturan',
                   ),
 
                   const SizedBox(width: AppSpacing.stackSm),
@@ -471,7 +471,7 @@ class _NotificationButtonState extends State<_NotificationButton>
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: Tooltip(
-        message: 'Notifications',
+        message: 'Notifikasi',
         child: GestureDetector(
           onTap: widget.onPressed,
           behavior: HitTestBehavior.opaque,

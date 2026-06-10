@@ -40,14 +40,14 @@ class _MonitorScreenState extends State<MonitorScreen> {
       deltaText: '+1.2°',
       isDeltaPositive: true,
       values: [26.5, 27.0, 28.2, 27.8, 28.8, 29.5, 28.1],
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
     ),
     '30D': _ChartData(
       avgText: '27.6°C',
       deltaText: '-0.6°',
       isDeltaPositive: false,
       values: [27.2, 28.0, 28.5, 27.9, 27.1, 26.8],
-      labels: ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4', 'Wk 5', 'Wk 6'],
+      labels: ['Mg 1', 'Mg 2', 'Mg 3', 'Mg 4', 'Mg 5', 'Mg 6'],
     ),
   };
 
@@ -113,37 +113,37 @@ class _MonitorScreenState extends State<MonitorScreen> {
           if (sensor.dapurAsapApi > 0)
             _LogItem(
               icon: Icons.warning_rounded,
-              title: 'CRITICAL: Dapur Gas leak detected!',
-              subtitle: 'Just now • Kitchen Smoke Alert',
+              title: 'KRITIS: Kebocoran gas dapur terdeteksi!',
+              subtitle: 'Baru saja • Peringatan Asap Dapur',
               accentColor: Colors.redAccent,
               isVoice: false,
             ),
           if (perangkat.buzzerTamu || perangkat.buzzerDapur)
             _LogItem(
               icon: Icons.campaign_rounded,
-              title: 'Emergency Alarm active',
-              subtitle: 'Active now • Sirens Triggered',
+              title: 'Alarm Darurat Aktif',
+              subtitle: 'Aktif sekarang • Sirine Berbunyi',
               accentColor: Colors.redAccent,
               isVoice: false,
             ),
           _LogItem(
             icon: Icons.lock_rounded,
-            title: perangkat.kunciPintuRfid ? 'RFID Main gate secured' : 'RFID Main gate opened',
-            subtitle: 'Real-time • Security Sync',
+            title: perangkat.kunciPintuRfid ? 'RFID Pintu utama dikunci' : 'RFID Pintu utama dibuka',
+            subtitle: 'Real-time • Sinkronisasi Keamanan',
             accentColor: const Color(0xFF00F4FE),
             isVoice: false,
           ),
           _LogItem(
             icon: Icons.lightbulb_rounded,
-            title: perangkat.lampuTamu ? 'Living Room light turned On' : 'Living Room light turned Off',
-            subtitle: 'Live update • Home automation',
+            title: perangkat.lampuTamu ? 'Lampu Ruang Tamu dinyalakan' : 'Lampu Ruang Tamu dimatikan',
+            subtitle: 'Pembaruan langsung • Otomatisasi rumah',
             accentColor: const Color(AppColors.tertiary),
             isVoice: false,
           ),
           _LogItem(
             icon: Icons.sensors_rounded,
-            title: 'Roof light sensor updated to ${sensor.cahayaAtap}%',
-            subtitle: 'LDR Telemetry • Live',
+            title: 'Sensor cahaya atap diperbarui ke ${sensor.cahayaAtap}%',
+            subtitle: 'Telemetri LDR • Langsung',
             accentColor: const Color(AppColors.tertiary),
             isVoice: false,
           ),
@@ -268,7 +268,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Environment',
+                'Lingkungan',
                 style: TextStyle(
                   fontFamily: 'Sora',
                   fontSize: isMobile ? 28 : 32,
@@ -279,7 +279,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Real-time telemetry and historical analysis.',
+                'Telemetri real-time dan analisis riwayat.',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -406,7 +406,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'LIVE ROOM TEMP',
+                            'SUHU RUANGAN LIVE',
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 10,
@@ -572,10 +572,10 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─────────────────────────────────────────────────
   Widget _buildLuminanceCard(double activeLuminance) {
     final String statusText = activeLuminance < 30.0 
-        ? 'Low Ambient' 
+        ? 'Cahaya Rendah' 
         : activeLuminance < 70.0 
             ? 'Optimal' 
-            : 'Overexposed';
+            : 'Sangat Terang';
 
     final Color statusColor = activeLuminance < 30.0
         ? const Color(AppColors.tertiary)
@@ -597,7 +597,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'LUMINANCE',
+                'INTENSITAS CAHAYA',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 10,
@@ -694,7 +694,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
           
           Center(
             child: Text(
-              'Drag along the dial to simulate sunlight',
+              'Geser dial untuk mensimulasikan cahaya matahari',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 9,
@@ -727,7 +727,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'HUMIDITY',
+                    'KELEMBAPAN',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 10,
@@ -748,7 +748,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Room Sensor',
+                  'Sensor Ruangan',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 9,
@@ -835,7 +835,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'RECENT ACTIONS',
+                    'AKTIVITAS TERKINI',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 10,
@@ -854,7 +854,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   });
                 },
                 child: Text(
-                  _isLogExpanded ? 'Show Less' : 'View All',
+                  _isLogExpanded ? 'Lebih Sedikit' : 'Lihat Semua',
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 11,

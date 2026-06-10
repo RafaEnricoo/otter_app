@@ -65,7 +65,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 // ─── Page Intro header (Desktop only) ───
                 if (!isMobile) ...[
                   const Text(
-                    'Smart Devices',
+                    'Perangkat Pintar',
                     style: TextStyle(
                       fontFamily: 'Sora',
                       fontSize: 32,
@@ -76,7 +76,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Interactive control panel synced with ambient light (LDR), temperature, and humidity sensors.',
+                    'Panel kontrol interaktif yang disinkronkan dengan sensor cahaya (LDR), suhu, dan kelembapan.',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,
@@ -88,7 +88,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                 // ─── Room: Living Room ───
                 _buildRoomSection(
-                  roomTitle: 'Living Room',
+                  roomTitle: 'Ruang Tamu',
                   children: [
                     // 1. Lampu Tamu LED Card
                     _buildLEDCard(
@@ -110,20 +110,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                     // 2. Sensor Gerak Tamu Card
                     _buildSensorCard(
-                      title: 'Living Room Motion',
-                      value: sensor.tamuGerak ? 'ACTIVE' : 'QUIET',
+                      title: 'Gerak Ruang Tamu',
+                      value: sensor.tamuGerak ? 'AKTIF' : 'AMAN',
                       unit: '',
-                      badgeText: 'PIR Sensor',
+                      badgeText: 'Sensor PIR',
                       icon: sensor.tamuGerak ? Icons.run_circle_rounded : Icons.motion_photos_off_rounded,
                       onTap: () => _showMotionSimulationSheet(sensor.tamuGerak),
-                      infoText: sensor.tamuGerak ? '🚨 Motion Detected' : 'No Movement',
+                      infoText: sensor.tamuGerak ? '🚨 Terdeteksi Gerakan' : 'Tidak Ada Gerakan',
                       isActive: sensor.tamuGerak,
                     ),
 
                     // 3. Siren Tamu System Card
                     _buildToggleCard(
-                      title: 'Siren Tamu',
-                      statusText: perangkat.buzzerTamu ? 'TRIGGERED (Alarm)' : 'Disarmed',
+                      title: 'Sirine Ruang Tamu',
+                      statusText: perangkat.buzzerTamu ? 'BERBUNYI (Alarm)' : 'Siaga',
                       isOn: perangkat.buzzerTamu,
                       icon: Icons.campaign_rounded,
                       onToggle: (val) {
@@ -137,7 +137,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                 // ─── Room: Bedroom ───
                 _buildRoomSection(
-                  roomTitle: 'Bedroom',
+                  roomTitle: 'Kamar Tidur',
                   children: [
                     // 1. Lampu Kamar LED Card
                     _buildLEDCard(
@@ -185,18 +185,18 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                     // 3. Temp & Humidity Sensor Card Bedroom
                     _buildSensorCard(
-                      title: 'Bedroom Climate',
+                      title: 'Iklim Kamar Tidur',
                       value: '${sensor.kamarSuhu.toStringAsFixed(1)}°C',
                       unit: ' / ${sensor.kamarKelembapan.toInt()}%',
-                      badgeText: 'DHT11 Sensor',
+                      badgeText: 'Sensor DHT11',
                       icon: Icons.thermostat_rounded,
                       onTap: () => _showClimateSimulationSheet(
-                        title: 'Bedroom Climate',
+                        title: 'Kamar Tidur',
                         isBedroom: true,
                         currentTemp: sensor.kamarSuhu,
                         currentHumid: sensor.kamarKelembapan,
                       ),
-                      infoText: otomatisasi.modeAutoKipas ? 'Fan Auto Enabled' : 'Manual climate control',
+                      infoText: otomatisasi.modeAutoKipas ? 'Otomatisasi Kipas Aktif' : 'Kontrol iklim manual',
                     ),
                   ],
                 ),
@@ -205,7 +205,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                 // ─── Room: Kitchen ───
                 _buildRoomSection(
-                  roomTitle: 'Kitchen',
+                  roomTitle: 'Dapur',
                   children: [
                     // 1. Lampu Dapur LED Card
                     _buildLEDCard(
@@ -226,20 +226,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                     // 2. Gas & Smoke Sensor Card (Simulation trigger)
                     _buildSensorCard(
-                      title: 'Kitchen Smoke & Gas',
-                      value: sensor.dapurAsapApi > 0 ? 'LEAK' : 'CLEAR',
+                      title: 'Asap & Gas Dapur',
+                      value: sensor.dapurAsapApi > 0 ? 'BOCOR' : 'AMAN',
                       unit: '',
-                      badgeText: 'MQ-2 Gas Sensor',
+                      badgeText: 'Sensor Gas MQ-2',
                       icon: Icons.local_fire_department_rounded,
                       onTap: () => _showSmokeSimulationSheet(sensor.dapurAsapApi > 0),
-                      infoText: sensor.dapurAsapApi > 0 ? '🔥 Gas Leak Triggered!' : 'Air quality optimal',
+                      infoText: sensor.dapurAsapApi > 0 ? '🔥 Kebocoran Gas Terdeteksi!' : 'Kualitas udara optimal',
                       isActive: sensor.dapurAsapApi > 0,
                     ),
 
                     // 3. Kitchen warning LED
                     _buildToggleCard(
                       title: 'LED Merah Peringatan',
-                      statusText: perangkat.ledMerahDapur ? 'WARNING ACTIVE' : 'Standby',
+                      statusText: perangkat.ledMerahDapur ? 'PERINGATAN AKTIF' : 'Siaga',
                       isOn: perangkat.ledMerahDapur,
                       icon: Icons.circle_notifications_rounded,
                       onToggle: (val) {
@@ -250,8 +250,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                     // 4. Kitchen Alarm Buzzer Card
                     _buildToggleCard(
-                      title: 'Siren Dapur',
-                      statusText: perangkat.buzzerDapur ? 'SIREN ACTIVE' : 'Disarmed',
+                      title: 'Sirine Dapur',
+                      statusText: perangkat.buzzerDapur ? 'SIRINE AKTIF' : 'Siaga',
                       isOn: perangkat.buzzerDapur,
                       icon: Icons.campaign_rounded,
                       onToggle: (val) {
@@ -261,18 +261,18 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                     // 5. Kitchen Climate Sensor
                     _buildSensorCard(
-                      title: 'Kitchen Climate',
+                      title: 'Iklim Dapur',
                       value: '${sensor.dapurSuhu.toStringAsFixed(1)}°C',
                       unit: ' / ${sensor.dapurKelembapan.toInt()}%',
-                      badgeText: 'DHT11 Sensor',
+                      badgeText: 'Sensor DHT11',
                       icon: Icons.thermostat_rounded,
                       onTap: () => _showClimateSimulationSheet(
-                        title: 'Kitchen Climate',
+                        title: 'Dapur',
                         isBedroom: false,
                         currentTemp: sensor.dapurSuhu,
                         currentHumid: sensor.dapurKelembapan,
                       ),
-                      infoText: 'Indoor kitchen sensors',
+                      infoText: 'Sensor dalam ruangan dapur',
                     ),
                   ],
                 ),
@@ -281,12 +281,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                 // ─── Room: Bathroom ───
                 _buildRoomSection(
-                  roomTitle: 'Bathroom',
+                  roomTitle: 'Kamar Mandi',
                   children: [
                     // 1. Lampu Kamar Mandi
                     _buildToggleCard(
                       title: 'Lampu Kamar Mandi',
-                      statusText: perangkat.lampuKamarMandi ? 'On' : 'Off',
+                      statusText: perangkat.lampuKamarMandi ? 'Menyala' : 'Mati',
                       isOn: perangkat.lampuKamarMandi,
                       icon: Icons.bathroom_rounded,
                       onToggle: (val) {
@@ -300,16 +300,16 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                 // ─── Room: Exterior & Security ───
                 _buildRoomSection(
-                  roomTitle: 'Exterior & Security Gate',
+                  roomTitle: 'Eksterior & Gerbang Keamanan',
                   children: [
                     // 1. RFID Door Lock
                     _buildActionCard(
                       title: 'Kunci Pintu RFID',
-                      statusText: perangkat.kunciPintuRfid ? 'Locked (Secured)' : 'Unlocked (Open)',
-                      badgeText: perangkat.kunciPintuRfid ? 'Secured' : 'Access Open',
+                      statusText: perangkat.kunciPintuRfid ? 'Terkunci (Aman)' : 'Terbuka',
+                      badgeText: perangkat.kunciPintuRfid ? 'Aman' : 'Akses Terbuka',
                       icon: Icons.meeting_room_rounded,
                       footerIcon: perangkat.kunciPintuRfid ? Icons.lock_rounded : Icons.lock_open_rounded,
-                      footerText: perangkat.kunciPintuRfid ? 'RFID Engaged' : 'RFID Released',
+                      footerText: perangkat.kunciPintuRfid ? 'RFID Mengunci' : 'RFID Terbuka',
                       isActive: perangkat.kunciPintuRfid,
                       onTap: () {
                         HapticFeedback.lightImpact();
@@ -325,7 +325,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       badgeText: 'LDR Photoresistor',
                       icon: Icons.wb_sunny_rounded,
                       onTap: () => _showLdrSimulationSheet(sensor.cahayaAtap),
-                      infoText: otomatisasi.modeAutoLampu ? 'Syncing lights...' : 'Manual mode',
+                      infoText: otomatisasi.modeAutoLampu ? 'Menyelaraskan lampu...' : 'Mode manual',
                     ),
                   ],
                 ),
@@ -911,8 +911,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 const SizedBox(height: 4),
                 Text(
                   isAuto
-                      ? 'Auto (Sensor Sync)'
-                      : isOn ? 'Active' : 'Off',
+                      ? 'Otomatis (Sinkron Sensor)'
+                      : isOn ? 'Aktif' : 'Mati',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
@@ -1124,8 +1124,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 const SizedBox(height: 4),
                 Text(
                   isAuto
-                      ? 'Auto (Suhu Sync)'
-                      : isOn ? 'Speed ${speed.toInt()}' : 'Off',
+                      ? 'Otomatis (Sinkron Suhu)'
+                      : isOn ? 'Kecepatan ${speed.toInt()}' : 'Mati',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,

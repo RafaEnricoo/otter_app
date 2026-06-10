@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart';
 import '../core/constants.dart';
+import '../services/firebase_service.dart';
 
 /// Shows the Voice Assistant overlay as a modal bottom sheet.
 Future<void> showVoiceAssistant(BuildContext context) {
@@ -42,9 +46,18 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
 
   late AnimationController _orbController;
 
+  // ─── Speech To Text ───
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechInitialized = false;
+  double _soundLevel = 0.0;
+
+  // ─── Text To Speech ───
+  final FlutterTts _tts = FlutterTts();
+
   @override
   void initState() {
     super.initState();
+    _initTts();
 
     // Entry animation
     _entryController = AnimationController(
@@ -54,9 +67,10 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     _slideAnimation = Tween<double>(begin: 100, end: 0).animate(
       CurvedAnimation(parent: _entryController, curve: Curves.easeOutCubic),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
 
     // Mic pulse
     _pulseController = AnimationController(
@@ -80,32 +94,319 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     )..repeat();
 
     _entryController.forward();
+    _initSpeech();
   }
 
-  void _simulateVoiceFlow() async {
-    if (!mounted) return;
+  void _initTts() async {
+    try {
+      // Set Google TTS engine on Android for natural Indonesian voice accent
+      try {
+        await _tts.setEngine('com.google.android.tts');
+      } catch (e) {
+        print('Google TTS engine not available, using default engine: $e');
+      }
+
+      // Set volume to maximum
+      await _tts.setVolume(1.0);
+      await _tts.setSpeechRate(0.5);
+      await _tts.setPitch(1.0);
+
+      // Enforce Indonesian language
+      await _tts.setLanguage('id-ID');
+    } catch (e) {
+      print('TTS initialize exception: $e');
+    }
+  }
+
+  void _initSpeech() async {
+    try {
+      final available = await _speech.initialize(
+        onError: (val) {
+          print('Speech initialize error: $val');
+          if (mounted) {
+            setState(() {
+              _voiceState = _VoiceState.idle;
+              _transcriptText = 'Gagal menggunakan mic';
+            });
+          }
+        },
+        onStatus: (val) => print('Speech status: $val'),
+      );
+      if (mounted) {
+        setState(() {
+          _speechInitialized = available;
+        });
+      }
+    } catch (e) {
+      print('SpeechToText initialize exception: $e');
+    }
+  }
+
+  void _startListening() async {
+    if (!_speechInitialized) {
+      setState(() {
+        _transcriptText = 'Fitur suara tidak tersedia';
+      });
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
     setState(() {
       _voiceState = _VoiceState.listening;
-      _transcriptText = '';
+      _transcriptText = 'Katakan perintah...';
       _feedbackText = '';
+      _soundLevel = 0.0;
     });
 
-    // Phase 2: Show transcript
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
-    setState(() {
-      _voiceState = _VoiceState.processing;
-      _transcriptText = '"Matikan lampu ruang tamu"';
-    });
+    try {
+      await _speech.listen(
+        onResult: (result) {
+          if (mounted) {
+            setState(() {
+              _transcriptText = '"${result.recognizedWords}"';
+            });
+            if (result.finalResult) {
+              _processVoiceCommand(result.recognizedWords);
+            }
+          }
+        },
+        onSoundLevelChange: (level) {
+          if (mounted) {
+            setState(() {
+              _soundLevel = level;
+            });
+          }
+        },
+        localeId: 'id_ID', // Set default to Indonesian speech
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _voiceState = _VoiceState.idle;
+          _transcriptText = 'Mendengarkan gagal';
+          _soundLevel = 0.0;
+        });
+      }
+    }
+  }
 
-    // Phase 3: Show feedback
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
-    HapticFeedback.lightImpact();
-    setState(() {
-      _voiceState = _VoiceState.success;
-      _feedbackText = 'Lampu ruang tamu dimatikan';
-    });
+  void _stopListening() async {
+    await _speech.stop();
+    if (mounted) {
+      setState(() {
+        _voiceState = _VoiceState.processing;
+        _soundLevel = 0.0;
+      });
+    }
+  }
+
+  void _processVoiceCommand(String command) async {
+    if (command.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _voiceState = _VoiceState.idle;
+          _feedbackText = 'Suara tidak terdengar';
+        });
+        _tts.speak('Suara tidak terdengar');
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _voiceState = _VoiceState.processing;
+        _transcriptText = '"$command"';
+      });
+    }
+
+    final cmd = command.toLowerCase();
+    String responseText = 'Perintah tidak dikenali';
+    bool recognized = false;
+
+    final currentState = FirebaseService().stateNotifier.value;
+
+    // IoT Control Logic based on voice commands
+    if (cmd.contains('hidup') ||
+        cmd.contains('nyala') ||
+        cmd.contains('on') ||
+        cmd.contains('buka') ||
+        cmd.contains('aktif')) {
+      if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
+          cmd.contains('lampu')) {
+        final bool alreadyOn = currentState?.otomatisasi.modeAutoLampu ?? false;
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+        responseText = alreadyOn
+            ? 'Mode auto lampu sudah aktif'
+            : 'Mode auto lampu diaktifkan';
+        recognized = true;
+      } else if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
+          cmd.contains('kipas')) {
+        final bool alreadyOn = currentState?.otomatisasi.modeAutoKipas ?? false;
+        await FirebaseService().updateOtomatisasi('mode_auto_kipas', true);
+        responseText = alreadyOn
+            ? 'Mode auto kipas sudah aktif'
+            : 'Mode auto kipas diaktifkan';
+        recognized = true;
+      } else if (cmd.contains('lampu') && cmd.contains('mandi')) {
+        final bool alreadyOn = currentState?.perangkat.lampuKamarMandi ?? false;
+        await FirebaseService().updatePerangkat('lampu_kamar_mandi', true);
+        responseText = alreadyOn
+            ? 'Lampu kamar mandi sudah menyala'
+            : 'Lampu kamar mandi dinyalakan';
+        recognized = true;
+      } else if (cmd.contains('lampu') && cmd.contains('kamar')) {
+        final bool alreadyOn = currentState?.perangkat.lampuKamar ?? false;
+        await FirebaseService().updatePerangkat('lampu_kamar', true);
+        responseText = alreadyOn
+            ? 'Lampu kamar sudah menyala'
+            : 'Lampu kamar dinyalakan';
+        recognized = true;
+      } else if (cmd.contains('lampu') &&
+          (cmd.contains('tamu') || cmd.contains('ruang tamu'))) {
+        final bool alreadyOn = currentState?.perangkat.lampuTamu ?? false;
+        await FirebaseService().updatePerangkat('lampu_tamu', true);
+        responseText = alreadyOn
+            ? 'Lampu ruang tamu sudah menyala'
+            : 'Lampu ruang tamu dinyalakan';
+        recognized = true;
+      } else if (cmd.contains('lampu') && cmd.contains('dapur')) {
+        final bool alreadyOn = currentState?.perangkat.lampuDapur ?? false;
+        await FirebaseService().updatePerangkat('lampu_dapur', true);
+        responseText = alreadyOn
+            ? 'Lampu dapur sudah menyala'
+            : 'Lampu dapur dinyalakan';
+        recognized = true;
+      } else if (cmd.contains('kipas')) {
+        final bool alreadyOn = currentState?.perangkat.kipasKamar ?? false;
+        await FirebaseService().updatePerangkat('kipas_kamar', true);
+        await FirebaseService().updatePerangkat('kecepatan_kipas', 255);
+        responseText = alreadyOn
+            ? 'Kipas kamar sudah menyala'
+            : 'Kipas kamar dinyalakan';
+        recognized = true;
+      } else if (cmd.contains('alarm') ||
+          cmd.contains('sirine') ||
+          cmd.contains('buzzer')) {
+        final bool alreadyOn =
+            (currentState?.perangkat.buzzerTamu ?? false) ||
+            (currentState?.perangkat.buzzerDapur ?? false);
+        await FirebaseService().updatePerangkat('buzzer_tamu', true);
+        await FirebaseService().updatePerangkat('buzzer_dapur', true);
+        responseText = alreadyOn
+            ? 'Alarm darurat sudah aktif'
+            : 'Alarm darurat diaktifkan';
+        recognized = true;
+      } else if (cmd.contains('pintu') ||
+          cmd.contains('gerbang') ||
+          cmd.contains('kunci')) {
+        final bool alreadyOpen =
+            !(currentState?.perangkat.kunciPintuRfid ?? true);
+        await FirebaseService().updatePerangkat(
+          'kunci_pintu_rfid',
+          false,
+        ); // unlock
+        responseText = alreadyOpen
+            ? 'Pintu utama sudah dibuka'
+            : 'Pintu utama dibuka';
+        recognized = true;
+      }
+    } else if (cmd.contains('mati') ||
+        cmd.contains('tutup') ||
+        cmd.contains('off') ||
+        cmd.contains('kunci') ||
+        cmd.contains('nonaktif')) {
+      if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
+          cmd.contains('lampu')) {
+        final bool alreadyOff =
+            !(currentState?.otomatisasi.modeAutoLampu ?? true);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu', false);
+        responseText = alreadyOff
+            ? 'Mode auto lampu sudah mati'
+            : 'Mode auto lampu dimatikan';
+        recognized = true;
+      } else if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
+          cmd.contains('kipas')) {
+        final bool alreadyOff =
+            !(currentState?.otomatisasi.modeAutoKipas ?? true);
+        await FirebaseService().updateOtomatisasi('mode_auto_kipas', false);
+        responseText = alreadyOff
+            ? 'Mode auto kipas sudah mati'
+            : 'Mode auto kipas dimatikan';
+        recognized = true;
+      } else if (cmd.contains('lampu') && cmd.contains('mandi')) {
+        final bool alreadyOff =
+            !(currentState?.perangkat.lampuKamarMandi ?? true);
+        await FirebaseService().updatePerangkat('lampu_kamar_mandi', false);
+        responseText = alreadyOff
+            ? 'Lampu kamar mandi sudah mati'
+            : 'Lampu kamar mandi dimatikan';
+        recognized = true;
+      } else if (cmd.contains('lampu') && cmd.contains('kamar')) {
+        final bool alreadyOff = !(currentState?.perangkat.lampuKamar ?? true);
+        await FirebaseService().updatePerangkat('lampu_kamar', false);
+        responseText = alreadyOff
+            ? 'Lampu kamar sudah mati'
+            : 'Lampu kamar dimatikan';
+        recognized = true;
+      } else if (cmd.contains('lampu') &&
+          (cmd.contains('tamu') || cmd.contains('ruang tamu'))) {
+        final bool alreadyOff = !(currentState?.perangkat.lampuTamu ?? true);
+        await FirebaseService().updatePerangkat('lampu_tamu', false);
+        responseText = alreadyOff
+            ? 'Lampu ruang tamu sudah mati'
+            : 'Lampu ruang tamu dimatikan';
+        recognized = true;
+      } else if (cmd.contains('lampu') && cmd.contains('dapur')) {
+        final bool alreadyOff = !(currentState?.perangkat.lampuDapur ?? true);
+        await FirebaseService().updatePerangkat('lampu_dapur', false);
+        responseText = alreadyOff
+            ? 'Lampu dapur sudah mati'
+            : 'Lampu dapur dimatikan';
+        recognized = true;
+      } else if (cmd.contains('kipas')) {
+        final bool alreadyOff = !(currentState?.perangkat.kipasKamar ?? true);
+        await FirebaseService().updatePerangkat('kipas_kamar', false);
+        responseText = alreadyOff
+            ? 'Kipas kamar sudah mati'
+            : 'Kipas kamar dimatikan';
+        recognized = true;
+      } else if (cmd.contains('alarm') ||
+          cmd.contains('sirine') ||
+          cmd.contains('buzzer')) {
+        final bool alreadyOff =
+            !(currentState?.perangkat.buzzerTamu ?? true) &&
+            !(currentState?.perangkat.buzzerDapur ?? true);
+        await FirebaseService().updatePerangkat('buzzer_tamu', false);
+        await FirebaseService().updatePerangkat('buzzer_dapur', false);
+        responseText = alreadyOff
+            ? 'Alarm darurat sudah mati'
+            : 'Alarm darurat dimatikan';
+        recognized = true;
+      } else if (cmd.contains('pintu') ||
+          cmd.contains('gerbang') ||
+          cmd.contains('kunci')) {
+        final bool alreadyLocked =
+            currentState?.perangkat.kunciPintuRfid ?? false;
+        await FirebaseService().updatePerangkat(
+          'kunci_pintu_rfid',
+          true,
+        ); // lock
+        responseText = alreadyLocked
+            ? 'Pintu utama sudah dikunci'
+            : 'Pintu utama dikunci';
+        recognized = true;
+      }
+    }
+
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) {
+      HapticFeedback.lightImpact();
+      setState(() {
+        _voiceState = recognized ? _VoiceState.success : _VoiceState.idle;
+        _feedbackText = responseText;
+      });
+      _tts.speak(responseText);
+    }
   }
 
   @override
@@ -114,6 +415,8 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     _pulseController.dispose();
     _waveController.dispose();
     _orbController.dispose();
+    _speech.stop();
+    _tts.stop();
     super.dispose();
   }
 
@@ -126,10 +429,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       builder: (context, child) {
         return Transform.translate(
           offset: Offset(0, _slideAnimation.value),
-          child: Opacity(
-            opacity: _fadeAnimation.value,
-            child: child,
-          ),
+          child: Opacity(opacity: _fadeAnimation.value, child: child),
         );
       },
       child: ClipRRect(
@@ -138,8 +438,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
           child: Container(
             decoration: BoxDecoration(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(32)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(32),
+              ),
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -166,10 +467,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
             child: SafeArea(
               top: false,
               child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: bottomPadding + 24,
-                  top: 0,
-                ),
+                padding: EdgeInsets.only(bottom: bottomPadding + 24, top: 0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -181,17 +479,15 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                         height: 4,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(2),
-                          color: Color(AppColors.onSurfaceVariant)
-                              .withOpacity(0.25),
+                          color: Color(
+                            AppColors.onSurfaceVariant,
+                          ).withOpacity(0.25),
                         ),
                       ),
                     ),
 
                     // ─── Sound Wave / Status Area ───
-                    SizedBox(
-                      height: 100,
-                      child: _buildWaveArea(),
-                    ),
+                    SizedBox(height: 100, child: _buildWaveArea()),
 
                     const SizedBox(height: 20),
 
@@ -201,8 +497,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                       child: _transcriptText.isNotEmpty
                           ? Padding(
                               key: ValueKey(_transcriptText),
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 32),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                              ),
                               child: Text(
                                 _transcriptText,
                                 textAlign: TextAlign.center,
@@ -243,8 +540,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(AppColors.secondaryContainer)
-                                        .withOpacity(0.85),
+                                    color: Color(
+                                      AppColors.secondaryContainer,
+                                    ).withOpacity(0.85),
                                   ),
                                 ),
                               ],
@@ -271,8 +569,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Color(AppColors.onSurfaceVariant)
-                              .withOpacity(0.4),
+                          color: Color(
+                            AppColors.onSurfaceVariant,
+                          ).withOpacity(0.4),
                           letterSpacing: 2.5,
                         ),
                       ),
@@ -290,13 +589,13 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
   String get _statusLabel {
     switch (_voiceState) {
       case _VoiceState.idle:
-        return 'TAP TO SPEAK';
+        return 'KETUK UNTUK BERBICARA';
       case _VoiceState.listening:
-        return 'LISTENING';
+        return 'MENDENGARKAN';
       case _VoiceState.processing:
-        return 'PROCESSING';
+        return 'MEMPROSES';
       case _VoiceState.success:
-        return 'DONE';
+        return 'SELESAI';
     }
   }
 
@@ -315,37 +614,22 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     }
 
     if (_voiceState == _VoiceState.success) {
-      return TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0.0, end: 1.0),
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.elasticOut,
-        builder: (context, value, child) {
-          return Transform.scale(
-            scale: value,
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(9, (index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
             child: Container(
-              width: 64,
-              height: 64,
+              width: 5,
+              height: 6,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(AppColors.secondaryContainer).withOpacity(0.15),
-                boxShadow: [
-                  BoxShadow(
-                    color:
-                        Color(AppColors.secondaryContainer).withOpacity(0.3),
-                    blurRadius: 24,
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.check_rounded,
-                  color: Color(AppColors.secondaryContainer),
-                  size: 32,
-                ),
+                borderRadius: BorderRadius.circular(100),
+                color: Color(AppColors.secondaryContainer).withOpacity(0.3),
               ),
             ),
           );
-        },
+        }),
       );
     }
 
@@ -359,16 +643,24 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           children: List.generate(9, (index) {
             final phase = index / 9 * 2 * math.pi;
             final waveValue =
-                (math.sin(_waveController.value * 2 * math.pi + phase) + 1) /
-                    2;
-            final heightFactor = _voiceState == _VoiceState.processing
-                ? 0.15 + waveValue * 0.25
-                : 0.2 + waveValue * 0.8;
+                (math.sin(_waveController.value * 2 * math.pi + phase) + 1) / 2;
+                
+            double amplitude = 1.0;
+            if (_voiceState == _VoiceState.listening) {
+              // Normalize sound level (ranges from -2.0 to 10.0)
+              final clamped = _soundLevel.clamp(-2.0, 10.0);
+              amplitude = (clamped + 2.0) / 12.0;
+              amplitude = amplitude.clamp(0.04, 1.0); // Baseline so it doesn't disappear completely
+            } else if (_voiceState == _VoiceState.processing) {
+              amplitude = 0.25; // Gentle constant wave while thinking
+            }
+
+            final heightFactor = 0.08 + (waveValue * 0.92 * amplitude);
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 100),
+                duration: const Duration(milliseconds: 80),
                 width: 5,
                 height: 100 * heightFactor,
                 decoration: BoxDecoration(
@@ -383,8 +675,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(AppColors.secondaryContainer)
-                          .withOpacity(0.4 * waveValue),
+                      color: Color(
+                        AppColors.secondaryContainer,
+                      ).withOpacity(0.4 * waveValue),
                       blurRadius: 12,
                       spreadRadius: 0,
                     ),
@@ -411,8 +704,10 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
         HapticFeedback.mediumImpact();
         if (_voiceState == _VoiceState.success) {
           Navigator.of(context).pop();
+        } else if (_voiceState == _VoiceState.listening) {
+          _stopListening();
         } else if (_voiceState == _VoiceState.idle) {
-          _simulateVoiceFlow();
+          _startListening();
         }
       },
       child: AnimatedBuilder(
@@ -435,8 +730,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Color(AppColors.secondaryContainer)
-                              .withOpacity(_pulseAnimation.value * 0.3),
+                          color: Color(
+                            AppColors.secondaryContainer,
+                          ).withOpacity(_pulseAnimation.value * 0.3),
                           width: 1.5,
                         ),
                       ),
@@ -455,11 +751,13 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                         gradient: SweepGradient(
                           colors: [
                             Color(AppColors.secondaryContainer),
-                            Color(AppColors.secondaryContainer)
-                                .withOpacity(0.0),
+                            Color(
+                              AppColors.secondaryContainer,
+                            ).withOpacity(0.0),
                             Color(AppColors.primary).withOpacity(0.2),
-                            Color(AppColors.secondaryContainer)
-                                .withOpacity(0.0),
+                            Color(
+                              AppColors.secondaryContainer,
+                            ).withOpacity(0.0),
                             Color(AppColors.secondaryContainer),
                           ],
                         ),
@@ -488,9 +786,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(AppColors.secondaryContainer).withOpacity(
-                          isActive ? _pulseAnimation.value : 0.15,
-                        ),
+                        color: Color(
+                          AppColors.secondaryContainer,
+                        ).withOpacity(isActive ? _pulseAnimation.value : 0.15),
                         blurRadius: isActive ? 60 : 20,
                         spreadRadius: 0,
                       ),
@@ -502,8 +800,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                       // Inner glow
                       if (isActive)
                         BoxShadow(
-                          color: Color(AppColors.secondaryContainer)
-                              .withOpacity(0.2),
+                          color: Color(
+                            AppColors.secondaryContainer,
+                          ).withOpacity(0.2),
                           blurRadius: 20,
                           spreadRadius: -5,
                         ),

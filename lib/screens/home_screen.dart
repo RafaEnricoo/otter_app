@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
@@ -74,7 +75,7 @@ class HomeScreen extends StatelessWidget {
                     // ═══════════════════════════════════════════
                     // SENSOR CARDS (Temperature & Humidity)
                     // ═══════════════════════════════════════════
-                    _SectionHeader(title: 'Environment', trailing: 'Live'),
+                    _SectionHeader(title: 'Lingkungan', trailing: 'Live'),
                     const SizedBox(height: 14),
                     Row(
                       children: [
@@ -83,7 +84,7 @@ class HomeScreen extends StatelessWidget {
                             icon: Icons.device_thermostat_rounded,
                             trend: Icons.trending_up_rounded,
                             value: '${sensor.kamarSuhu.toStringAsFixed(1)}°C',
-                            label: 'Room Temp',
+                            label: 'Suhu Kamar',
                             trendLabel: 'Optimal',
                             trendColor: const Color(0xFF81C784),
                             accentColor: const Color(0xFFFF8A65),
@@ -95,10 +96,38 @@ class HomeScreen extends StatelessWidget {
                             icon: Icons.water_drop_rounded,
                             trend: Icons.trending_flat_rounded,
                             value: '${sensor.kamarKelembapan.toInt()}%',
-                            label: 'Room Humidity',
-                            trendLabel: 'Stable',
+                            label: 'Kelembapan Kamar',
+                            trendLabel: 'Stabil',
                             trendColor: const Color(0xFF00F4FE),
                             accentColor: const Color(0xFF4FC3F7),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SensorCard(
+                            icon: Icons.kitchen_rounded,
+                            trend: Icons.trending_up_rounded,
+                            value: '${sensor.dapurSuhu.toStringAsFixed(1)}°C',
+                            label: 'Suhu Dapur',
+                            trendLabel: 'Hangat',
+                            trendColor: const Color(0xFFFFB74D),
+                            accentColor: const Color(0xFFFFB74D),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.gutter),
+                        Expanded(
+                          child: _SensorCard(
+                            icon: Icons.water_drop_rounded,
+                            trend: Icons.trending_flat_rounded,
+                            value: '${sensor.dapurKelembapan.toInt()}%',
+                            label: 'Kelembapan Dapur',
+                            trendLabel: 'Stabil',
+                            trendColor: const Color(0xFF9FA8DA),
+                            accentColor: const Color(0xFF9FA8DA),
                           ),
                         ),
                       ],
@@ -110,8 +139,8 @@ class HomeScreen extends StatelessWidget {
                     // FAVORITE DEVICES
                     // ═══════════════════════════════════════════
                     _SectionHeader(
-                      title: 'Favorite Devices',
-                      trailing: 'See All',
+                      title: 'Perangkat Favorit',
+                      trailing: 'Lihat Semua',
                       onTrailingTap: () {},
                     ),
                     const SizedBox(height: 14),
@@ -124,8 +153,8 @@ class HomeScreen extends StatelessWidget {
                         children: [
                           _DeviceCard(
                             icon: Icons.lightbulb_rounded,
-                            title: 'Living Room',
-                            subtitle: perangkat.lampuTamu ? 'Lights • On' : 'Lights • Off',
+                            title: 'Ruang Tamu',
+                            subtitle: perangkat.lampuTamu ? 'Lampu • Menyala' : 'Lampu • Mati',
                             isActive: perangkat.lampuTamu,
                             accentColor: const Color(0xFFFFD54F),
                             width: isMobile ? screenWidth * 0.42 : 180,
@@ -136,11 +165,11 @@ class HomeScreen extends StatelessWidget {
                           const SizedBox(width: 12),
                           _DeviceCard(
                             icon: Icons.door_front_door_rounded,
-                            title: 'Main Door',
-                            subtitle: perangkat.kunciPintuRfid ? 'Locked' : 'Unlocked',
+                            title: 'Pintu Utama',
+                            subtitle: perangkat.kunciPintuRfid ? 'Terkunci' : 'Terbuka',
                             isActive: perangkat.kunciPintuRfid,
                             accentColor: Color(AppColors.secondaryContainer),
-                            badgeText: perangkat.kunciPintuRfid ? 'Secured' : 'Open',
+                            badgeText: perangkat.kunciPintuRfid ? 'Aman' : 'Terbuka',
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
                               FirebaseService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
@@ -149,10 +178,10 @@ class HomeScreen extends StatelessWidget {
                           const SizedBox(width: 12),
                           _DeviceCard(
                             icon: Icons.air_rounded,
-                            title: 'AC / Fan Room',
+                            title: 'AC / Kipas Kamar',
                             subtitle: perangkat.kipasKamar 
-                                ? 'On • Speed ${perangkat.kecepatanKipas == 255 ? 3 : perangkat.kecepatanKipas == 170 ? 2 : 1}' 
-                                : 'Off',
+                                ? 'Menyala • Kecepatan ${perangkat.kecepatanKipas == 255 ? 3 : perangkat.kecepatanKipas == 170 ? 2 : 1}' 
+                                : 'Mati',
                             isActive: perangkat.kipasKamar,
                             accentColor: const Color(0xFF81C784),
                             width: isMobile ? screenWidth * 0.42 : 180,
@@ -163,8 +192,8 @@ class HomeScreen extends StatelessWidget {
                           const SizedBox(width: 12),
                           _DeviceCard(
                             icon: Icons.kitchen_rounded,
-                            title: 'Kitchen Light',
-                            subtitle: perangkat.lampuDapur ? 'On' : 'Off',
+                            title: 'Lampu Dapur',
+                            subtitle: perangkat.lampuDapur ? 'Menyala' : 'Mati',
                             isActive: perangkat.lampuDapur,
                             accentColor: const Color(0xFFFFB74D),
                             width: isMobile ? screenWidth * 0.42 : 180,
@@ -181,7 +210,7 @@ class HomeScreen extends StatelessWidget {
                     // ═══════════════════════════════════════════
                     // ROOMS OVERVIEW
                     // ═══════════════════════════════════════════
-                    _SectionHeader(title: 'Rooms', trailing: 'Manage'),
+                    _SectionHeader(title: 'Ruangan', trailing: 'Kelola'),
                     const SizedBox(height: 14),
                     GridView.count(
                       crossAxisCount: isMobile ? 2 : 4,
@@ -193,25 +222,25 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         _RoomTile(
                           icon: Icons.weekend_rounded,
-                          name: 'Living Room',
+                          name: 'Ruang Tamu',
                           deviceCount: 3, // Tamu light, buzzer, motion
                           accentColor: const Color(0xFF81C784),
                         ),
                         _RoomTile(
                           icon: Icons.bed_rounded,
-                          name: 'Bedroom',
+                          name: 'Kamar Tidur',
                           deviceCount: 2, // Room light, fan
                           accentColor: const Color(0xFF9FA8DA),
                         ),
                         _RoomTile(
                           icon: Icons.kitchen_rounded,
-                          name: 'Kitchen',
+                          name: 'Dapur',
                           deviceCount: 4, // Kitchen light, warning LED, buzzer, gas sensor
                           accentColor: const Color(0xFFFFB74D),
                         ),
                         _RoomTile(
                           icon: Icons.bathtub_rounded,
-                          name: 'Bathroom',
+                          name: 'Kamar Mandi',
                           deviceCount: 1, // Bathroom light
                           accentColor: const Color(0xFF4DD0E1),
                         ),
@@ -221,37 +250,42 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 32),
 
                     // ═══════════════════════════════════════════
-                    // ENERGY USAGE
+                    // CLIMATE HISTORY
                     // ═══════════════════════════════════════════
-                    _SectionHeader(title: 'Energy Usage', trailing: 'This Week'),
+                    _SectionHeader(title: 'Riwayat Iklim', trailing: 'Live'),
                     const SizedBox(height: 14),
-                    _EnergyCard(),
+                    _ClimateHistoryCard(
+                      kamarTemp: sensor.kamarSuhu,
+                      dapurTemp: sensor.dapurSuhu,
+                      kamarHumid: sensor.kamarKelembapan,
+                      dapurHumid: sensor.dapurKelembapan,
+                    ),
 
                     const SizedBox(height: 32),
 
                     // ═══════════════════════════════════════════
                     // RECENT ACTIVITY
                     // ═══════════════════════════════════════════
-                    _SectionHeader(title: 'Recent Activity'),
+                    _SectionHeader(title: 'Aktivitas Terkini'),
                     const SizedBox(height: 14),
                     _ActivityTile(
                       icon: Icons.lock_rounded,
-                      title: perangkat.kunciPintuRfid ? 'Front door locked' : 'Front door unlocked',
-                      subtitle: 'Live Telemetry',
+                      title: perangkat.kunciPintuRfid ? 'Pintu utama terkunci' : 'Pintu utama terbuka',
+                      subtitle: 'Telemetri Langsung',
                       accentColor: Color(AppColors.secondaryContainer),
                     ),
                     const SizedBox(height: 8),
                     _ActivityTile(
                       icon: Icons.lightbulb_outline_rounded,
-                      title: perangkat.lampuTamu ? 'Living room lights turned on' : 'Living room lights turned off',
-                      subtitle: 'Synced with Firebase',
+                      title: perangkat.lampuTamu ? 'Lampu ruang tamu dinyalakan' : 'Lampu ruang tamu dimatikan',
+                      subtitle: 'Sinkron dengan Firebase',
                       accentColor: const Color(0xFFFFD54F),
                     ),
                     const SizedBox(height: 8),
                     _ActivityTile(
                       icon: Icons.thermostat_rounded,
-                      title: 'Room Temp calibrated at ${sensor.kamarSuhu.toStringAsFixed(1)}°C',
-                      subtitle: 'Live Sensor Telemetry',
+                      title: 'Suhu Kamar terkalibrasi pada ${sensor.kamarSuhu.toStringAsFixed(1)}°C',
+                      subtitle: 'Telemetri Sensor Langsung',
                       accentColor: const Color(0xFFFF8A65),
                     ),
 
@@ -270,12 +304,47 @@ class HomeScreen extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════
 // GREETING SECTION
 // ═══════════════════════════════════════════════════════════
-class _GreetingSection extends StatelessWidget {
+class _GreetingSection extends StatefulWidget {
+  @override
+  State<_GreetingSection> createState() => _GreetingSectionState();
+}
+
+class _GreetingSectionState extends State<_GreetingSection> {
+  late Timer _timer;
+  late DateTime _currentTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
   String get _greeting {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    final hour = _currentTime.hour;
+    if (hour >= 0 && hour < 11) return 'Selamat Pagi';
+    if (hour >= 11 && hour < 15) return 'Selamat Siang';
+    if (hour >= 15 && hour < 18) return 'Selamat Sore';
+    return 'Selamat Malam';
+  }
+
+  String _formatTime(DateTime time) {
+    final hh = time.hour.toString().padLeft(2, '0');
+    final mm = time.minute.toString().padLeft(2, '0');
+    final ss = time.second.toString().padLeft(2, '0');
+    return '$hh:$mm:$ss';
   }
 
   @override
@@ -284,25 +353,57 @@ class _GreetingSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '$_greeting,',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Color(AppColors.onSurfaceVariant),
-                fontWeight: FontWeight.w400,
-                fontSize: 16,
-              ),
+            Row(
+              children: [
+                Text(
+                  '$_greeting,',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Color(AppColors.onSurfaceVariant),
+                    fontWeight: FontWeight.w400,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _greeting == 'Selamat Pagi' 
+                      ? '☀️' 
+                      : _greeting == 'Selamat Siang' 
+                          ? '⛅' 
+                          : _greeting == 'Selamat Sore' 
+                              ? '🌆' 
+                              : '🌙',
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ],
             ),
-            const SizedBox(width: 6),
-            Text(
-              '👋',
-              style: const TextStyle(fontSize: 18),
+            // Real-time clock widget on the right
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withOpacity(0.04),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.06),
+                ),
+              ),
+              child: Text(
+                _formatTime(_currentTime),
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF00F4FE),
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 4),
         Text(
-          'Alex Rivers',
+          'Mimah Dudim',
           style: Theme.of(context).textTheme.displayLarge?.copyWith(
             color: Color(AppColors.onSurface),
             fontSize: 32,
@@ -388,10 +489,10 @@ class _QuickStatusBanner extends StatelessWidget {
               children: [
                 Text(
                   hasGas 
-                      ? 'CRITICAL: Gas/Smoke detected!'
+                      ? 'KRITIS: Terdeteksi Gas/Asap!'
                       : hasSiren
-                          ? 'EMERGENCY: Siren Active!'
-                          : 'Home is secure',
+                          ? 'DARURAT: Sirine Aktif!'
+                          : 'Rumah dalam kondisi aman',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -402,10 +503,10 @@ class _QuickStatusBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   hasGas
-                      ? 'Kitchen gas levels are abnormal. Act immediately!'
+                      ? 'Kadar gas dapur tidak normal. Segera ambil tindakan!'
                       : hasSiren
-                          ? 'Emergency sirens are active.'
-                          : '$activeCount devices active • RFID lock ${isLocked ? "engaged" : "released"}',
+                          ? 'Sirine darurat sedang aktif.'
+                          : '$activeCount perangkat aktif • Kunci RFID ${isLocked ? "aktif" : "terbuka"}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
@@ -954,7 +1055,7 @@ class _RoomTile extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '$deviceCount devices',
+                '$deviceCount perangkat',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -970,11 +1071,44 @@ class _RoomTile extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════
-// ENERGY CARD
+// CLIMATE HISTORY CARD
 // ═══════════════════════════════════════════════════════════
-class _EnergyCard extends StatelessWidget {
+class _ClimateHistoryCard extends StatefulWidget {
+  final double kamarTemp;
+  final double dapurTemp;
+  final double kamarHumid;
+  final double dapurHumid;
+
+  const _ClimateHistoryCard({
+    required this.kamarTemp,
+    required this.dapurTemp,
+    required this.kamarHumid,
+    required this.dapurHumid,
+  });
+
+  @override
+  State<_ClimateHistoryCard> createState() => _ClimateHistoryCardState();
+}
+
+class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
+  bool _showTemp = true;
+
   @override
   Widget build(BuildContext context) {
+    // Generate historic data ending with the live values
+    final List<double> kamarTempValues = [26.5, 27.2, 28.0, 27.5, 28.5, 27.8, widget.kamarTemp];
+    final List<double> dapurTempValues = [30.0, 31.2, 31.8, 30.5, 32.0, 31.5, widget.dapurTemp];
+
+    final List<double> kamarHumidValues = [58.0, 56.0, 54.0, 55.0, 53.0, 56.0, widget.kamarHumid];
+    final List<double> dapurHumidValues = [62.0, 60.0, 61.5, 59.0, 63.0, 60.5, widget.dapurHumid];
+
+    final List<String> intervals = ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00', 'Live'];
+
+    final Color kamarColor = _showTemp ? const Color(0xFFFF8A65) : const Color(0xFF00F4FE); // Coral vs Cyan
+    final Color dapurColor = _showTemp ? const Color(0xFFFFB74D) : const Color(0xFF9FA8DA); // Amber vs Indigo
+
+    final String title = _showTemp ? 'Suhu Lingkungan' : 'Kelembapan Lingkungan';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -986,164 +1120,290 @@ class _EnergyCard extends StatelessWidget {
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top stats row
+          // Header of the card with toggle
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: _EnergyMetric(
-                  label: 'Today',
-                  value: '12.4',
-                  unit: 'kWh',
-                  color: Color(AppColors.secondaryContainer),
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(AppColors.onSurfaceVariant),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        _showTemp 
+                            ? '${widget.kamarTemp.toStringAsFixed(1)}° / ${widget.dapurTemp.toStringAsFixed(1)}°C'
+                            : '${widget.kamarHumid.toInt()}% / ${widget.dapurHumid.toInt()}%',
+                        style: const TextStyle(
+                          fontFamily: 'Sora',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(AppColors.onSurface),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+              // Tab Pill Selector
               Container(
-                width: 1,
-                height: 40,
-                color: Colors.white.withOpacity(0.08),
-              ),
-              Expanded(
-                child: _EnergyMetric(
-                  label: 'This Week',
-                  value: '84.2',
-                  unit: 'kWh',
-                  color: const Color(0xFF81C784),
+                height: 32,
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.white.withOpacity(0.03),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.05),
+                  ),
                 ),
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: Colors.white.withOpacity(0.08),
-              ),
-              Expanded(
-                child: _EnergyMetric(
-                  label: 'Cost',
-                  value: '\$18.5',
-                  unit: '',
-                  color: const Color(0xFFFFB74D),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showTemp = true;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: _showTemp
+                              ? const Color(0xFFFF8A65).withOpacity(0.12)
+                              : Colors.transparent,
+                        ),
+                        child: const Text(
+                          'Suhu',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFFF8A65),
+                          ),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showTemp = false;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: !_showTemp
+                              ? const Color(0xFF00F4FE).withOpacity(0.12)
+                              : Colors.transparent,
+                        ),
+                        child: const Text(
+                          'Kelembapan',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF00F4FE),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          // Bar chart
+          
+          const SizedBox(height: 12),
+
+          // Legend
+          Row(
+            children: [
+              _buildLegendDot(kamarColor),
+              const SizedBox(width: 4),
+              Text(
+                _showTemp ? 'Suhu Kamar (${widget.kamarTemp.toStringAsFixed(1)}°C)' : 'Kelembapan Kamar (${widget.kamarHumid.toInt()}%)',
+                style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 16),
+              _buildLegendDot(dapurColor),
+              const SizedBox(width: 4),
+              Text(
+                _showTemp ? 'Suhu Dapur (${widget.dapurTemp.toStringAsFixed(1)}°C)' : 'Kelembapan Dapur (${widget.dapurHumid.toInt()}%)',
+                style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Chart
           SizedBox(
-            height: 70,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(7, (index) {
-                final values = [0.6, 0.75, 0.5, 0.85, 0.7, 0.9, 0.45];
-                final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                final isToday = index == 5;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Flexible(
-                          child: FractionallySizedBox(
-                            heightFactor: values[index],
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
-                                color: isToday
-                                    ? Color(AppColors.secondaryContainer)
-                                    : Color(AppColors.secondaryContainer)
-                                        .withOpacity(0.2),
-                                boxShadow: isToday
-                                    ? [
-                                        BoxShadow(
-                                          color: Color(
-                                            AppColors.secondaryContainer,
-                                          ).withOpacity(0.4),
-                                          blurRadius: 8,
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          days[index],
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: isToday
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: isToday
-                                ? Color(AppColors.secondaryContainer)
-                                : Color(AppColors.onSurfaceVariant),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+            height: 110,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _ClimateChartPainter(
+                values1: _showTemp ? kamarTempValues : kamarHumidValues,
+                values2: _showTemp ? dapurTempValues : dapurHumidValues,
+                color1: kamarColor,
+                color2: dapurColor,
+                minVal: _showTemp ? 15.0 : 0.0,
+                maxVal: _showTemp ? 38.0 : 100.0,
+              ),
             ),
           ),
+          const SizedBox(height: 12),
+          // X-axis labels
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: intervals.map((label) {
+              final isLive = label == 'Live';
+              return Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isLive ? FontWeight.w700 : FontWeight.w500,
+                  color: isLive ? Colors.white : Colors.white.withOpacity(0.4),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendDot(Color color) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(color: color.withOpacity(0.5), blurRadius: 4, spreadRadius: 1),
         ],
       ),
     );
   }
 }
 
-class _EnergyMetric extends StatelessWidget {
-  final String label;
-  final String value;
-  final String unit;
-  final Color color;
+class _ClimateChartPainter extends CustomPainter {
+  final List<double> values1;
+  final List<double> values2;
+  final Color color1;
+  final Color color2;
+  final double minVal;
+  final double maxVal;
 
-  const _EnergyMetric({
-    required this.label,
-    required this.value,
-    required this.unit,
-    required this.color,
+  _ClimateChartPainter({
+    required this.values1,
+    required this.values2,
+    required this.color1,
+    required this.color2,
+    required this.minVal,
+    required this.maxVal,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: Color(AppColors.onSurfaceVariant),
-          ),
-        ),
-        const SizedBox(height: 4),
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: value,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              if (unit.isNotEmpty)
-                TextSpan(
-                  text: ' $unit',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Color(AppColors.onSurfaceVariant),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
+  void paint(Canvas canvas, Size size) {
+    if (values1.isEmpty || values2.isEmpty) return;
+
+    // Draw grid lines first
+    final gridPaint = Paint()
+      ..color = Colors.white.withOpacity(0.03)
+      ..strokeWidth = 1.0;
+    for (int i = 1; i < 4; i++) {
+      final y = size.height * (i / 4);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    // Paint line 1 (Kamar)
+    _drawLine(canvas, size, values1, color1);
+
+    // Paint line 2 (Dapur)
+    _drawLine(canvas, size, values2, color2);
+  }
+
+  void _drawLine(Canvas canvas, Size size, List<double> values, Color color) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          color.withOpacity(0.12),
+          color.withOpacity(0.0),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final path = Path();
+    final fillPath = Path();
+
+    final double stepX = size.width / (values.length - 1);
+    final double range = maxVal - minVal;
+
+    final points = <Offset>[];
+    for (int i = 0; i < values.length; i++) {
+      final x = i * stepX;
+      final normalized = ((values[i] - minVal) / range).clamp(0.0, 1.0);
+      final y = size.height - (normalized * size.height);
+      points.add(Offset(x, y));
+    }
+
+    path.moveTo(points[0].dx, points[0].dy);
+    fillPath.moveTo(points[0].dx, size.height);
+    fillPath.lineTo(points[0].dx, points[0].dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final p0 = points[i];
+      final p1 = points[i + 1];
+      final midX = (p0.dx + p1.dx) / 2;
+      path.cubicTo(midX, p0.dy, midX, p1.dy, p1.dx, p1.dy);
+      fillPath.cubicTo(midX, p0.dy, midX, p1.dy, p1.dx, p1.dy);
+    }
+
+    fillPath.lineTo(points.last.dx, size.height);
+    fillPath.close();
+
+    canvas.drawPath(fillPath, fillPaint);
+    canvas.drawPath(path, paint);
+
+    // Glowing dot at the live value
+    final dotPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(points.last, 4, dotPaint);
+
+    final glowPaint = Paint()
+      ..color = color.withOpacity(0.4)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(points.last, 8, glowPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ClimateChartPainter oldDelegate) {
+    return oldDelegate.color1 != color1 ||
+        oldDelegate.color2 != color2 ||
+        oldDelegate.values1 != values1 ||
+        oldDelegate.values2 != values2;
   }
 }
 

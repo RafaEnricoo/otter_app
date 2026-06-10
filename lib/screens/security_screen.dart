@@ -74,7 +74,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
       FirebaseService().updatePerangkat('led_merah_dapur', false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('🚨 Siren disarmed successfully. System in standby mode.'),
+          content: Text('🚨 Sirine berhasil dinonaktifkan. Sistem dalam mode siaga.'),
           backgroundColor: Color(AppColors.surfaceContainerHigh),
         ),
       );
@@ -107,7 +107,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     setState(() {
       _isBiometricScanning = true;
       _biometricProgress = 0.0;
-      _biometricStatusText = 'Authenticating RFID & Biometrics...';
+      _biometricStatusText = 'Memverifikasi RFID & Biometrik...';
     });
 
     const int totalSteps = 15;
@@ -159,7 +159,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
           FirebaseService().updatePerangkat('kunci_pintu_rfid', true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('🔒 Front Door secured automatically (Auto-Lock active).'),
+              content: Text('🔒 Pintu utama terkunci otomatis (Auto-Lock aktif).'),
             ),
           );
         }
@@ -220,7 +220,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
               icon: Icons.sensors_rounded,
             ),
           _SecurityLogItem(
-            title: perangkat.kunciPintuRfid ? 'RFID Engaged (Locked)' : 'RFID Released (Unlocked)',
+            title: perangkat.kunciPintuRfid ? 'RFID Aktif (Terkunci)' : 'RFID Dilepas (Terbuka)',
             subtitle: perangkat.kunciPintuRfid 
                 ? "Sistem penguncian RFID pintu utama aktif dan aman." 
                 : "RFID pintu utama dirilis menggunakan kartu atau biometrik.",
@@ -230,7 +230,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
           ),
           if (perangkat.buzzerTamu || perangkat.buzzerDapur)
             _SecurityLogItem(
-              title: 'Megaphone Siren System Active',
+              title: 'Sirine Sistem Aktif',
               subtitle: 'Siren keamanan darurat dipicu secara manual atau sistem.',
               timestamp: 'Active',
               type: _LogType.warning,
@@ -358,7 +358,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Security Core',
+                'Keamanan',
                 style: TextStyle(
                   fontFamily: 'Sora',
                   fontSize: isMobile ? 28 : 32,
@@ -377,7 +377,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isAlarmActive ? 'CRITICAL: EMERGENCY ACTIVE' : 'System Armed & Monitoring',
+                    isAlarmActive ? 'KRITIS: DARURAT AKTIF' : 'Sistem Terpasang & Memantau',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -409,7 +409,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     Icon(Icons.wifi_rounded, size: 14, color: Color(0xFF00F4FE)),
                     SizedBox(width: 6),
                     Text(
-                      'Firebase Online',
+                      'Firebase Terhubung',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11,
@@ -466,7 +466,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       ),
                       const SizedBox(width: 10),
                       const Text(
-                        'EMERGENCY SIREN SYSTEM',
+                        'SISTEM SIRINE DARURAT',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 10,
@@ -491,7 +491,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       ),
                     ),
                     child: Text(
-                      isAlarmActive ? '🚨 TRIGGERED' : 'Standby',
+                      isAlarmActive ? '🚨 AKTIF' : 'Siaga',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 9,
@@ -559,7 +559,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                isAlarmActive ? 'DISARM' : 'PANIC ALARM',
+                                isAlarmActive ? 'MATIKAN' : 'ALARM PANIK',
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 11,
@@ -635,7 +635,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Status: ${isUnlocked ? 'Unlocked' : 'Locked'}',
+                        'Status: ${isUnlocked ? 'Terbuka' : 'Terkunci'}',
                         style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 13,
@@ -783,7 +783,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    kunciPintuRfid ? 'EMERGENCY BIOMETRIC UNLOCK' : 'SECURE RFID LOCK',
+                    kunciPintuRfid ? 'BUKA BIOMETRIK DARURAT' : 'KUNCI RFID AMAN',
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 12,
@@ -810,7 +810,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Security Event Log',
+                'Log Kejadian Keamanan',
                 style: TextStyle(
                   fontFamily: 'Sora',
                   fontSize: 18,
@@ -848,15 +848,15 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                     value: 'All',
-                    child: Text('All Events', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    child: Text('Semua Kejadian', style: TextStyle(color: Colors.white, fontSize: 13)),
                   ),
                   const PopupMenuItem(
                     value: 'Alerts',
-                    child: Text('Alerts & Warnings', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    child: Text('Peringatan & Alarm', style: TextStyle(color: Colors.white, fontSize: 13)),
                   ),
                   const PopupMenuItem(
                     value: 'Routine',
-                    child: Text('Routine Actions', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    child: Text('Rutinitas Normal', style: TextStyle(color: Colors.white, fontSize: 13)),
                   ),
                 ],
               ),
@@ -991,7 +991,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 alignment: Alignment.center,
                 child: Text(
-                  _isLogExpanded ? 'Show Recent Only' : 'View Full Archive',
+                  _isLogExpanded ? 'Tampilkan Terbaru' : 'Lihat Semua',
                   style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,

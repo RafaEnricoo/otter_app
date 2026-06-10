@@ -26,7 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
   double _glassOpacity = 0.05;
   double _autoLockDelay = 3.0; // minutes
   bool _tempScaleCelsius = true; // C or F
-  String _defaultBootScreen = 'Home';
+  String _defaultBootScreen = 'Beranda';
 
   // Toggle switch states
   bool _criticalAlerts = true;
@@ -192,7 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           const SizedBox(width: 4),
           const Expanded(
             child: Text(
-              'System Settings',
+              'Pengaturan Sistem',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
@@ -273,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Alex Rivers',
+                  'Mimah Dudim',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -282,7 +282,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Smart Home Administrator',
+                  'Administrator Rumah Pintar',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -302,7 +302,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 onPressed: () {
                   HapticFeedback.mediumImpact();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Account edit profile panel is disabled in mock demonstration.')),
+                    const SnackBar(content: Text('Panel edit profil dinonaktifkan pada demonstrasi ini.')),
                   );
                 },
               ),
@@ -326,14 +326,14 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Appearance & Customization',
+            'Tampilan & Kustomisasi',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Sora'),
           ),
           const SizedBox(height: 16),
 
           // Color selector label
           Text(
-            'SYSTEM ACCENT PALETTE',
+            'PALET WARNA AKSEN',
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.4), letterSpacing: 0.8),
           ),
           const SizedBox(height: 10),
@@ -386,7 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'GLASS CONTEXT OPACITY',
+                'TRANSPARANSI LATAR',
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.4), letterSpacing: 0.8),
               ),
               Text(
@@ -439,7 +439,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Smart Home Automation',
+            'Otomasi Rumah Pintar',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Sora'),
           ),
           const SizedBox(height: 16),
@@ -449,7 +449,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'AUTO-LOCK IDLE DELAY',
+                'JEDA AUTO-KUNCI',
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.4), letterSpacing: 0.8),
               ),
               Text(
@@ -489,9 +489,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Temperature scale', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600)),
+                  const Text('Skala Suhu', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text('Sensor reading display unit', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
+                  Text('Satuan tampilan sensor', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
                 ],
               ),
               Container(
@@ -526,9 +526,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Startup Screen', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600)),
+                  const Text('Layar Awal', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text('Default view upon opening app', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
+                  Text('Tampilan default saat membuka aplikasi', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
                 ],
               ),
               Theme(
@@ -542,7 +542,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                   underline: const SizedBox.shrink(),
                   icon: Icon(Icons.arrow_drop_down_rounded, color: _activeAccent),
                   style: TextStyle(color: _activeAccent, fontSize: 13, fontWeight: FontWeight.w700),
-                  items: <String>['Home', 'Devices', 'Monitor', 'Security']
+                  items: <String>['Beranda', 'Perangkat', 'Monitor', 'Keamanan']
                       .map<DropdownMenuItem<String>>((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
@@ -606,24 +606,24 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'System Notification Rules',
+            'Aturan Notifikasi Sistem',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Sora'),
           ),
           const SizedBox(height: 16),
 
-          _buildSwitchRow('Critical Security Alerts', 'Instant push notifications for alarms', _criticalAlerts, (val) {
+          _buildSwitchRow('Peringatan Keamanan Kritis', 'Notifikasi push instan untuk alarm', _criticalAlerts, (val) {
             setState(() => _criticalAlerts = val);
           }),
           const Divider(color: Colors.white10, height: 16),
-          _buildSwitchRow('Climate Adjustments', 'Report sensor offline states and updates', _climateReports, (val) {
+          _buildSwitchRow('Penyesuaian Iklim', 'Laporkan status sensor offline dan pembaruan', _climateReports, (val) {
             setState(() => _climateReports = val);
           }),
           const Divider(color: Colors.white10, height: 16),
-          _buildSwitchRow('Weekly Energy Budgets', 'Receive solar logs and goals summaries', _energyLogs, (val) {
+          _buildSwitchRow('Laporan Energi Mingguan', 'Terima laporan solar dan ringkasan tujuan', _energyLogs, (val) {
             setState(() => _energyLogs = val);
           }),
           const Divider(color: Colors.white10, height: 16),
-          _buildSwitchRow('Voice assistant recording', 'Allow speech log storage in firestore', _voiceAssistantRecordings, (val) {
+          _buildSwitchRow('Rekaman asisten suara', 'Izinkan penyimpanan log ucapan di Firestore', _voiceAssistantRecordings, (val) {
             setState(() => _voiceAssistantRecordings = val);
           }),
         ],
@@ -705,7 +705,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Connected Integrations',
+            'Integrasi Terhubung',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Sora'),
           ),
           const SizedBox(height: 16),
@@ -797,7 +797,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'System Core Information',
+            'Informasi Sistem',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Sora'),
           ),
           const SizedBox(height: 14),
@@ -806,7 +806,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Firmware Version', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+              Text('Versi Firmware', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
               const Text('v4.12.0-stable', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
             ],
           ),
@@ -814,7 +814,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Gateway IP Address', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+              Text('Alamat IP Gateway', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
               const Text('192.168.1.104', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
             ],
           ),
@@ -822,7 +822,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Gateway Server Ping', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+              Text('Ping Server Gateway', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
               Text('12 ms', style: TextStyle(color: _activeAccent, fontWeight: FontWeight.w700, fontSize: 13)),
             ],
           ),
@@ -845,7 +845,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               HapticFeedback.heavyImpact();
               _showResetDialog();
             },
-            child: const Text('Reset Gateway Core', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            child: const Text('Reset Gateway', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           ),
         ],
       ),
@@ -874,12 +874,12 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               ],
             ),
             content: const Text(
-              'Warning: This action will restore the Otter Smart Gateway to factory defaults. All connected node configurations and rules will be wiped out.',
+              'Peringatan: Tindakan ini akan mengembalikan Otter Smart Gateway ke pengaturan pabrik. Semua konfigurasi dan aturan node yang terhubung akan dihapus.',
               style: TextStyle(color: Color(0xFFC6C6CE), height: 1.3),
             ),
             actions: <Widget>[
               TextButton(
-                child: Text('Cancel', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+                child: Text('Batal', style: TextStyle(color: Colors.white.withOpacity(0.7))),
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   Navigator.of(context).pop();
@@ -891,12 +891,12 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                   backgroundColor: const Color(0xFF93000A).withOpacity(0.3),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('Factory Reset', style: TextStyle(fontWeight: FontWeight.w600)),
+                child: const Text('Reset Pabrik', style: TextStyle(fontWeight: FontWeight.w600)),
                 onPressed: () {
                   HapticFeedback.heavyImpact();
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Simulating Gateway core wipe out...')),
+                    const SnackBar(content: Text('Mensimulasikan penghapusan inti Gateway...')),
                   );
                 },
               ),

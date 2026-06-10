@@ -84,14 +84,14 @@ class _BottomNavBarState extends State<BottomNavBar>
                     activeIcon: Icons.home_filled,
                     isActive: widget.currentIndex == 0,
                     onTap: () => widget.onTabSelected(0),
-                    label: 'Home',
+                    label: 'Beranda',
                   ),
                   _NavBarItem(
                     icon: Icons.grid_view_outlined,
                     activeIcon: Icons.grid_view_rounded,
                     isActive: widget.currentIndex == 1,
                     onTap: () => widget.onTabSelected(1),
-                    label: 'Devices',
+                    label: 'Perangkat',
                   ),
 
                   // ─── Central Mic Button (inline) ───
@@ -105,14 +105,14 @@ class _BottomNavBarState extends State<BottomNavBar>
                     activeIcon: Icons.analytics_rounded,
                     isActive: widget.currentIndex == 2,
                     onTap: () => widget.onTabSelected(2),
-                    label: 'Analytics',
+                    label: 'Monitor',
                   ),
                   _NavBarItem(
                     icon: Icons.shield_outlined,
                     activeIcon: Icons.shield_rounded,
                     isActive: widget.currentIndex == 3,
                     onTap: () => widget.onTabSelected(3),
-                    label: 'Security',
+                    label: 'Keamanan',
                   ),
                 ],
               ),
