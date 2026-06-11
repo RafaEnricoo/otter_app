@@ -122,11 +122,15 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     try {
       final available = await _speech.initialize(
         onError: (val) {
-          print('Speech initialize error: $val');
+          print('Speech error: ${val.errorId} - ${val.errorMsg}');
           if (mounted) {
             setState(() {
               _voiceState = _VoiceState.idle;
-              _transcriptText = 'Gagal menggunakan mic';
+              if (val.errorId == 'error_speech_timeout' || val.errorId == 'error_no_match') {
+                _transcriptText = 'Suara tidak terdengar';
+              } else {
+                _transcriptText = 'Gagal menggunakan mic';
+              }
             });
           }
         },
