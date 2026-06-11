@@ -67,6 +67,7 @@ class HomeScreen extends StatelessWidget {
                       isLocked: perangkat.kunciPintuRfid,
                       hasSiren: perangkat.buzzerAlrm,
                       hasGas: sensor.dapurFlame > 0,
+                      hasMotion: sensor.tamuGerak,
                     ),
 
                     const SizedBox(height: 28),
@@ -424,17 +425,19 @@ class _QuickStatusBanner extends StatelessWidget {
   final bool isLocked;
   final bool hasSiren;
   final bool hasGas;
+  final bool hasMotion;
 
   const _QuickStatusBanner({
     required this.activeCount,
     required this.isLocked,
     required this.hasSiren,
     required this.hasGas,
+    required this.hasMotion,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bool isAlert = hasGas || hasSiren;
+    final bool isAlert = hasGas || hasSiren || hasMotion;
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -488,10 +491,12 @@ class _QuickStatusBanner extends StatelessWidget {
               children: [
                 Text(
                   hasGas 
-                      ? 'KRITIS: Terdeteksi Api / Kebakaran!'
-                      : hasSiren
-                          ? 'DARURAT: Sirine Rumah Aktif!'
-                          : 'Rumah dalam kondisi aman',
+                      ? 'KRITIS: Terdeteksi Kebakaran!'
+                      : hasMotion
+                          ? 'DARURAT: Anomali Terdeteksi!'
+                          : hasSiren
+                              ? 'DARURAT: Sirine Rumah Aktif!'
+                              : 'Rumah dalam kondisi aman',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -502,10 +507,12 @@ class _QuickStatusBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   hasGas
-                      ? 'Terdeteksi nyala api di dapur. Segera ambil tindakan!'
-                      : hasSiren
-                          ? 'Sirine darurat sedang aktif.'
-                          : '$activeCount perangkat aktif • Kunci RFID ${isLocked ? "aktif" : "terbuka"}',
+                      ? 'Ada kobaran api terdeteksi di Dapur! Segera evakuasi!'
+                      : hasMotion
+                          ? 'Sensor PIR mendeteksi pergerakan mencurigakan!'
+                          : hasSiren
+                              ? 'Sirine darurat sedang aktif.'
+                              : '$activeCount perangkat aktif • Kunci RFID ${isLocked ? "aktif" : "terbuka"}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w400,

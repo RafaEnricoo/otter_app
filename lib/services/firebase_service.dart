@@ -25,6 +25,7 @@ class FirebaseService {
   StreamSubscription? _subscription;
   int _lastSmokeValue = 0;
   bool _lastPirValue = false;
+  Timer? _flameBlinkerTimer;
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -264,12 +265,31 @@ class FirebaseService {
     }
 
     // 3. Flame/Fire Alarm (dapur_flame)
-    // If fire is detected, turn on Kitchen Buzzer and Kitchen Red LED automatically!
+    // If fire is detected, turn on Kitchen Buzzer, send notification, and blink Red LED!
     if (state.sensor.dapurFlame > 0) {
-      if (!state.perangkat.buzzerAlrm || !state.perangkat.ledMerahDapur) {
+      if (_lastSmokeValue == 0) {
+        NotificationService().addNotification(
+          title: 'Kebakaran Terdeteksi!',
+          message: 'Sensor mendeteksi adanya kobaran api di Dapur! Alarm aktif.',
+          category: NotificationCategory.security,
+          priority: NotificationPriority.critical,
+        );
+      }
+      if (!state.perangkat.buzzerAlrm) {
         newBuzzerAlrm = true;
-        newLedMerahDapur = true;
         changed = true;
+      }
+      // Start blinking timer for the kitchen red LED if not already active
+      if (_flameBlinkerTimer == null || !_flameBlinkerTimer!.isActive) {
+        _flameBlinkerTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+          if (_localState != null && _localState!.sensor.dapurFlame > 0) {
+            final nextLedValue = !_localState!.perangkat.ledMerahDapur;
+            updatePerangkat('led_merah_dapur', nextLedValue);
+          } else {
+            timer.cancel();
+            _flameBlinkerTimer = null;
+          }
+        });
       }
     } else {
       // Clear buzzer and warning LED only if flame has just transitioned from detected to cleared
@@ -277,6 +297,8 @@ class FirebaseService {
         newLedMerahDapur = false;
         newBuzzerAlrm = false;
         changed = true;
+        _flameBlinkerTimer?.cancel();
+        _flameBlinkerTimer = null;
       }
     }
     _lastSmokeValue = state.sensor.dapurFlame;
@@ -327,5 +349,6 @@ class FirebaseService {
 
   void dispose() {
     _subscription?.cancel();
+    _flameBlinkerTimer?.cancel();
   }
 }
