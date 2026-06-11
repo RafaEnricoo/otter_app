@@ -73,7 +73,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               height: 350,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF00F4FE).withOpacity(0.06),
+                color: Color(AppColors.secondaryContainer).withValues(alpha: 0.06),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
@@ -89,7 +89,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFBEC5E5).withOpacity(0.04),
+                color: const Color(0xFFBEC5E5).withValues(alpha: 0.04),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
@@ -127,7 +127,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                       child: filteredList.isEmpty
                           ? _buildEmptyState()
                           : RefreshIndicator(
-                              color: const Color(0xFF00F4FE),
+                              color: Color(AppColors.secondaryContainer),
                               backgroundColor: const Color(0xFF1E2020),
                               strokeWidth: 2.5,
                               onRefresh: _handleRefresh,
@@ -208,7 +208,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: unreadCount > 0 ? const Color(0xFF00F4FE) : Colors.white.withOpacity(0.55),
+                    color: unreadCount > 0 ? Color(AppColors.secondaryContainer) : Colors.white.withValues(alpha: 0.55),
                   ),
                 ),
               ],
@@ -218,7 +218,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
           // Header Actions
           if (unreadCount > 0)
             IconButton(
-              icon: const Icon(Icons.done_all_rounded, color: Color(0xFF00F4FE), size: 22),
+              icon: Icon(Icons.done_all_rounded, color: Color(AppColors.secondaryContainer), size: 22),
               tooltip: 'Tandai semua terbaca',
               onPressed: () {
                 HapticFeedback.mediumImpact();
@@ -233,7 +233,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
           IconButton(
             icon: Icon(
               Icons.delete_sweep_rounded,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               size: 22,
             ),
             tooltip: 'Hapus semua',
@@ -274,19 +274,19 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF00F4FE).withOpacity(0.12)
-                    : Colors.white.withOpacity(0.04),
+                    ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF00F4FE).withOpacity(0.4)
-                      : Colors.white.withOpacity(0.08),
+                      ? Color(AppColors.secondaryContainer).withValues(alpha: 0.4)
+                      : Colors.white.withValues(alpha: 0.08),
                   width: 1,
                 ),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF00F4FE).withOpacity(0.12),
+                          color: Color(AppColors.secondaryContainer).withValues(alpha: 0.12),
                           blurRadius: 10,
                           spreadRadius: -1,
                         )
@@ -302,7 +302,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF00F4FE) : Colors.white.withOpacity(0.7),
+                  color: isSelected ? Color(AppColors.secondaryContainer) : Colors.white.withValues(alpha: 0.7),
                 ),
               ),
             ),
@@ -316,7 +316,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
   void _showClearAllDialog() {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (BuildContext context) {
         return BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -324,7 +324,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
             backgroundColor: const Color(0xFF1E2020),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: Colors.white.withOpacity(0.08)),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
             ),
             title: Row(
               children: const [
@@ -339,7 +339,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
             ),
             actions: <Widget>[
               TextButton(
-                child: Text('Batal', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+                child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   Navigator.of(context).pop();
@@ -348,7 +348,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               TextButton(
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFFFFB4AB),
-                  backgroundColor: const Color(0xFF93000A).withOpacity(0.3),
+                  backgroundColor: const Color(0xFF93000A).withValues(alpha: 0.3),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 child: const Text('Hapus Semua', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -388,8 +388,8 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          const Color(0xFF00F4FE).withOpacity(0.12),
-                          const Color(0xFF00F4FE).withOpacity(0.0),
+                          Color(AppColors.secondaryContainer).withValues(alpha: 0.12),
+                          Color(AppColors.secondaryContainer).withValues(alpha: 0.0),
                         ],
                       ),
                     ),
@@ -399,17 +399,17 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                     height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.03),
+                      color: Colors.white.withValues(alpha: 0.03),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         width: 1,
                       ),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Icon(
                         Icons.blur_on_rounded,
                         size: 40,
-                        color: Color(0xFF00F4FE),
+                        color: Color(AppColors.secondaryContainer),
                       ),
                     ),
                   ),
@@ -434,7 +434,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     height: 1.3,
                   ),
                 ),
@@ -443,13 +443,13 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               // Manual simulate button
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00F4FE).withOpacity(0.08),
-                  foregroundColor: const Color(0xFF00F4FE),
+                  backgroundColor: Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
+                  foregroundColor: Color(AppColors.secondaryContainer),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: Color(0xFF00F4FE), width: 0.5),
+                    side: BorderSide(color: Color(AppColors.secondaryContainer), width: 0.5),
                   ),
                 ),
                 icon: const Icon(Icons.refresh_rounded, size: 16),

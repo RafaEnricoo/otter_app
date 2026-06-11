@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:firebase_database/firebase_database.dart';
 import '../models/device_model.dart';
+import '../models/notification_model.dart';
+import 'notification_service.dart';
 
 class FirebaseService {
   static final FirebaseService _instance = FirebaseService._internal();
@@ -15,9 +17,14 @@ class FirebaseService {
   
   bool _isInitialized = false;
   bool _isUsingFallback = false;
+
+  bool get isInitialized => _isInitialized;
+  bool get isUsingFallback => _isUsingFallback;
   
   SmarthomeState? _localState;
   StreamSubscription? _subscription;
+  int _lastSmokeValue = 0;
+  bool _lastPirValue = false;
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -71,6 +78,26 @@ class FirebaseService {
     }
   }
 
+  Future<void> resetDatabase() async {
+    try {
+      final jsonString = await rootBundle.loadString('lib/assets/firebase.json');
+      final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
+      final rawData = jsonMap['otter_smarthome'] as Map<String, dynamic>;
+      
+      if (_isUsingFallback) {
+        _localState = SmarthomeState.fromMap(rawData);
+        stateNotifier.value = _localState;
+        _runAutomationRulesIfNeeded();
+      } else {
+        await _dbRef.set(rawData);
+        _localState = SmarthomeState.fromMap(rawData);
+        stateNotifier.value = _localState;
+      }
+    } catch (e) {
+      print("Reset database failed: $e");
+    }
+  }
+
   Future<void> _setupLocalFallback() async {
     try {
       _isUsingFallback = true;
@@ -91,7 +118,7 @@ class FirebaseService {
           cahayaAtap: 80,
           dapurSuhu: 32.5,
           dapurKelembapan: 60.0,
-          dapurAsapApi: 0,
+          dapurFlame: 0,
           kamarSuhu: 28.0,
           kamarKelembapan: 55.0,
           tamuGerak: false,
@@ -236,22 +263,39 @@ class FirebaseService {
       }
     }
 
-    // 3. Smoke & Gas Alarm (dapur_asap_api)
-    // If smoke is detected, turn on Kitchen Buzzer and Kitchen Red LED automatically!
-    if (state.sensor.dapurAsapApi > 0) {
+    // 3. Flame/Fire Alarm (dapur_flame)
+    // If fire is detected, turn on Kitchen Buzzer and Kitchen Red LED automatically!
+    if (state.sensor.dapurFlame > 0) {
       if (!state.perangkat.buzzerAlrm || !state.perangkat.ledMerahDapur) {
         newBuzzerAlrm = true;
         newLedMerahDapur = true;
         changed = true;
       }
     } else {
-      // Clear buzzer and warning LED only if smoke is cleared
-      if (state.sensor.dapurAsapApi == 0 && (state.perangkat.ledMerahDapur)) {
+      // Clear buzzer and warning LED only if flame has just transitioned from detected to cleared
+      if (state.sensor.dapurFlame == 0 && _lastSmokeValue > 0) {
         newLedMerahDapur = false;
         newBuzzerAlrm = false;
         changed = true;
       }
     }
+    _lastSmokeValue = state.sensor.dapurFlame;
+
+    // 4. PIR Sensor Motion Alarm (tamu_gerak)
+    // If motion is detected, trigger notification and buzzer alarm
+    if (state.sensor.tamuGerak) {
+      if (!_lastPirValue) {
+        NotificationService().addNotification(
+          title: 'Anomali Terdeteksi',
+          message: 'Ada anomali terdeteksi oleh PIR sensor di Ruang Tamu.',
+          category: NotificationCategory.security,
+          priority: NotificationPriority.critical,
+        );
+        newBuzzerAlrm = true;
+        changed = true;
+      }
+    }
+    _lastPirValue = state.sensor.tamuGerak;
 
     if (changed) {
       final updatedPerangkat = state.perangkat.toMap();

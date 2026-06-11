@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
+import '../services/system_settings_service.dart';
+import '../services/firebase_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -51,7 +53,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
   @override
   void initState() {
     super.initState();
-    _activeAccent = _accentColors[0];
+    final settings = SystemSettingsService();
+    _glassOpacity = settings.glassOpacity.value;
+    _activeAccent = settings.activeAccent.value;
   }
 
   // Handle integration tap & mock sync animation
@@ -99,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _activeAccent.withOpacity(0.04),
+                color: _activeAccent.withValues(alpha: 0.04),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
@@ -115,7 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               height: 350,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFBEC5E5).withOpacity(0.03),
+                color: const Color(0xFFBEC5E5).withValues(alpha: 0.03),
               ),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
@@ -151,10 +155,6 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
 
                       // Card 4: Notification Toggles
                       _buildNotificationsCard(),
-                      const SizedBox(height: 16),
-
-                      // Card 5: Integrations
-                      _buildIntegrationsCard(),
                       const SizedBox(height: 16),
 
                       // Card 6: System actions
@@ -211,9 +211,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
   Widget _buildProfileCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(_glassOpacity),
+        color: Colors.white.withValues(alpha: _glassOpacity),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
       ),
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -230,14 +230,14 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                   gradient: SweepGradient(
                     colors: [
                       _activeAccent,
-                      _activeAccent.withOpacity(0.2),
-                      const Color(0xFFBEC5E5).withOpacity(0.4),
+                      _activeAccent.withValues(alpha: 0.2),
+                      const Color(0xFFBEC5E5).withValues(alpha: 0.4),
                       _activeAccent,
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _activeAccent.withOpacity(0.25),
+                      color: _activeAccent.withValues(alpha: 0.25),
                       blurRadius: 10,
                       spreadRadius: 0,
                     ),
@@ -286,7 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.55),
+                    color: Colors.white.withValues(alpha: 0.55),
                   ),
                 ),
               ],
@@ -296,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           // Profile edit button
           ClipOval(
             child: Container(
-              color: Colors.white.withOpacity(0.04),
+              color: Colors.white.withValues(alpha: 0.04),
               child: IconButton(
                 icon: Icon(Icons.edit_rounded, color: _activeAccent, size: 18),
                 onPressed: () {
@@ -317,9 +317,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
   Widget _buildAppearanceCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(_glassOpacity),
+        color: Colors.white.withValues(alpha: _glassOpacity),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -334,7 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           // Color selector label
           Text(
             'PALET WARNA AKSEN',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.4), letterSpacing: 0.8),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.4), letterSpacing: 0.8),
           ),
           const SizedBox(height: 10),
 
@@ -350,6 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                   setState(() {
                     _activeAccent = color;
                   });
+                  SystemSettingsService().activeAccent.value = color;
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
@@ -365,7 +366,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                     boxShadow: [
                       if (isSelected)
                         BoxShadow(
-                          color: color.withOpacity(0.6),
+                          color: color.withValues(alpha: 0.6),
                           blurRadius: 15,
                           spreadRadius: 2,
                         ),
@@ -387,11 +388,26 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
             children: [
               Text(
                 'TRANSPARANSI LATAR',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.4), letterSpacing: 0.8),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.4), letterSpacing: 0.8),
               ),
-              Text(
-                '${(_glassOpacity * 100).toInt()}%',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _activeAccent),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      _showResetTransparencyDialog();
+                    },
+                    child: Text(
+                      'Kembali ke Default',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _activeAccent),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${(_glassOpacity * 100).toInt()}%',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _activeAccent),
+                  ),
+                ],
               ),
             ],
           ),
@@ -401,9 +417,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: _activeAccent,
-              inactiveTrackColor: Colors.white.withOpacity(0.08),
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
               thumbColor: Colors.white,
-              overlayColor: _activeAccent.withOpacity(0.2),
+              overlayColor: _activeAccent.withValues(alpha: 0.2),
               trackHeight: 3,
             ),
             child: Slider(
@@ -418,6 +434,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 setState(() {
                   _glassOpacity = val;
                 });
+                SystemSettingsService().glassOpacity.value = val;
               },
             ),
           ),
@@ -430,9 +447,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
   Widget _buildAutomationCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(_glassOpacity),
+        color: Colors.white.withValues(alpha: _glassOpacity),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -450,7 +467,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
             children: [
               Text(
                 'JEDA AUTO-KUNCI',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.4), letterSpacing: 0.8),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.4), letterSpacing: 0.8),
               ),
               Text(
                 '${_autoLockDelay.toInt()} mins',
@@ -461,9 +478,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: _activeAccent,
-              inactiveTrackColor: Colors.white.withOpacity(0.08),
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
               thumbColor: Colors.white,
-              overlayColor: _activeAccent.withOpacity(0.2),
+              overlayColor: _activeAccent.withValues(alpha: 0.2),
               trackHeight: 3,
             ),
             child: Slider(
@@ -491,15 +508,15 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 children: [
                   const Text('Skala Suhu', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text('Satuan tampilan sensor', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
+                  Text('Satuan tampilan sensor', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45))),
                 ],
               ),
               Container(
                 height: 36,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
+                  color: Colors.white.withValues(alpha: 0.04),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                 ),
                 child: Row(
                   children: [
@@ -528,7 +545,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 children: [
                   const Text('Layar Awal', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text('Tampilan default saat membuka aplikasi', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
+                  Text('Tampilan default saat membuka aplikasi', style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45))),
                 ],
               ),
               Theme(
@@ -586,7 +603,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: isSelected ? Colors.black : Colors.white.withOpacity(0.7),
+            color: isSelected ? Colors.black : Colors.white.withValues(alpha: 0.7),
           ),
         ),
       ),
@@ -595,36 +612,42 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
 
   // Bento Card: Notification Rules
   Widget _buildNotificationsCard() {
+    final settings = SystemSettingsService();
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(_glassOpacity),
+        color: Colors.white.withValues(alpha: _glassOpacity),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Aturan Notifikasi Sistem',
+            'Aturan Notifikasi & Fitur Sistem',
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Sora'),
           ),
           const SizedBox(height: 16),
 
+          _buildSwitchRow('Suara Alarm & Notifikasi', 'Aktifkan suara sirine dan pemberitahuan audio', settings.enableSound.value, (val) {
+            setState(() {
+              settings.enableSound.value = val;
+            });
+          }),
+          const Divider(color: Colors.white10, height: 16),
+          _buildSwitchRow('Getaran Sistem', 'Aktifkan respon getar / haptic feedback', settings.enableVibration.value, (val) {
+            setState(() {
+              settings.enableVibration.value = val;
+            });
+          }),
+          const Divider(color: Colors.white10, height: 16),
           _buildSwitchRow('Peringatan Keamanan Kritis', 'Notifikasi push instan untuk alarm', _criticalAlerts, (val) {
             setState(() => _criticalAlerts = val);
           }),
           const Divider(color: Colors.white10, height: 16),
           _buildSwitchRow('Penyesuaian Iklim', 'Laporkan status sensor offline dan pembaruan', _climateReports, (val) {
             setState(() => _climateReports = val);
-          }),
-          const Divider(color: Colors.white10, height: 16),
-          _buildSwitchRow('Laporan Energi Mingguan', 'Terima laporan solar dan ringkasan tujuan', _energyLogs, (val) {
-            setState(() => _energyLogs = val);
-          }),
-          const Divider(color: Colors.white10, height: 16),
-          _buildSwitchRow('Rekaman asisten suara', 'Izinkan penyimpanan log ucapan di Firestore', _voiceAssistantRecordings, (val) {
-            setState(() => _voiceAssistantRecordings = val);
           }),
         ],
       ),
@@ -642,7 +665,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
             children: [
               Text(title, style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600)),
               const SizedBox(height: 2),
-              Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
+              Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45))),
             ],
           ),
         ),
@@ -659,9 +682,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
-              color: value ? _activeAccent.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+              color: value ? _activeAccent.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
               border: Border.all(
-                color: value ? _activeAccent.withOpacity(0.6) : Colors.white.withOpacity(0.12),
+                color: value ? _activeAccent.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.12),
                 width: 1,
               ),
             ),
@@ -674,11 +697,11 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 height: 18,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: value ? _activeAccent : Colors.white.withOpacity(0.6),
+                  color: value ? _activeAccent : Colors.white.withValues(alpha: 0.6),
                   boxShadow: [
                     if (value)
                       BoxShadow(
-                        color: _activeAccent.withOpacity(0.6),
+                        color: _activeAccent.withValues(alpha: 0.6),
                         blurRadius: 6,
                         spreadRadius: 1,
                       ),
@@ -692,105 +715,18 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
     );
   }
 
-  // Bento Card: Integrations
-  Widget _buildIntegrationsCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(_glassOpacity),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Integrasi Terhubung',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Sora'),
-          ),
-          const SizedBox(height: 16),
 
-          _buildIntegrationTile('Google Home', Icons.home_rounded),
-          const SizedBox(height: 12),
-          _buildIntegrationTile('Apple HomeKit', Icons.apple_rounded),
-          const SizedBox(height: 12),
-          _buildIntegrationTile('Amazon Alexa', Icons.bluetooth_audio_rounded),
-          const SizedBox(height: 12),
-          _buildIntegrationTile('Firebase Sync', Icons.cloud_sync_rounded),
-        ],
-      ),
-    );
-  }
-
-  // Integration Row Tile
-  Widget _buildIntegrationTile(String name, IconData icon) {
-    final status = _integrationStatus[name] ?? 'DISCONNECTED';
-    final isSyncing = _integrationSyncing[name] ?? false;
-    final isConnected = status == 'CONNECTED';
-
-    return GestureDetector(
-      onTap: () => _syncIntegration(name),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white.withOpacity(0.75), size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                name,
-                style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            ),
-            
-            // Sync status badge
-            if (isSyncing)
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(_activeAccent),
-                ),
-              )
-            else
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isConnected ? const Color(0xFF00E676).withOpacity(0.08) : Colors.white.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: isConnected ? const Color(0xFF00E676).withOpacity(0.2) : Colors.white.withOpacity(0.08),
-                  ),
-                ),
-                child: Text(
-                  status,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
-                    color: isConnected ? const Color(0xFF00E676) : Colors.white.withOpacity(0.4),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // Bento Card: System details & Factory reset
   Widget _buildSystemCard() {
+    final fb = FirebaseService();
+    final isOffline = fb.isUsingFallback;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(_glassOpacity),
+        color: Colors.white.withValues(alpha: _glassOpacity),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.08), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -806,7 +742,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Versi Firmware', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+              Text('Versi Firmware', style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13)),
               const Text('v4.12.0-stable', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
             ],
           ),
@@ -814,7 +750,22 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Alamat IP Gateway', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
+              Text('Status Database', style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13)),
+              Text(
+                isOffline ? 'Offline (Simulasi Lokal)' : 'Online (Firebase Realtime)',
+                style: TextStyle(
+                  color: isOffline ? const Color(0xFFFF4963) : const Color(0xFF00E676),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Alamat IP Gateway', style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13)),
               const Text('192.168.1.104', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
             ],
           ),
@@ -822,8 +773,15 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Ping Server Gateway', style: TextStyle(color: Colors.white.withOpacity(0.45), fontSize: 13)),
-              Text('12 ms', style: TextStyle(color: _activeAccent, fontWeight: FontWeight.w700, fontSize: 13)),
+              Text('Ping Realtime Database', style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13)),
+              Text(
+                isOffline ? 'N/A (Terputus)' : '12 ms',
+                style: TextStyle(
+                  color: isOffline ? Colors.white.withValues(alpha: 0.3) : _activeAccent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
             ],
           ),
 
@@ -832,13 +790,13 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           // Reset system button
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF93000A).withOpacity(0.12),
+              backgroundColor: const Color(0xFF93000A).withValues(alpha: 0.12),
               foregroundColor: const Color(0xFFFFB4AB),
               elevation: 0,
               minimumSize: const Size.fromHeight(42),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: const Color(0xFFFF4963).withOpacity(0.2)),
+                side: BorderSide(color: const Color(0xFFFF4963).withValues(alpha: 0.2)),
               ),
             ),
             onPressed: () {
@@ -856,7 +814,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
   void _showResetDialog() {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.65),
+      barrierColor: Colors.black.withValues(alpha: 0.65),
       builder: (BuildContext context) {
         return BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
@@ -864,7 +822,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
             backgroundColor: const Color(0xFF1E2020),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: Colors.white.withOpacity(0.08)),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
             ),
             title: Row(
               children: const [
@@ -879,7 +837,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
             ),
             actions: <Widget>[
               TextButton(
-                child: Text('Batal', style: TextStyle(color: Colors.white.withOpacity(0.7))),
+                child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
                 onPressed: () {
                   HapticFeedback.lightImpact();
                   Navigator.of(context).pop();
@@ -888,15 +846,75 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               TextButton(
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFFFFB4AB),
-                  backgroundColor: const Color(0xFF93000A).withOpacity(0.3),
+                  backgroundColor: const Color(0xFF93000A).withValues(alpha: 0.3),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 child: const Text('Reset Pabrik', style: TextStyle(fontWeight: FontWeight.w600)),
-                onPressed: () {
+                onPressed: () async {
                   HapticFeedback.heavyImpact();
+                  SystemSettingsService().resetToDefaults();
+                  await FirebaseService().resetDatabase();
+                  setState(() {
+                    _glassOpacity = SystemSettingsService().glassOpacity.value;
+                    _activeAccent = SystemSettingsService().activeAccent.value;
+                  });
+                  if (mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Mengembalikan pengaturan sistem & database ke pabrik...')),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showResetTransparencyDialog() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (BuildContext context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF1E2020),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            title: const Text('Reset Transparansi?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: const Text(
+              'Apakah Anda yakin ingin mengembalikan transparansi latar ke nilai bawaan (5%)?',
+              style: TextStyle(color: Color(0xFFC6C6CE), fontSize: 14),
+            ),
+            actions: [
+              TextButton(
+                child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: _activeAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Reset', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  setState(() {
+                    _glassOpacity = 0.05;
+                  });
+                  SystemSettingsService().glassOpacity.value = 0.05;
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Mensimulasikan penghapusan inti Gateway...')),
+                    const SnackBar(content: Text('Transparansi latar dikembalikan ke default.'), duration: Duration(seconds: 1)),
                   );
                 },
               ),

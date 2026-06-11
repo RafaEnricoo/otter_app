@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../core/constants.dart';
 import '../models/notification_model.dart';
 import 'glass_card.dart';
 
@@ -44,7 +45,7 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
       case NotificationPriority.warning:
         return const Color(0xFFFFB300); // Amber Yellow
       case NotificationPriority.info:
-        return const Color(0xFF00F4FE); // Neon Electric Cyan
+        return Color(AppColors.secondaryContainer); // Neon Electric Cyan
     }
   }
 
@@ -87,15 +88,15 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 28.0),
         decoration: BoxDecoration(
-          color: const Color(0xFF93000A).withOpacity(0.4),
+          color: const Color(0xFF93000A).withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(16.0),
           border: Border.all(
-            color: const Color(0xFFFF4963).withOpacity(0.3),
+            color: const Color(0xFFFF4963).withValues(alpha: 0.3),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF4963).withOpacity(0.1),
+              color: const Color(0xFFFF4963).withValues(alpha: 0.1),
               blurRadius: 15,
               spreadRadius: -2,
             ),
@@ -154,7 +155,7 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                         borderRadius: BorderRadius.circular(2),
                         boxShadow: [
                           BoxShadow(
-                            color: priorityColor.withOpacity(0.8),
+                            color: priorityColor.withValues(alpha: 0.8),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),
@@ -168,10 +169,10 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.04),
+                        color: Colors.white.withValues(alpha: 0.04),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.08),
+                          color: Colors.white.withValues(alpha: 0.08),
                           width: 1,
                         ),
                       ),
@@ -196,7 +197,7 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white.withOpacity(0.55),
+                                  color: Colors.white.withValues(alpha: 0.55),
                                   letterSpacing: 0.8,
                                 ),
                               ),
@@ -204,7 +205,7 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                                 _formatTimestamp(widget.notification.timestamp),
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: Colors.white.withValues(alpha: 0.4),
                                 ),
                               ),
                             ],
@@ -218,7 +219,7 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                                   ? FontWeight.w500
                                   : FontWeight.w700,
                               color: widget.notification.isRead
-                                  ? Colors.white.withOpacity(0.85)
+                                  ? Colors.white.withValues(alpha: 0.85)
                                   : Colors.white,
                             ),
                           ),
@@ -229,7 +230,7 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.white.withOpacity(0.65),
+                              color: Colors.white.withValues(alpha: 0.65),
                               height: 1.3,
                             ),
                           ),
@@ -249,10 +250,10 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.02),
+                          color: Colors.white.withValues(alpha: 0.02),
                           border: Border(
                             top: BorderSide(
-                              color: Colors.white.withOpacity(0.05),
+                              color: Colors.white.withValues(alpha: 0.05),
                               width: 1,
                             ),
                           ),
@@ -264,12 +265,12 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                             if (widget.notification.category == NotificationCategory.security)
                               TextButton.icon(
                                 style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFF00F4FE),
+                                  foregroundColor: Color(AppColors.secondaryContainer),
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  backgroundColor: Colors.white.withOpacity(0.04),
+                                  backgroundColor: Colors.white.withValues(alpha: 0.04),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(color: const Color(0xFF00F4FE).withOpacity(0.15)),
+                                    side: BorderSide(color: Color(AppColors.secondaryContainer).withValues(alpha: 0.15)),
                                   ),
                                 ),
                                 icon: const Icon(Icons.videocam_rounded, size: 16),
@@ -286,10 +287,10 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                                 style: TextButton.styleFrom(
                                   foregroundColor: const Color(0xFFFFB300),
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  backgroundColor: Colors.white.withOpacity(0.04),
+                                  backgroundColor: Colors.white.withValues(alpha: 0.04),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(color: const Color(0xFFFFB300).withOpacity(0.15)),
+                                    side: BorderSide(color: const Color(0xFFFFB300).withValues(alpha: 0.15)),
                                   ),
                                 ),
                                 icon: const Icon(Icons.mode_fan_off_rounded, size: 16),
@@ -304,12 +305,12 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                             if (widget.notification.category == NotificationCategory.energy)
                               TextButton.icon(
                                 style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFF00F4FE),
+                                  foregroundColor: Color(AppColors.secondaryContainer),
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  backgroundColor: Colors.white.withOpacity(0.04),
+                                  backgroundColor: Colors.white.withValues(alpha: 0.04),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(color: const Color(0xFF00F4FE).withOpacity(0.15)),
+                                    side: BorderSide(color: Color(AppColors.secondaryContainer).withValues(alpha: 0.15)),
                                   ),
                                 ),
                                 icon: const Icon(Icons.analytics_rounded, size: 16),
@@ -324,9 +325,9 @@ class _NotificationTileState extends State<NotificationTile> with SingleTickerPr
                             const SizedBox(width: 8),
                             TextButton(
                               style: TextButton.styleFrom(
-                                foregroundColor: Colors.white.withOpacity(0.7),
+                                foregroundColor: Colors.white.withValues(alpha: 0.7),
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                backgroundColor: Colors.white.withOpacity(0.02),
+                                backgroundColor: Colors.white.withValues(alpha: 0.02),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),

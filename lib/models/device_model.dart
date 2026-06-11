@@ -44,7 +44,7 @@ class SmarthomeSensor {
   final int cahayaAtap;
   final double dapurSuhu;
   final double dapurKelembapan;
-  final int dapurAsapApi;
+  final int dapurFlame;
   final double kamarSuhu;
   final double kamarKelembapan;
   final bool tamuGerak;
@@ -53,7 +53,7 @@ class SmarthomeSensor {
     required this.cahayaAtap,
     required this.dapurSuhu,
     required this.dapurKelembapan,
-    required this.dapurAsapApi,
+    required this.dapurFlame,
     required this.kamarSuhu,
     required this.kamarKelembapan,
     required this.tamuGerak,
@@ -70,9 +70,9 @@ class SmarthomeSensor {
       dapurKelembapan: (map['dapur_kelembapan'] ?? 0.0) is int
           ? (map['dapur_kelembapan'] as int).toDouble()
           : (map['dapur_kelembapan'] ?? 0.0) as double,
-      dapurAsapApi: (map['dapur_asap_api'] ?? 0) is double
-          ? (map['dapur_asap_api'] as double).toInt()
-          : (map['dapur_asap_api'] ?? 0) as int,
+      dapurFlame: (map['dapur_flame'] ?? 0) is double
+          ? (map['dapur_flame'] as double).toInt()
+          : (map['dapur_flame'] ?? 0) as int,
       kamarSuhu: (map['kamar_suhu'] ?? 0.0) is int
           ? (map['kamar_suhu'] as int).toDouble()
           : (map['kamar_suhu'] ?? 0.0) as double,
@@ -88,7 +88,7 @@ class SmarthomeSensor {
       'cahaya_atap': cahayaAtap,
       'dapur_suhu': dapurSuhu,
       'dapur_kelembapan': dapurKelembapan,
-      'dapur_asap_api': dapurAsapApi,
+      'dapur_flame': dapurFlame,
       'kamar_suhu': kamarSuhu,
       'kamar_kelembapan': kamarKelembapan,
       'tamu_gerak': tamuGerak,

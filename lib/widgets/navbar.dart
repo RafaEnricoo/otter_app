@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../services/firebase_service.dart';
+import '../services/system_settings_service.dart';
 import '../screens/voice_assistant_screen.dart';
 
 class BottomNavBar extends StatefulWidget {
@@ -47,87 +48,92 @@ class _BottomNavBarState extends State<BottomNavBar>
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
-      builder: (context, state, child) {
-        final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
+    return ValueListenableBuilder<Color>(
+      valueListenable: SystemSettingsService().activeAccent,
+      builder: (context, accentColor, _) {
+        return ValueListenableBuilder<SmarthomeState?>(
+          valueListenable: FirebaseService().stateNotifier,
+          builder: (context, state, child) {
+            final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
 
-        return ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: Colors.white.withOpacity(0.07),
-                    width: 1,
-                  ),
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(AppColors.surface).withOpacity(0.85),
-                    Color(AppColors.surfaceContainer).withOpacity(0.95),
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 24,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                top: false,
-                child: SizedBox(
-                  height: 70,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _NavBarItem(
-                        icon: Icons.home_rounded,
-                        activeIcon: Icons.home_filled,
-                        isActive: widget.currentIndex == 0,
-                        onTap: () => widget.onTabSelected(0),
-                        label: 'Beranda',
+            return ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.07),
+                        width: 1,
                       ),
-                      _NavBarItem(
-                        icon: Icons.grid_view_outlined,
-                        activeIcon: Icons.grid_view_rounded,
-                        isActive: widget.currentIndex == 1,
-                        onTap: () => widget.onTabSelected(1),
-                        label: 'Perangkat',
-                      ),
-
-                      // ─── Central Mic Button (inline) ───
-                      _MicFab(
-                        glowAnimation: _fabGlowAnimation,
-                        onTap: () => showVoiceAssistant(context),
-                      ),
-
-                      _NavBarItem(
-                        icon: Icons.analytics_outlined,
-                        activeIcon: Icons.analytics_rounded,
-                        isActive: widget.currentIndex == 2,
-                        onTap: () => widget.onTabSelected(2),
-                        label: 'Monitor',
-                      ),
-                      _NavBarItem(
-                        icon: Icons.shield_outlined,
-                        activeIcon: Icons.shield_rounded,
-                        isActive: widget.currentIndex == 3,
-                        onTap: () => widget.onTabSelected(3),
-                        label: 'Keamanan',
-                        isAlarmActive: isAlarmActive,
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(AppColors.surface).withValues(alpha: 0.85),
+                        Color(AppColors.surfaceContainer).withValues(alpha: 0.95),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 24,
+                        offset: const Offset(0, -4),
                       ),
                     ],
                   ),
+                  child: SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      height: 70,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _NavBarItem(
+                            icon: Icons.home_rounded,
+                            activeIcon: Icons.home_filled,
+                            isActive: widget.currentIndex == 0,
+                            onTap: () => widget.onTabSelected(0),
+                            label: 'Beranda',
+                          ),
+                          _NavBarItem(
+                            icon: Icons.grid_view_outlined,
+                            activeIcon: Icons.grid_view_rounded,
+                            isActive: widget.currentIndex == 1,
+                            onTap: () => widget.onTabSelected(1),
+                            label: 'Perangkat',
+                          ),
+
+                          // ─── Central Mic Button (inline) ───
+                          _MicFab(
+                            glowAnimation: _fabGlowAnimation,
+                            onTap: () => showVoiceAssistant(context),
+                          ),
+
+                          _NavBarItem(
+                            icon: Icons.analytics_outlined,
+                            activeIcon: Icons.analytics_rounded,
+                            isActive: widget.currentIndex == 2,
+                            onTap: () => widget.onTabSelected(2),
+                            label: 'Monitor',
+                          ),
+                          _NavBarItem(
+                            icon: Icons.shield_outlined,
+                            activeIcon: Icons.shield_rounded,
+                            isActive: widget.currentIndex == 3,
+                            onTap: () => widget.onTabSelected(3),
+                            label: 'Keamanan',
+                            isAlarmActive: isAlarmActive,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -206,9 +212,9 @@ class _MicFabState extends State<_MicFab>
                             gradient: SweepGradient(
                               colors: [
                                 Color(AppColors.secondaryContainer),
-                                Color(AppColors.secondaryContainer).withOpacity(0.0),
-                                Color(AppColors.primary).withOpacity(0.3),
-                                Color(AppColors.secondaryContainer).withOpacity(0.0),
+                                Color(AppColors.secondaryContainer).withValues(alpha: 0.0),
+                                Color(AppColors.primary).withValues(alpha: 0.3),
+                                Color(AppColors.secondaryContainer).withValues(alpha: 0.0),
                                 Color(AppColors.secondaryContainer),
                               ],
                             ),
@@ -238,18 +244,18 @@ class _MicFabState extends State<_MicFab>
                               BoxShadow(
                                 color: Color(
                                   AppColors.secondaryContainer,
-                                ).withOpacity(widget.glowAnimation.value),
+                                ).withValues(alpha: widget.glowAnimation.value),
                                 blurRadius: 16,
                                 spreadRadius: 0,
                               ),
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.4),
+                                color: Colors.black.withValues(alpha: 0.4),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
                             ],
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Icon(
                               Icons.mic_rounded,
                               color: Color(AppColors.secondaryContainer),
@@ -267,7 +273,7 @@ class _MicFabState extends State<_MicFab>
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w500,
-                    color: Color(AppColors.onSurfaceVariant).withOpacity(0.5),
+                    color: Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -389,20 +395,20 @@ class _NavBarItemState extends State<_NavBarItem>
                 builder: (context, child) {
                   final double opacity = widget.isAlarmActive ? _alarmOpacityAnimation.value : 1.0;
                   final Color iconColor = widget.isAlarmActive
-                      ? Colors.redAccent.withOpacity(opacity)
+                      ? Colors.redAccent.withValues(alpha: opacity)
                       : (widget.isActive
                           ? Color(AppColors.secondaryContainer)
-                          : Color(AppColors.onSurfaceVariant).withOpacity(0.6));
+                          : Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6));
                   final Color containerColor = widget.isActive
                       ? (widget.isAlarmActive
-                          ? Colors.redAccent.withOpacity(0.12 * opacity)
-                          : Color(AppColors.secondaryContainer).withOpacity(0.12))
+                          ? Colors.redAccent.withValues(alpha: 0.12 * opacity)
+                          : Color(AppColors.secondaryContainer).withValues(alpha: 0.12))
                       : Colors.transparent;
                   final Color labelColor = widget.isAlarmActive
-                      ? Colors.redAccent.withOpacity(opacity)
+                      ? Colors.redAccent.withValues(alpha: opacity)
                       : (widget.isActive
                           ? Color(AppColors.secondaryContainer)
-                          : Color(AppColors.onSurfaceVariant).withOpacity(0.5));
+                          : Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5));
 
                   return Column(
                     mainAxisSize: MainAxisSize.min,

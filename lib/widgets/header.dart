@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
+import '../services/system_settings_service.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 
@@ -23,110 +24,115 @@ class Header extends StatelessWidget {
     final isMobile = MediaQuery.of(context).size.width < 768;
     final topPadding = MediaQuery.of(context).padding.top;
 
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          height: 68 + topPadding,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(AppColors.surface).withOpacity(0.85),
-                Color(AppColors.surfaceContainer).withOpacity(0.75),
-              ],
-            ),
-            border: Border(
-              bottom: BorderSide(
-                color: Colors.white.withOpacity(0.08),
-                width: 1,
-              ),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.containerPadding,
-              ),
-              child: Row(
-                children: [
-                  // ─── Logo & Branding ───
-                  _AnimatedLogo(isMobile: isMobile),
-
-                  const Spacer(),
-
-                  // ─── Desktop Navigation ───
-                  if (!isMobile)
-                    Row(
-                      children: [
-                        _NavLink(
-                          label: 'Beranda',
-                          icon: Icons.home_rounded,
-                          isActive: true,
-                          onTap: () {},
-                        ),
-                        const SizedBox(width: 6),
-                        _NavLink(
-                          label: 'Perangkat',
-                          icon: Icons.devices_rounded,
-                          isActive: false,
-                          onTap: () {},
-                        ),
-                        const SizedBox(width: 6),
-                        _NavLink(
-                          label: 'Monitor',
-                          icon: Icons.analytics_rounded,
-                          isActive: false,
-                          onTap: () {},
-                        ),
-                        const SizedBox(width: 6),
-                        _NavLink(
-                          label: 'Keamanan',
-                          icon: Icons.shield_rounded,
-                          isActive: false,
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
-
-                  const SizedBox(width: AppSpacing.gutter),
-
-                  // ─── Action Buttons ───
-                  ValueListenableBuilder<List<NotificationModel>>(
-                    valueListenable: NotificationService().notificationsNotifier,
-                    builder: (context, list, child) {
-                      final count = list.where((n) => !n.isRead).length;
-                      return _NotificationButton(
-                        onPressed: onNotificationsPressed,
-                        badgeCount: count,
-                      );
-                    },
+    return ValueListenableBuilder<Color>(
+      valueListenable: SystemSettingsService().activeAccent,
+      builder: (context, accentColor, _) {
+        return ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              height: 68 + topPadding,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(AppColors.surface).withValues(alpha: 0.85),
+                    Color(AppColors.surfaceContainer).withValues(alpha: 0.75),
+                  ],
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    width: 1,
                   ),
-                  const SizedBox(width: AppSpacing.stackSm),
-
-                  // ─── User Avatar (Opens Profile/Settings) ───
-                  GestureDetector(
-                    onTap: onSettingsPressed,
-                    child: _UserAvatar(
-                      userName: userName,
-                      userImageUrl: userImageUrl,
-                    ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.containerPadding,
+                  ),
+                  child: Row(
+                    children: [
+                      // ─── Logo & Branding ───
+                      _AnimatedLogo(isMobile: isMobile),
+
+                      const Spacer(),
+
+                      // ─── Desktop Navigation ───
+                      if (!isMobile)
+                        Row(
+                          children: [
+                            _NavLink(
+                              label: 'Beranda',
+                              icon: Icons.home_rounded,
+                              isActive: true,
+                              onTap: () {},
+                            ),
+                            const SizedBox(width: 6),
+                            _NavLink(
+                              label: 'Perangkat',
+                              icon: Icons.devices_rounded,
+                              isActive: false,
+                              onTap: () {},
+                            ),
+                            const SizedBox(width: 6),
+                            _NavLink(
+                              label: 'Monitor',
+                              icon: Icons.analytics_rounded,
+                              isActive: false,
+                              onTap: () {},
+                            ),
+                            const SizedBox(width: 6),
+                            _NavLink(
+                              label: 'Keamanan',
+                              icon: Icons.shield_rounded,
+                              isActive: false,
+                              onTap: () {},
+                            ),
+                          ],
+                        ),
+
+                      const SizedBox(width: AppSpacing.gutter),
+
+                      // ─── Action Buttons ───
+                      ValueListenableBuilder<List<NotificationModel>>(
+                        valueListenable: NotificationService().notificationsNotifier,
+                        builder: (context, list, child) {
+                          final count = list.where((n) => !n.isRead).length;
+                          return _NotificationButton(
+                            onPressed: onNotificationsPressed,
+                            badgeCount: count,
+                          );
+                        },
+                      ),
+                      const SizedBox(width: AppSpacing.stackSm),
+
+                      // ─── User Avatar (Opens Profile/Settings) ───
+                      GestureDetector(
+                        onTap: onSettingsPressed,
+                        child: _UserAvatar(
+                          userName: userName,
+                          userImageUrl: userImageUrl,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -182,14 +188,14 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
                   transform: GradientRotation(_controller.value * 6.28),
                   colors: [
                     Color(AppColors.secondaryContainer),
-                    Color(AppColors.secondaryContainer).withOpacity(0.2),
-                    Color(AppColors.primary).withOpacity(0.4),
+                    Color(AppColors.secondaryContainer).withValues(alpha: 0.2),
+                    Color(AppColors.primary).withValues(alpha: 0.4),
                     Color(AppColors.secondaryContainer),
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(AppColors.secondaryContainer).withOpacity(0.3),
+                    color: Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
                     blurRadius: 12,
                     spreadRadius: 0,
                   ),
@@ -201,7 +207,7 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
                   shape: BoxShape.circle,
                   color: Color(AppColors.surfaceContainer),
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.blur_on_rounded,
                     size: 18,
@@ -218,7 +224,7 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
           shaderCallback: (bounds) => LinearGradient(
             colors: [
               Color(AppColors.onSurface),
-              Color(AppColors.secondaryContainer).withOpacity(0.8),
+              Color(AppColors.secondaryContainer).withValues(alpha: 0.8),
             ],
           ).createShader(bounds),
           child: Text(
@@ -309,13 +315,13 @@ class _NavLinkState extends State<_NavLink>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppRadius.lg),
                 color: widget.isActive
-                    ? Color(AppColors.secondaryContainer).withOpacity(0.12)
-                    : Colors.white.withOpacity(0.04 * _hoverAnimation.value),
+                    ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
+                    : Colors.white.withValues(alpha: 0.04 * _hoverAnimation.value),
                 border: Border.all(
                   color: widget.isActive
-                      ? Color(AppColors.secondaryContainer).withOpacity(0.25)
+                      ? Color(AppColors.secondaryContainer).withValues(alpha: 0.25)
                       : Colors.white
-                          .withOpacity(0.06 * _hoverAnimation.value),
+                          .withValues(alpha: 0.06 * _hoverAnimation.value),
                   width: 1,
                 ),
               ),
@@ -420,11 +426,11 @@ class _NotificationButtonState extends State<_NotificationButton>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: _isHovered
-                  ? Colors.white.withOpacity(0.08)
+                  ? Colors.white.withValues(alpha: 0.08)
                   : Colors.transparent,
               border: Border.all(
                 color: _isHovered
-                    ? Colors.white.withOpacity(0.12)
+                    ? Colors.white.withValues(alpha: 0.12)
                     : Colors.transparent,
                 width: 1,
               ),
@@ -462,7 +468,7 @@ class _NotificationButtonState extends State<_NotificationButton>
                                   shape: BoxShape.circle,
                                   color: Color(
                                     AppColors.secondaryContainer,
-                                  ).withOpacity(
+                                  ).withValues(alpha: 
                                     0.3 * (1.3 - _pulseAnimation.value),
                                   ),
                                 ),
@@ -479,7 +485,7 @@ class _NotificationButtonState extends State<_NotificationButton>
                                   BoxShadow(
                                     color: Color(
                                       AppColors.secondaryContainer,
-                                    ).withOpacity(0.6),
+                                    ).withValues(alpha: 0.6),
                                     blurRadius: 6,
                                     spreadRadius: 0,
                                   ),
@@ -559,15 +565,15 @@ class _UserAvatarState extends State<_UserAvatar> {
                     Color(AppColors.primary),
                   ]
                 : [
-                    Color(AppColors.secondaryContainer).withOpacity(0.4),
-                    Color(AppColors.primary).withOpacity(0.2),
+                    Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
+                    Color(AppColors.primary).withValues(alpha: 0.2),
                   ],
           ),
           boxShadow: _isHovered
               ? [
                   BoxShadow(
                     color:
-                        Color(AppColors.secondaryContainer).withOpacity(0.3),
+                        Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
                     blurRadius: 12,
                     spreadRadius: 0,
                   ),

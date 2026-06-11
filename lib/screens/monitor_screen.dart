@@ -95,9 +95,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
       valueListenable: FirebaseService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
-          return const Center(
+          return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F4FE)),
+              valueColor: AlwaysStoppedAnimation<Color>(Color(AppColors.secondaryContainer)),
             ),
           );
         }
@@ -110,11 +110,11 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
         // Activity logs built dynamically from live states
         final List<_LogItem> dynamicLogs = [
-          if (sensor.dapurAsapApi > 0)
+          if (sensor.dapurFlame > 0)
             _LogItem(
               icon: Icons.warning_rounded,
-              title: 'KRITIS: Kebocoran gas dapur terdeteksi!',
-              subtitle: 'Baru saja • Peringatan Asap Dapur',
+              title: 'KRITIS: Terdeteksi nyala api di dapur!',
+              subtitle: 'Baru saja • Alarm Kebakaran Dapur',
               accentColor: Colors.redAccent,
               isVoice: false,
             ),
@@ -130,7 +130,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
             icon: Icons.lock_rounded,
             title: perangkat.kunciPintuRfid ? 'RFID Pintu utama dikunci' : 'RFID Pintu utama dibuka',
             subtitle: 'Real-time • Sinkronisasi Keamanan',
-            accentColor: const Color(0xFF00F4FE),
+            accentColor: Color(AppColors.secondaryContainer),
             isVoice: false,
           ),
           _LogItem(
@@ -285,7 +285,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 14,
-                  color: const Color(AppColors.onSurfaceVariant).withOpacity(0.7),
+                  color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -299,7 +299,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
             borderRadius: BorderRadius.circular(999),
             color: const Color(AppColors.surfaceContainerLow),
             border: Border.all(
-              color: Colors.white.withOpacity(0.06),
+              color: Colors.white.withValues(alpha: 0.06),
               width: 1.0,
             ),
           ),
@@ -323,11 +323,11 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     color: isSelected
-                        ? const Color(0xFF00F4FE).withOpacity(0.12)
+                        ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
                         : Colors.transparent,
                     border: Border.all(
                       color: isSelected
-                          ? const Color(0xFF00F4FE).withOpacity(0.35)
+                          ? Color(AppColors.secondaryContainer).withValues(alpha: 0.35)
                           : Colors.transparent,
                       width: 1.0,
                     ),
@@ -339,8 +339,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: isSelected
-                          ? const Color(0xFF00F4FE)
-                          : const Color(AppColors.onSurfaceVariant).withOpacity(0.6),
+                          ? Color(AppColors.secondaryContainer)
+                          : const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -369,7 +369,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF00F4FE).withOpacity(0.08),
+                    Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -390,14 +390,14 @@ class _MonitorScreenState extends State<MonitorScreen> {
                         height: 36,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: const Color(0xFF00F4FE).withOpacity(0.08),
+                          color: Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
                           border: Border.all(
-                            color: const Color(0xFF00F4FE).withOpacity(0.15),
+                            color: Color(AppColors.secondaryContainer).withValues(alpha: 0.15),
                           ),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.device_thermostat_rounded,
-                          color: Color(0xFF00F4FE),
+                          color: Color(AppColors.secondaryContainer),
                           size: 20,
                         ),
                       ),
@@ -436,7 +436,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: activeData.isDeltaPositive
-                                      ? const Color(0xFF00F4FE)
+                                      ? Color(AppColors.secondaryContainer)
                                       : const Color(AppColors.error),
                                 ),
                               ),
@@ -448,7 +448,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.more_horiz_rounded),
-                    color: const Color(AppColors.onSurfaceVariant).withOpacity(0.6),
+                    color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
                     onPressed: () {},
                   ),
                 ],
@@ -486,11 +486,11 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF00F4FE),
+                                    color: Color(AppColors.secondaryContainer),
                                     borderRadius: BorderRadius.circular(6),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF00F4FE).withOpacity(0.3),
+                                        color: Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
                                         blurRadius: 8,
                                       )
                                     ],
@@ -521,15 +521,15 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                       end: Alignment.bottomCenter,
                                       colors: [
                                         isHovered 
-                                            ? const Color(0xFF00F4FE) 
-                                            : const Color(0xFF00F4FE).withOpacity(0.85),
-                                        const Color(0xFF00F4FE).withOpacity(0.02),
+                                            ? Color(AppColors.secondaryContainer) 
+                                            : Color(AppColors.secondaryContainer).withValues(alpha: 0.85),
+                                        Color(AppColors.secondaryContainer).withValues(alpha: 0.02),
                                       ],
                                     ),
                                     boxShadow: isHovered 
                                         ? [
                                             BoxShadow(
-                                              color: const Color(0xFF00F4FE).withOpacity(0.25),
+                                              color: Color(AppColors.secondaryContainer).withValues(alpha: 0.25),
                                               blurRadius: 10,
                                               spreadRadius: 1,
                                             )
@@ -548,8 +548,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                   fontSize: 9,
                                   fontWeight: FontWeight.w600,
                                   color: isHovered 
-                                      ? const Color(0xFF00F4FE) 
-                                      : const Color(AppColors.onSurfaceVariant).withOpacity(0.6),
+                                      ? Color(AppColors.secondaryContainer) 
+                                      : const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -580,19 +580,19 @@ class _MonitorScreenState extends State<MonitorScreen> {
     final Color statusColor = activeLuminance < 30.0
         ? const Color(AppColors.tertiary)
         : activeLuminance < 70.0
-            ? const Color(0xFF00F4FE)
+            ? Color(AppColors.secondaryContainer)
             : const Color(AppColors.error);
 
     return _MonitorGlassCard(
-      glowColor: const Color(0xFF00F4FE).withOpacity(0.12),
+      glowColor: Color(AppColors.secondaryContainer).withValues(alpha: 0.12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.lightbulb_rounded,
-                color: Color(0xFF00F4FE),
+                color: Color(AppColors.secondaryContainer),
                 size: 16,
               ),
               const SizedBox(width: 8),
@@ -602,7 +602,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   fontFamily: 'Inter',
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
-                  color: const Color(AppColors.onSurfaceVariant).withOpacity(0.7),
+                  color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
                   letterSpacing: 0.8,
                 ),
               ),
@@ -632,8 +632,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
                       child: CustomPaint(
                         painter: _RadialDialPainter(
                           percentage: activeLuminance,
-                          trackColor: Colors.white.withOpacity(0.04),
-                          progressColor: const Color(0xFF00F4FE),
+                          trackColor: Colors.white.withValues(alpha: 0.04),
+                          progressColor: Color(AppColors.secondaryContainer),
                         ),
                       ),
                     ),
@@ -648,26 +648,26 @@ class _MonitorScreenState extends State<MonitorScreen> {
                           children: [
                             Text(
                               '${activeLuminance.toInt()}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Sora',
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
                                 color: Color(AppColors.onSurface),
                                 shadows: [
                                   Shadow(
-                                    color: Color(0xFF00F4FE),
+                                    color: Color(AppColors.secondaryContainer),
                                     blurRadius: 10,
                                   )
                                 ],
                               ),
                             ),
-                            const Text(
+                            Text(
                               '%',
                               style: TextStyle(
                                 fontFamily: 'Sora',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF00F4FE),
+                                color: Color(AppColors.secondaryContainer),
                               ),
                             ),
                           ],
@@ -698,7 +698,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 9,
-                color: const Color(AppColors.onSurfaceVariant).withOpacity(0.4),
+                color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.4),
               ),
             ),
           ),
@@ -732,7 +732,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                       fontFamily: 'Inter',
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: const Color(AppColors.onSurfaceVariant).withOpacity(0.7),
+                      color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -744,7 +744,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   borderRadius: BorderRadius.circular(999),
                   color: const Color(AppColors.surfaceContainerLow),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.04),
+                    color: Colors.white.withValues(alpha: 0.04),
                   ),
                 ),
                 child: const Text(
@@ -786,7 +786,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   borderRadius: BorderRadius.circular(999),
                   color: const Color(AppColors.surfaceContainer),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                     width: 1.0,
                   ),
                 ),
@@ -840,7 +840,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                       fontFamily: 'Inter',
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: const Color(AppColors.onSurfaceVariant).withOpacity(0.7),
+                      color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
                       letterSpacing: 0.8,
                     ),
                   ),
@@ -855,11 +855,11 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 },
                 child: Text(
                   _isLogExpanded ? 'Lebih Sedikit' : 'Lihat Semua',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF00F4FE),
+                    color: Color(AppColors.secondaryContainer),
                   ),
                 ),
               ),
@@ -895,7 +895,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                         shadows: item.isVoice 
                             ? [
                                 Shadow(
-                                  color: item.accentColor.withOpacity(0.6),
+                                  color: item.accentColor.withValues(alpha: 0.6),
                                   blurRadius: 8,
                                 )
                               ] 
@@ -922,7 +922,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                 fontFamily: 'Inter',
                                 fontSize: 10,
                                 fontWeight: FontWeight.w500,
-                                color: const Color(AppColors.onSurfaceVariant).withOpacity(0.5),
+                                color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
                               ),
                             ),
                           ],
@@ -959,9 +959,9 @@ class _MonitorGlassCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         border: Border.all(
-          color: Colors.white.withOpacity(0.12),
+          color: Colors.white.withValues(alpha: 0.12),
           width: 1.0,
         ),
         boxShadow: [
@@ -971,7 +971,7 @@ class _MonitorGlassCard extends StatelessWidget {
               blurRadius: 20,
             ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 30,
             offset: const Offset(0, 4),
           ),
@@ -1026,7 +1026,7 @@ class _RadialDialPainter extends CustomPainter {
     );
 
     final glowPaint = Paint()
-      ..color = progressColor.withOpacity(0.3)
+      ..color = progressColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth + 6.0

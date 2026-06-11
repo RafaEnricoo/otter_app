@@ -1,8 +1,11 @@
+import 'package:flutter/material.dart';
+import '../services/system_settings_service.dart';
+
 class AppColors {
   // Main Colors
   static const primary = 0xFFBEC5E5;
   static const secondary = 0xFFE6FEFF;
-  static const secondaryContainer = 0xFF00F4FE;
+  static int get secondaryContainer => SystemSettingsService().activeAccent.value.value;
   static const tertiary = 0xFFC6C7C3;
   static const error = 0xFFFFB4AB;
 

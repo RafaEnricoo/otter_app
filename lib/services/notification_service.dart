@@ -138,4 +138,23 @@ class NotificationService {
     final updated = List<NotificationModel>.from(notificationsNotifier.value)..insert(0, mock);
     notificationsNotifier.value = updated;
   }
+
+  void addNotification({
+    required String title,
+    required String message,
+    required NotificationCategory category,
+    required NotificationPriority priority,
+  }) {
+    final id = 'notif_${DateTime.now().millisecondsSinceEpoch}';
+    final newNotif = NotificationModel(
+      id: id,
+      title: title,
+      message: message,
+      timestamp: DateTime.now(),
+      category: category,
+      priority: priority,
+    );
+    final updated = List<NotificationModel>.from(notificationsNotifier.value)..insert(0, newNotif);
+    notificationsNotifier.value = updated;
+  }
 }

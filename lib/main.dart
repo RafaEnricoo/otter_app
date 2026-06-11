@@ -16,6 +16,7 @@ import 'screens/notification_screen.dart';
 import 'screens/settings_screen.dart';
 
 import 'services/firebase_service.dart';
+import 'services/system_settings_service.dart';
 import 'models/device_model.dart';
 
 void main() async {
@@ -30,11 +31,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Otter - Smart Home',
-      theme: AppTheme.darkTheme,
-      home: const MainLayout(),
+    return ValueListenableBuilder<Color>(
+      valueListenable: SystemSettingsService().activeAccent,
+      builder: (context, accentColor, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Otter - Smart Home',
+          theme: AppTheme.darkTheme,
+          home: MainLayout(),
+        );
+      },
     );
   }
 }
@@ -55,13 +61,29 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     FirebaseService().stateNotifier.addListener(_onStateChanged);
+    SystemSettingsService().enableSound.addListener(_onSettingsChanged);
+    SystemSettingsService().enableVibration.addListener(_onSettingsChanged);
   }
 
   @override
   void dispose() {
     FirebaseService().stateNotifier.removeListener(_onStateChanged);
+    SystemSettingsService().enableSound.removeListener(_onSettingsChanged);
+    SystemSettingsService().enableVibration.removeListener(_onSettingsChanged);
     _stopAlarmFeedback();
     super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (!mounted) return;
+    if (_isAlarmRunning) {
+      _stopAlarmFeedback();
+      final state = FirebaseService().stateNotifier.value;
+      final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
+      if (isAlarmActive) {
+        _startAlarmFeedback();
+      }
+    }
   }
 
   void _onStateChanged() {
@@ -78,24 +100,29 @@ class _MainLayoutState extends State<MainLayout> {
 
   void _startAlarmFeedback() async {
     _isAlarmRunning = true;
+    final settings = SystemSettingsService();
 
     // 1. Play siren sound with high compatibility and local asset
-    try {
-      _sirenPlayer ??= AudioPlayer();
-      await _sirenPlayer?.setReleaseMode(ReleaseMode.loop);
-      // Play local siren WAV
-      await _sirenPlayer?.play(AssetSource('sounds/siren.wav'));
-    } catch (e) {
-      debugPrint("Gagal memutar audio sirine: $e");
+    if (settings.enableSound.value) {
+      try {
+        _sirenPlayer ??= AudioPlayer();
+        await _sirenPlayer?.setReleaseMode(ReleaseMode.loop);
+        // Play local siren WAV
+        await _sirenPlayer?.play(AssetSource('sounds/siren.wav'));
+      } catch (e) {
+        debugPrint("Gagal memutar audio sirine: $e");
+      }
     }
 
-    // 2. Trigger strong continuous vibration pattern: wait 0ms, vibrate 1000ms, wait 500ms... repeat forever
-    try {
-      if (await Vibration.hasVibrator() ?? false) {
-        Vibration.vibrate(pattern: [0, 1000, 500, 1000], repeat: 0);
+    // 2. Trigger strong continuous vibration pattern
+    if (settings.enableVibration.value) {
+      try {
+        if (await Vibration.hasVibrator() ?? false) {
+          Vibration.vibrate(pattern: [0, 1000, 500, 1000], repeat: 0);
+        }
+      } catch (e) {
+        debugPrint("Gagal menjalankan vibrasi: $e");
       }
-    } catch (e) {
-      debugPrint("Gagal menjalankan vibrasi: $e");
     }
   }
 
@@ -170,18 +197,23 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Widget _buildBody() {
-    switch (_currentIndex) {
-      case 0:
-        return const HomeScreen();
-      case 1:
-        return const DevicesScreen();
-      case 2:
-        return const MonitorScreen();
-      case 3:
-        return const SecurityScreen();
-      default:
-        return const HomeScreen();
-    }
+    return ValueListenableBuilder<Color>(
+      valueListenable: SystemSettingsService().activeAccent,
+      builder: (context, accentColor, _) {
+        switch (_currentIndex) {
+          case 0:
+            return HomeScreen();
+          case 1:
+            return DevicesScreen();
+          case 2:
+            return MonitorScreen();
+          case 3:
+            return SecurityScreen();
+          default:
+            return HomeScreen();
+        }
+      },
+    );
   }
 }
 
@@ -222,7 +254,7 @@ class _FullSirenVignetteState extends State<_FullSirenVignette> with SingleTicke
       animation: _animation,
       builder: (context, _) {
         final double pulse = _animation.value;
-        final Color glowColor = const Color(0xFFFF3B30).withOpacity(pulse * 0.24);
+        final Color glowColor = const Color(0xFFFF3B30).withValues(alpha: pulse * 0.24);
         return Stack(
           children: [
             // Left glow

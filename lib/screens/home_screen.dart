@@ -17,11 +17,11 @@ class HomeScreen extends StatelessWidget {
       valueListenable: FirebaseService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(80.0),
+              padding: const EdgeInsets.all(80.0),
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F4FE)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(AppColors.secondaryContainer)),
               ),
             ),
           );
@@ -66,7 +66,7 @@ class HomeScreen extends StatelessWidget {
                       activeCount: activeCount,
                       isLocked: perangkat.kunciPintuRfid,
                       hasSiren: perangkat.buzzerAlrm,
-                      hasGas: sensor.dapurAsapApi > 0,
+                      hasGas: sensor.dapurFlame > 0,
                     ),
 
                     const SizedBox(height: 28),
@@ -97,7 +97,7 @@ class HomeScreen extends StatelessWidget {
                             value: '${sensor.kamarKelembapan.toInt()}%',
                             label: 'Kelembapan Kamar',
                             trendLabel: 'Stabil',
-                            trendColor: const Color(0xFF00F4FE),
+                            trendColor: Color(AppColors.secondaryContainer),
                             accentColor: const Color(0xFF4FC3F7),
                           ),
                         ),
@@ -382,18 +382,18 @@ class _GreetingSectionState extends State<_GreetingSection> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.04),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.06),
+                  color: Colors.white.withValues(alpha: 0.06),
                 ),
               ),
               child: Text(
                 _formatTime(_currentTime),
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Sora',
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF00F4FE),
+                  color: Color(AppColors.secondaryContainer),
                   letterSpacing: 0.5,
                 ),
               ),
@@ -446,18 +446,18 @@ class _QuickStatusBanner extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isAlert
               ? [
-                  const Color(AppColors.error).withOpacity(0.12),
-                  const Color(AppColors.error).withOpacity(0.04),
+                  const Color(AppColors.error).withValues(alpha: 0.12),
+                  const Color(AppColors.error).withValues(alpha: 0.04),
                 ]
               : [
-                  Color(AppColors.secondaryContainer).withOpacity(0.08),
-                  Color(AppColors.primary).withOpacity(0.04),
+                  Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
+                  Color(AppColors.primary).withValues(alpha: 0.04),
                 ],
         ),
         border: Border.all(
           color: isAlert
-              ? const Color(AppColors.error).withOpacity(0.35)
-              : Color(AppColors.secondaryContainer).withOpacity(0.15),
+              ? const Color(AppColors.error).withValues(alpha: 0.35)
+              : Color(AppColors.secondaryContainer).withValues(alpha: 0.15),
           width: 1,
         ),
       ),
@@ -470,8 +470,8 @@ class _QuickStatusBanner extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               color: isAlert
-                  ? const Color(AppColors.error).withOpacity(0.12)
-                  : Color(AppColors.secondaryContainer).withOpacity(0.12),
+                  ? const Color(AppColors.error).withValues(alpha: 0.12)
+                  : Color(AppColors.secondaryContainer).withValues(alpha: 0.12),
             ),
             child: Center(
               child: Icon(
@@ -488,9 +488,9 @@ class _QuickStatusBanner extends StatelessWidget {
               children: [
                 Text(
                   hasGas 
-                      ? 'KRITIS: Terdeteksi Gas/Asap!'
+                      ? 'KRITIS: Terdeteksi Api / Kebakaran!'
                       : hasSiren
-                          ? 'DARURAT: Sirine Aktif!'
+                          ? 'DARURAT: Sirine Rumah Aktif!'
                           : 'Rumah dalam kondisi aman',
                   style: TextStyle(
                     fontSize: 15,
@@ -502,7 +502,7 @@ class _QuickStatusBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   hasGas
-                      ? 'Kadar gas dapur tidak normal. Segera ambil tindakan!'
+                      ? 'Terdeteksi nyala api di dapur. Segera ambil tindakan!'
                       : hasSiren
                           ? 'Sirine darurat sedang aktif.'
                           : '$activeCount perangkat aktif • Kunci RFID ${isLocked ? "aktif" : "terbuka"}',
@@ -524,7 +524,7 @@ class _QuickStatusBanner extends StatelessWidget {
               color: isAlert ? const Color(AppColors.error) : const Color(0xFF66BB6A),
               boxShadow: [
                 BoxShadow(
-                  color: (isAlert ? const Color(AppColors.error) : const Color(0xFF66BB6A)).withOpacity(0.5),
+                  color: (isAlert ? const Color(AppColors.error) : const Color(0xFF66BB6A)).withValues(alpha: 0.5),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),
@@ -572,9 +572,9 @@ class _SectionHeader extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                   width: 1,
                 ),
               ),
@@ -645,9 +645,9 @@ class _SensorCardState extends State<_SensorCard>
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           width: 1,
         ),
       ),
@@ -663,7 +663,7 @@ class _SensorCardState extends State<_SensorCard>
                 height: 40,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  color: widget.accentColor.withOpacity(0.12),
+                  color: widget.accentColor.withValues(alpha: 0.12),
                 ),
                 child: Center(
                   child: Icon(
@@ -680,7 +680,7 @@ class _SensorCardState extends State<_SensorCard>
                 ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  color: widget.trendColor.withOpacity(0.1),
+                  color: widget.trendColor.withValues(alpha: 0.1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -754,7 +754,7 @@ class _SparklinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(0.4)
+      ..color = color.withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
@@ -764,8 +764,8 @@ class _SparklinePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          color.withOpacity(0.15),
-          color.withOpacity(0.0),
+          color.withValues(alpha: 0.15),
+          color.withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
@@ -812,7 +812,7 @@ class _SparklinePainter extends CustomPainter {
     canvas.drawCircle(points.last, 3, dotPaint);
 
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(points.last, 6, glowPaint);
   }
@@ -872,18 +872,18 @@ class _DeviceCardState extends State<_DeviceCard> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             color: widget.isActive
-                ? widget.accentColor.withOpacity(0.06)
-                : Colors.white.withOpacity(0.04),
+                ? widget.accentColor.withValues(alpha: 0.06)
+                : Colors.white.withValues(alpha: 0.04),
             border: Border.all(
               color: widget.isActive
-                  ? widget.accentColor.withOpacity(0.2)
-                  : Colors.white.withOpacity(0.08),
+                  ? widget.accentColor.withValues(alpha: 0.2)
+                  : Colors.white.withValues(alpha: 0.08),
               width: 1,
             ),
             boxShadow: widget.isActive
                 ? [
                     BoxShadow(
-                      color: widget.accentColor.withOpacity(0.08),
+                      color: widget.accentColor.withValues(alpha: 0.08),
                       blurRadius: 20,
                       spreadRadius: 0,
                     ),
@@ -904,8 +904,8 @@ class _DeviceCardState extends State<_DeviceCard> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
                       color: widget.isActive
-                          ? widget.accentColor.withOpacity(0.15)
-                          : Colors.white.withOpacity(0.06),
+                          ? widget.accentColor.withValues(alpha: 0.15)
+                          : Colors.white.withValues(alpha: 0.06),
                     ),
                     child: Center(
                       child: Icon(
@@ -926,7 +926,7 @@ class _DeviceCardState extends State<_DeviceCard> {
                         color: widget.accentColor,
                         boxShadow: [
                           BoxShadow(
-                            color: widget.accentColor.withOpacity(0.6),
+                            color: widget.accentColor.withValues(alpha: 0.6),
                             blurRadius: 8,
                           ),
                         ],
@@ -960,7 +960,7 @@ class _DeviceCardState extends State<_DeviceCard> {
                           ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(6),
-                            color: widget.accentColor.withOpacity(0.15),
+                            color: widget.accentColor.withValues(alpha: 0.15),
                           ),
                           child: Text(
                             widget.badgeText!,
@@ -979,7 +979,7 @@ class _DeviceCardState extends State<_DeviceCard> {
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: widget.isActive
-                                ? widget.accentColor.withOpacity(0.8)
+                                ? widget.accentColor.withValues(alpha: 0.8)
                                 : Color(AppColors.onSurfaceVariant),
                           ),
                         ),
@@ -1017,9 +1017,9 @@ class _RoomTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         border: Border.all(
-          color: Colors.white.withOpacity(0.07),
+          color: Colors.white.withValues(alpha: 0.07),
           width: 1,
         ),
       ),
@@ -1032,7 +1032,7 @@ class _RoomTile extends StatelessWidget {
             height: 34,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              color: accentColor.withOpacity(0.12),
+              color: accentColor.withValues(alpha: 0.12),
             ),
             child: Center(
               child: Icon(icon, color: accentColor, size: 18),
@@ -1103,7 +1103,7 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
 
     final List<String> intervals = ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00', 'Live'];
 
-    final Color kamarColor = _showTemp ? const Color(0xFFFF8A65) : const Color(0xFF00F4FE); // Coral vs Cyan
+    final Color kamarColor = _showTemp ? const Color(0xFFFF8A65) : Color(AppColors.secondaryContainer); // Coral vs Cyan
     final Color dapurColor = _showTemp ? const Color(0xFFFFB74D) : const Color(0xFF9FA8DA); // Amber vs Indigo
 
     final String title = _showTemp ? 'Suhu Lingkungan' : 'Kelembapan Lingkungan';
@@ -1112,9 +1112,9 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           width: 1,
         ),
       ),
@@ -1162,9 +1162,9 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
                 padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: Colors.white.withOpacity(0.03),
+                  color: Colors.white.withValues(alpha: 0.03),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
                 child: Row(
@@ -1181,7 +1181,7 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
                           color: _showTemp
-                              ? const Color(0xFFFF8A65).withOpacity(0.12)
+                              ? const Color(0xFFFF8A65).withValues(alpha: 0.12)
                               : Colors.transparent,
                         ),
                         child: const Text(
@@ -1206,15 +1206,15 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
                           color: !_showTemp
-                              ? const Color(0xFF00F4FE).withOpacity(0.12)
+                              ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
                               : Colors.transparent,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Kelembapan',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF00F4FE),
+                            color: Color(AppColors.secondaryContainer),
                           ),
                         ),
                       ),
@@ -1234,14 +1234,14 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
               const SizedBox(width: 4),
               Text(
                 _showTemp ? 'Suhu Kamar (${widget.kamarTemp.toStringAsFixed(1)}°C)' : 'Kelembapan Kamar (${widget.kamarHumid.toInt()}%)',
-                style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 16),
               _buildLegendDot(dapurColor),
               const SizedBox(width: 4),
               Text(
                 _showTemp ? 'Suhu Dapur (${widget.dapurTemp.toStringAsFixed(1)}°C)' : 'Kelembapan Dapur (${widget.dapurHumid.toInt()}%)',
-                style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -1274,7 +1274,7 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: isLive ? FontWeight.w700 : FontWeight.w500,
-                  color: isLive ? Colors.white : Colors.white.withOpacity(0.4),
+                  color: isLive ? Colors.white : Colors.white.withValues(alpha: 0.4),
                 ),
               );
             }).toList(),
@@ -1292,7 +1292,7 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
         shape: BoxShape.circle,
         color: color,
         boxShadow: [
-          BoxShadow(color: color.withOpacity(0.5), blurRadius: 4, spreadRadius: 1),
+          BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 4, spreadRadius: 1),
         ],
       ),
     );
@@ -1322,7 +1322,7 @@ class _ClimateChartPainter extends CustomPainter {
 
     // Draw grid lines first
     final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.03)
+      ..color = Colors.white.withValues(alpha: 0.03)
       ..strokeWidth = 1.0;
     for (int i = 1; i < 4; i++) {
       final y = size.height * (i / 4);
@@ -1348,8 +1348,8 @@ class _ClimateChartPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          color.withOpacity(0.12),
-          color.withOpacity(0.0),
+          color.withValues(alpha: 0.12),
+          color.withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
@@ -1392,7 +1392,7 @@ class _ClimateChartPainter extends CustomPainter {
     canvas.drawCircle(points.last, 4, dotPaint);
 
     final glowPaint = Paint()
-      ..color = color.withOpacity(0.4)
+      ..color = color.withValues(alpha: 0.4)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(points.last, 8, glowPaint);
   }
@@ -1428,9 +1428,9 @@ class _ActivityTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         border: Border.all(
-          color: Colors.white.withOpacity(0.06),
+          color: Colors.white.withValues(alpha: 0.06),
           width: 1,
         ),
       ),
@@ -1441,7 +1441,7 @@ class _ActivityTile extends StatelessWidget {
             height: 38,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              color: accentColor.withOpacity(0.1),
+              color: accentColor.withValues(alpha: 0.1),
             ),
             child: Center(
               child: Icon(icon, color: accentColor, size: 18),
@@ -1474,7 +1474,7 @@ class _ActivityTile extends StatelessWidget {
           ),
           Icon(
             Icons.chevron_right_rounded,
-            color: Color(AppColors.onSurfaceVariant).withOpacity(0.4),
+            color: Color(AppColors.onSurfaceVariant).withValues(alpha: 0.4),
             size: 18,
           ),
         ],

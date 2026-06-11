@@ -15,7 +15,7 @@ Future<void> showVoiceAssistant(BuildContext context) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: Color(AppColors.surface).withOpacity(0.85),
+    barrierColor: Color(AppColors.surface).withValues(alpha: 0.85),
     builder: (context) => const VoiceAssistantSheet(),
   );
 }
@@ -122,11 +122,11 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     try {
       final available = await _speech.initialize(
         onError: (val) {
-          print('Speech error: ${val.errorId} - ${val.errorMsg}');
+          print('Speech error: ${val.errorMsg}');
           if (mounted) {
             setState(() {
               _voiceState = _VoiceState.idle;
-              if (val.errorId == 'error_speech_timeout' || val.errorId == 'error_no_match') {
+              if (val.errorMsg == 'error_speech_timeout' || val.errorMsg == 'error_no_match') {
                 _transcriptText = 'Suara tidak terdengar';
               } else {
                 _transcriptText = 'Gagal menggunakan mic';
@@ -182,6 +182,8 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           }
         },
         localeId: 'id_ID', // Set default to Indonesian speech
+        listenFor: const Duration(seconds: 8),
+        pauseFor: const Duration(seconds: 3),
       );
     } catch (e) {
       if (mounted) {
@@ -443,20 +445,20 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(AppColors.surfaceContainer).withOpacity(0.7),
-                  Color(AppColors.surface).withOpacity(0.95),
+                  Color(AppColors.surfaceContainer).withValues(alpha: 0.7),
+                  Color(AppColors.surface).withValues(alpha: 0.95),
                   Color(AppColors.surface),
                 ],
               ),
               border: Border(
                 top: BorderSide(
-                  color: Colors.white.withOpacity(0.06),
+                  color: Colors.white.withValues(alpha: 0.06),
                   width: 1,
                 ),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   blurRadius: 40,
                   offset: const Offset(0, -10),
                 ),
@@ -479,7 +481,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                           borderRadius: BorderRadius.circular(2),
                           color: Color(
                             AppColors.onSurfaceVariant,
-                          ).withOpacity(0.25),
+                          ).withValues(alpha: 0.25),
                         ),
                       ),
                     ),
@@ -540,7 +542,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                                     fontWeight: FontWeight.w500,
                                     color: Color(
                                       AppColors.secondaryContainer,
-                                    ).withOpacity(0.85),
+                                    ).withValues(alpha: 0.85),
                                   ),
                                 ),
                               ],
@@ -569,7 +571,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                           fontWeight: FontWeight.w700,
                           color: Color(
                             AppColors.onSurfaceVariant,
-                          ).withOpacity(0.4),
+                          ).withValues(alpha: 0.4),
                           letterSpacing: 2.5,
                         ),
                       ),
@@ -606,7 +608,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
         child: Icon(
           Icons.mic_none_rounded,
           size: 48,
-          color: Color(AppColors.onSurfaceVariant).withOpacity(0.2),
+          color: Color(AppColors.onSurfaceVariant).withValues(alpha: 0.2),
         ),
       );
     }
@@ -623,7 +625,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
               height: 6,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(100),
-                color: Color(AppColors.secondaryContainer).withOpacity(0.3),
+                color: Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
               ),
             ),
           );
@@ -668,14 +670,14 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                     end: Alignment.bottomCenter,
                     colors: [
                       Color(AppColors.secondaryContainer),
-                      Color(AppColors.secondaryContainer).withOpacity(0.15),
+                      Color(AppColors.secondaryContainer).withValues(alpha: 0.15),
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: Color(
                         AppColors.secondaryContainer,
-                      ).withOpacity(0.4 * waveValue),
+                      ).withValues(alpha: 0.4 * waveValue),
                       blurRadius: 12,
                       spreadRadius: 0,
                     ),
@@ -730,7 +732,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                         border: Border.all(
                           color: Color(
                             AppColors.secondaryContainer,
-                          ).withOpacity(_pulseAnimation.value * 0.3),
+                          ).withValues(alpha: _pulseAnimation.value * 0.3),
                           width: 1.5,
                         ),
                       ),
@@ -751,11 +753,11 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                             Color(AppColors.secondaryContainer),
                             Color(
                               AppColors.secondaryContainer,
-                            ).withOpacity(0.0),
-                            Color(AppColors.primary).withOpacity(0.2),
+                            ).withValues(alpha: 0.0),
+                            Color(AppColors.primary).withValues(alpha: 0.2),
                             Color(
                               AppColors.secondaryContainer,
-                            ).withOpacity(0.0),
+                            ).withValues(alpha: 0.0),
                             Color(AppColors.secondaryContainer),
                           ],
                         ),
@@ -779,19 +781,19 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                       ],
                     ),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.08),
+                      color: Colors.white.withValues(alpha: 0.08),
                       width: 1,
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: Color(
                           AppColors.secondaryContainer,
-                        ).withOpacity(isActive ? _pulseAnimation.value : 0.15),
+                        ).withValues(alpha: isActive ? _pulseAnimation.value : 0.15),
                         blurRadius: isActive ? 60 : 20,
                         spreadRadius: 0,
                       ),
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.4),
+                        color: Colors.black.withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
@@ -800,7 +802,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                         BoxShadow(
                           color: Color(
                             AppColors.secondaryContainer,
-                          ).withOpacity(0.2),
+                          ).withValues(alpha: 0.2),
                           blurRadius: 20,
                           spreadRadius: -5,
                         ),

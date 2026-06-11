@@ -56,6 +56,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
   // ─── Custom Alarm Siren Trigger ───
   void _toggleAlarm(bool isCurrentlyActive) {
+    debugPrint('DEBUG: _toggleAlarm called. Current active status: $isCurrentlyActive');
     if (isCurrentlyActive) {
       // Disarm Alarm
       HapticFeedback.heavyImpact();
@@ -70,20 +71,20 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
           content: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(AppColors.surfaceContainerHigh).withOpacity(0.95),
+              color: const Color(AppColors.surfaceContainerHigh).withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF00F4FE).withOpacity(0.35),
+                color: Color(AppColors.secondaryContainer).withValues(alpha: 0.35),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00F4FE).withOpacity(0.1),
+                  color: Color(AppColors.secondaryContainer).withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -94,12 +95,12 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00F4FE).withOpacity(0.12),
+                    color: Color(AppColors.secondaryContainer).withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.campaign_rounded,
-                    color: Color(0xFF00F4FE),
+                    color: Color(AppColors.secondaryContainer),
                     size: 20,
                   ),
                 ),
@@ -124,7 +125,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 12,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -184,7 +185,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 ? '🔓 Pintu utama berhasil dibuka!' 
                 : '🔒 Pintu utama berhasil dikunci!'),
             backgroundColor: !nextLockedState 
-                ? const Color(0xFF00F4FE).withOpacity(0.12)
+                ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
                 : const Color(AppColors.surfaceContainerHigh),
           ),
         );
@@ -218,9 +219,9 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
       valueListenable: FirebaseService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
-          return const Center(
+          return Center(
             child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F4FE)),
+              valueColor: AlwaysStoppedAnimation<Color>(Color(AppColors.secondaryContainer)),
             ),
           );
         }
@@ -235,10 +236,10 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
         // Live telemetry actions log
         final List<_SecurityLogItem> dynamicSecurityLogs = [
-          if (sensor.dapurAsapApi > 0)
+          if (sensor.dapurFlame > 0)
             _SecurityLogItem(
-              title: 'Suhu Dapur atau Asap Tinggi!',
-              subtitle: 'Kadar gas dapur terdeteksi tidak wajar. Mengaktifkan sistem proteksi.',
+              title: 'Terdeteksi Api di Dapur!',
+              subtitle: 'Flame sensor mendeteksi nyala api. Mengaktifkan sistem proteksi.',
               timestamp: 'LIVE',
               type: _LogType.alert,
               icon: Icons.local_fire_department_rounded,
@@ -380,7 +381,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   _BlinkingLedDot(
                     color: isAlarmActive 
                         ? const Color(AppColors.error) 
-                        : const Color(0xFF00F4FE),
+                        : Color(AppColors.secondaryContainer),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -391,7 +392,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       fontWeight: FontWeight.w600,
                       color: isAlarmActive 
                           ? const Color(AppColors.error) 
-                          : const Color(AppColors.onSurfaceVariant).withOpacity(0.7),
+                          : const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -408,12 +409,12 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   borderRadius: BorderRadius.circular(999),
                   color: const Color(AppColors.surfaceContainerLow),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.wifi_rounded, size: 14, color: Color(0xFF00F4FE)),
+                    Icon(Icons.wifi_rounded, size: 14, color: Color(AppColors.secondaryContainer)),
                     SizedBox(width: 6),
                     Text(
                       'Firebase Terhubung',
@@ -435,7 +436,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
   Widget _buildBuzzerAlarmCard(bool isAlarmActive) {
     return _SecurityGlassCard(
-      glowColor: isAlarmActive ? const Color(AppColors.error).withOpacity(0.12) : null,
+      glowColor: isAlarmActive ? const Color(AppColors.error).withValues(alpha: 0.12) : null,
       child: Stack(
         children: [
           Positioned(
@@ -450,8 +451,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                   end: Alignment.bottomCenter,
                   colors: [
                     isAlarmActive 
-                        ? const Color(AppColors.error).withOpacity(0.12) 
-                        : const Color(AppColors.error).withOpacity(0.02),
+                        ? const Color(AppColors.error).withValues(alpha: 0.12) 
+                        : const Color(AppColors.error).withValues(alpha: 0.02),
                     Colors.transparent,
                   ],
                 ),
@@ -489,12 +490,12 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
                       color: isAlarmActive 
-                          ? const Color(AppColors.error).withOpacity(0.15) 
+                          ? const Color(AppColors.error).withValues(alpha: 0.15) 
                           : const Color(AppColors.surfaceContainerHigh),
                       border: Border.all(
                         color: isAlarmActive 
-                            ? const Color(AppColors.error).withOpacity(0.3) 
-                            : Colors.white.withOpacity(0.06),
+                            ? const Color(AppColors.error).withValues(alpha: 0.3) 
+                            : Colors.white.withValues(alpha: 0.06),
                       ),
                     ),
                     child: Text(
@@ -514,6 +515,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
               Center(
                 child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => _toggleAlarm(isAlarmActive),
                   child: SizedBox(
                     width: 180,
@@ -529,7 +531,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                                 progress: _pulseController.value,
                                 color: isAlarmActive 
                                     ? const Color(AppColors.error) 
-                                    : const Color(AppColors.error).withOpacity(0.5),
+                                    : const Color(AppColors.error).withValues(alpha: 0.5),
                               ),
                               size: const Size(180, 180),
                             );
@@ -546,12 +548,12 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                                 ? const Color(AppColors.errorContainer) 
                                 : const Color(AppColors.surfaceContainerHigh),
                             border: Border.all(
-                              color: const Color(AppColors.error).withOpacity(0.5),
+                              color: const Color(AppColors.error).withValues(alpha: 0.5),
                               width: 1.5,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(AppColors.error).withOpacity(isAlarmActive ? 0.45 : 0.08),
+                                color: const Color(AppColors.error).withValues(alpha: isAlarmActive ? 0.45 : 0.08),
                                 blurRadius: isAlarmActive ? 24 : 10,
                               ),
                             ],
@@ -615,14 +617,14 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.04),
+                      color: Colors.white.withValues(alpha: 0.04),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
                     ),
                     child: Icon(
                       isUnlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
-                      color: const Color(0xFF00F4FE),
+                      color: Color(AppColors.secondaryContainer),
                       size: 18,
                     ),
                   ),
@@ -659,10 +661,10 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 height: 10,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isUnlocked ? const Color(0xFF00F4FE) : const Color(AppColors.error),
+                  color: isUnlocked ? Color(AppColors.secondaryContainer) : const Color(AppColors.error),
                   boxShadow: [
                     BoxShadow(
-                      color: (isUnlocked ? const Color(0xFF00F4FE) : const Color(AppColors.error)).withOpacity(0.6),
+                      color: (isUnlocked ? Color(AppColors.secondaryContainer) : const Color(AppColors.error)).withValues(alpha: 0.6),
                       blurRadius: 8,
                     )
                   ],
@@ -677,9 +679,9 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              color: const Color(AppColors.surfaceContainerLow).withOpacity(0.5),
+              color: const Color(AppColors.surfaceContainerLow).withValues(alpha: 0.5),
               border: Border.all(
-                color: Colors.white.withOpacity(0.04),
+                color: Colors.white.withValues(alpha: 0.04),
               ),
             ),
             child: Row(
@@ -703,7 +705,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 10,
-                        color: const Color(AppColors.onSurfaceVariant).withOpacity(0.6),
+                        color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -724,12 +726,12 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(99),
                       color: _isAutoLockOn 
-                          ? const Color(0xFF00F4FE).withOpacity(0.2) 
-                          : Colors.white.withOpacity(0.06),
+                          ? Color(AppColors.secondaryContainer).withValues(alpha: 0.2) 
+                          : Colors.white.withValues(alpha: 0.06),
                       border: Border.all(
                         color: _isAutoLockOn 
-                            ? const Color(0xFF00F4FE).withOpacity(0.5) 
-                            : Colors.white.withOpacity(0.12),
+                            ? Color(AppColors.secondaryContainer).withValues(alpha: 0.5) 
+                            : Colors.white.withValues(alpha: 0.12),
                         width: 1.0,
                       ),
                     ),
@@ -745,11 +747,11 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                             margin: const EdgeInsets.symmetric(horizontal: 2),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: _isAutoLockOn ? const Color(0xFF00F4FE) : const Color(AppColors.tertiary),
+                              color: _isAutoLockOn ? Color(AppColors.secondaryContainer) : const Color(AppColors.tertiary),
                               boxShadow: _isAutoLockOn 
                                   ? [
                                       BoxShadow(
-                                        color: const Color(0xFF00F4FE).withOpacity(0.4),
+                                        color: Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
                                         blurRadius: 6,
                                       )
                                     ] 
@@ -777,16 +779,16 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 borderRadius: BorderRadius.circular(10),
                 color: const Color(AppColors.surfaceContainerHigh),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
+                  color: Colors.white.withValues(alpha: 0.08),
                 ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.fingerprint_rounded,
                     size: 18,
-                    color: Color(0xFF00F4FE),
+                    color: Color(AppColors.secondaryContainer),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -830,15 +832,15 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 icon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.filter_list_rounded, size: 14, color: Color(0xFF00F4FE)),
+                    Icon(Icons.filter_list_rounded, size: 14, color: Color(AppColors.secondaryContainer)),
                     const SizedBox(width: 4),
                     Text(
                       _activeFilter,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF00F4FE),
+                        color: Color(AppColors.secondaryContainer),
                       ),
                     ),
                   ],
@@ -887,14 +889,14 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 final bool isWarning = log.type == _LogType.warning;
                 
                 final Color containerBg = isAlert 
-                    ? const Color(AppColors.errorContainer).withOpacity(0.06) 
-                    : const Color(AppColors.surfaceContainerLow).withOpacity(0.4);
+                    ? const Color(AppColors.errorContainer).withValues(alpha: 0.06) 
+                    : const Color(AppColors.surfaceContainerLow).withValues(alpha: 0.4);
                 
                 final Color borderSideColor = isAlert 
                     ? const Color(AppColors.error) 
                     : isWarning 
                         ? const Color(AppColors.tertiary)
-                        : const Color(0xFF00F4FE).withOpacity(0.4);
+                        : Color(AppColors.secondaryContainer).withValues(alpha: 0.4);
 
                 return Container(
                   clipBehavior: Clip.antiAlias,
@@ -903,8 +905,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     color: containerBg,
                     border: Border.all(
                       color: isAlert 
-                          ? const Color(AppColors.error).withOpacity(0.2) 
-                          : Colors.white.withOpacity(0.04),
+                          ? const Color(AppColors.error).withValues(alpha: 0.2) 
+                          : Colors.white.withValues(alpha: 0.04),
                     ),
                   ),
                   child: Row(
@@ -923,7 +925,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                             ? const Color(AppColors.error) 
                             : isWarning 
                                 ? const Color(AppColors.tertiary) 
-                                : const Color(0xFF00F4FE),
+                                : Color(AppColors.secondaryContainer),
                       ),
                       
                       const SizedBox(width: 14),
@@ -955,7 +957,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                                     style: TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 10,
-                                      color: const Color(AppColors.onSurfaceVariant).withOpacity(0.5),
+                                      color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
                                     ),
                                   ),
                                 ],
@@ -968,7 +970,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontSize: 11,
-                                  color: const Color(AppColors.onSurfaceVariant).withOpacity(0.7),
+                                  color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
                                 ),
                               ),
                             ],
@@ -999,11 +1001,11 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 alignment: Alignment.center,
                 child: Text(
                   _isLogExpanded ? 'Tampilkan Terbaru' : 'Lihat Semua',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF00F4FE),
+                    color: Color(AppColors.secondaryContainer),
                   ),
                 ),
               ),
@@ -1016,7 +1018,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
   Widget _buildBiometricScannerOverlay(bool currentLockedState) {
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.75),
+        color: Colors.black.withValues(alpha: 0.75),
         child: BackdropFilter(
           filter: const ColorFilter.mode(
             Colors.transparent,
@@ -1030,11 +1032,11 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 borderRadius: BorderRadius.circular(20),
                 color: const Color(AppColors.surfaceContainerHigh),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.12),
+                  color: Colors.white.withValues(alpha: 0.12),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00F4FE).withOpacity(0.1),
+                    color: Color(AppColors.secondaryContainer).withValues(alpha: 0.1),
                     blurRadius: 30,
                   )
                 ],
@@ -1055,16 +1057,16 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: const Color(0xFF00F4FE).withOpacity(0.2),
+                              color: Color(AppColors.secondaryContainer).withValues(alpha: 0.2),
                               width: 1.5,
                             ),
                           ),
                         ),
                         
-                        const Icon(
+                        Icon(
                           Icons.fingerprint_rounded,
                           size: 72,
-                          color: Color(0xFF00F4FE),
+                          color: Color(AppColors.secondaryContainer),
                         ),
 
                         AnimatedBuilder(
@@ -1080,14 +1082,14 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                                   gradient: LinearGradient(
                                     colors: [
                                       Colors.transparent,
-                                      const Color(0xFF00F4FE),
-                                      const Color(0xFF00F4FE).withOpacity(0.8),
+                                      Color(AppColors.secondaryContainer),
+                                      Color(AppColors.secondaryContainer).withValues(alpha: 0.8),
                                       Colors.transparent,
                                     ],
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF00F4FE).withOpacity(0.8),
+                                      color: Color(AppColors.secondaryContainer).withValues(alpha: 0.8),
                                       blurRadius: 6,
                                       spreadRadius: 1,
                                     )
@@ -1121,7 +1123,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     height: 4,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
-                      color: Colors.white.withOpacity(0.06),
+                      color: Colors.white.withValues(alpha: 0.06),
                     ),
                     child: Align(
                       alignment: Alignment.centerLeft,
@@ -1130,10 +1132,10 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(999),
-                            color: const Color(0xFF00F4FE),
+                            color: Color(AppColors.secondaryContainer),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF00F4FE).withOpacity(0.5),
+                                color: Color(AppColors.secondaryContainer).withValues(alpha: 0.5),
                                 blurRadius: 4,
                               )
                             ],
@@ -1194,10 +1196,10 @@ class _BlinkingLedDotState extends State<_BlinkingLedDot> with SingleTickerProvi
           height: 8,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: widget.color.withOpacity(_opacity.value),
+            color: widget.color.withValues(alpha: _opacity.value),
             boxShadow: [
               BoxShadow(
-                color: widget.color.withOpacity(_opacity.value * 0.7),
+                color: widget.color.withValues(alpha: _opacity.value * 0.7),
                 blurRadius: 6,
                 spreadRadius: 1,
               )
@@ -1231,14 +1233,14 @@ class _SoundwavePainter extends CustomPainter {
       // 1. Soft filled ripple
       final fillPaint = Paint()
         ..style = PaintingStyle.fill
-        ..color = color.withOpacity(opacity * 0.04);
+        ..color = color.withValues(alpha: opacity * 0.04);
       canvas.drawCircle(center, radius, fillPaint);
 
       // 2. Soft glowing stroke (blur)
       final glowPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3.0
-        ..color = color.withOpacity(opacity * 0.12)
+        ..color = color.withValues(alpha: opacity * 0.12)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
       canvas.drawCircle(center, radius, glowPaint);
 
@@ -1246,7 +1248,7 @@ class _SoundwavePainter extends CustomPainter {
       final strokePaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0
-        ..color = color.withOpacity(opacity * 0.25);
+        ..color = color.withValues(alpha: opacity * 0.25);
       canvas.drawCircle(center, radius, strokePaint);
     }
 
@@ -1257,7 +1259,7 @@ class _SoundwavePainter extends CustomPainter {
     canvas.rotate(progress * 0.5 * math.pi);
 
     final dashPaint = Paint()
-      ..color = color.withOpacity(0.18)
+      ..color = color.withValues(alpha: 0.18)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
 
@@ -1276,7 +1278,7 @@ class _SoundwavePainter extends CustomPainter {
 
     // Draw 4 static corner radar crosshair tick marks
     final tickPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..strokeWidth = 1.5;
     for (int angle = 0; angle < 360; angle += 90) {
       final double rad = angle * math.pi / 180;
@@ -1312,9 +1314,9 @@ class _SecurityGlassCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white.withOpacity(0.04),
+        color: Colors.white.withValues(alpha: 0.04),
         border: Border.all(
-          color: Colors.white.withOpacity(0.12),
+          color: Colors.white.withValues(alpha: 0.12),
           width: 1.0,
         ),
         boxShadow: [
@@ -1324,7 +1326,7 @@ class _SecurityGlassCard extends StatelessWidget {
               blurRadius: 24,
             ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 30,
             offset: const Offset(0, 4),
           ),
