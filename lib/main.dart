@@ -67,8 +67,7 @@ class _MainLayoutState extends State<MainLayout> {
   void _onStateChanged() {
     if (!mounted) return;
     final state = FirebaseService().stateNotifier.value;
-    final bool isAlarmActive = state != null &&
-        (state.perangkat.buzzerTamu || state.perangkat.buzzerDapur);
+    final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
 
     if (isAlarmActive && !_isAlarmRunning) {
       _startAlarmFeedback();
@@ -127,8 +126,7 @@ class _MainLayoutState extends State<MainLayout> {
     return ValueListenableBuilder<SmarthomeState?>(
       valueListenable: FirebaseService().stateNotifier,
       builder: (context, state, child) {
-        final bool isAlarmActive = state != null &&
-            (state.perangkat.buzzerTamu || state.perangkat.buzzerDapur);
+        final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
 
         return Stack(
           children: [

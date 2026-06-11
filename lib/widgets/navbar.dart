@@ -50,8 +50,7 @@ class _BottomNavBarState extends State<BottomNavBar>
     return ValueListenableBuilder<SmarthomeState?>(
       valueListenable: FirebaseService().stateNotifier,
       builder: (context, state, child) {
-        final bool isAlarmActive = state != null &&
-            (state.perangkat.buzzerTamu || state.perangkat.buzzerDapur);
+        final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
 
         return ClipRRect(
           child: BackdropFilter(

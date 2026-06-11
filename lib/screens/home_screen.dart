@@ -37,8 +37,7 @@ class HomeScreen extends StatelessWidget {
         if (perangkat.lampuKamarMandi) activeCount++;
         if (perangkat.lampuDapur) activeCount++;
         if (perangkat.kipasKamar) activeCount++;
-        if (perangkat.buzzerDapur) activeCount++;
-        if (perangkat.buzzerTamu) activeCount++;
+        if (perangkat.buzzerAlrm) activeCount++;
         if (perangkat.ledMerahDapur) activeCount++;
 
         return SingleChildScrollView(
@@ -66,7 +65,7 @@ class HomeScreen extends StatelessWidget {
                     _QuickStatusBanner(
                       activeCount: activeCount,
                       isLocked: perangkat.kunciPintuRfid,
-                      hasSiren: perangkat.buzzerDapur || perangkat.buzzerTamu,
+                      hasSiren: perangkat.buzzerAlrm,
                       hasGas: sensor.dapurAsapApi > 0,
                     ),
 
@@ -235,7 +234,7 @@ class HomeScreen extends StatelessWidget {
                         _RoomTile(
                           icon: Icons.kitchen_rounded,
                           name: 'Dapur',
-                          deviceCount: 4, // Kitchen light, warning LED, buzzer, gas sensor
+                          deviceCount: 3, // Kitchen light, warning LED, gas sensor
                           accentColor: const Color(0xFFFFB74D),
                         ),
                         _RoomTile(

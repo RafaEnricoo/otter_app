@@ -287,11 +287,8 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       } else if (cmd.contains('alarm') ||
           cmd.contains('sirine') ||
           cmd.contains('buzzer')) {
-        final bool alreadyOn =
-            (currentState?.perangkat.buzzerTamu ?? false) ||
-            (currentState?.perangkat.buzzerDapur ?? false);
-        await FirebaseService().updatePerangkat('buzzer_tamu', true);
-        await FirebaseService().updatePerangkat('buzzer_dapur', true);
+        final bool alreadyOn = currentState?.perangkat.buzzerAlrm ?? false;
+        await FirebaseService().updatePerangkat('buzzer_alrm', true);
         responseText = alreadyOn
             ? 'Alarm darurat sudah aktif'
             : 'Alarm darurat diaktifkan';
@@ -373,11 +370,8 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       } else if (cmd.contains('alarm') ||
           cmd.contains('sirine') ||
           cmd.contains('buzzer')) {
-        final bool alreadyOff =
-            !(currentState?.perangkat.buzzerTamu ?? true) &&
-            !(currentState?.perangkat.buzzerDapur ?? true);
-        await FirebaseService().updatePerangkat('buzzer_tamu', false);
-        await FirebaseService().updatePerangkat('buzzer_dapur', false);
+        final bool alreadyOff = !(currentState?.perangkat.buzzerAlrm ?? true);
+        await FirebaseService().updatePerangkat('buzzer_alrm', false);
         responseText = alreadyOff
             ? 'Alarm darurat sudah mati'
             : 'Alarm darurat dimatikan';

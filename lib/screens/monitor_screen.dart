@@ -118,7 +118,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
               accentColor: Colors.redAccent,
               isVoice: false,
             ),
-          if (perangkat.buzzerTamu || perangkat.buzzerDapur)
+          if (perangkat.buzzerAlrm)
             _LogItem(
               icon: Icons.campaign_rounded,
               title: 'Alarm Darurat Aktif',

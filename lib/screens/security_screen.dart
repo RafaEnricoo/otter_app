@@ -59,8 +59,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     if (isCurrentlyActive) {
       // Disarm Alarm
       HapticFeedback.heavyImpact();
-      FirebaseService().updatePerangkat('buzzer_tamu', false);
-      FirebaseService().updatePerangkat('buzzer_dapur', false);
+      FirebaseService().updatePerangkat('buzzer_alrm', false);
       FirebaseService().updatePerangkat('led_merah_dapur', false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -139,8 +138,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     } else {
       // Arm / Trigger active Alarm
       HapticFeedback.vibrate();
-      FirebaseService().updatePerangkat('buzzer_tamu', true);
-      FirebaseService().updatePerangkat('buzzer_dapur', true);
+      FirebaseService().updatePerangkat('buzzer_alrm', true);
       FirebaseService().updatePerangkat('led_merah_dapur', true);
     }
   }
@@ -230,7 +228,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
         final sensor = state.sensor;
         final perangkat = state.perangkat;
 
-        final bool isAlarmActive = perangkat.buzzerTamu || perangkat.buzzerDapur;
+        final bool isAlarmActive = perangkat.buzzerAlrm;
         final bool isUnlocked = !perangkat.kunciPintuRfid;
 
         // Alarm active check done reactively
@@ -262,7 +260,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
             type: _LogType.routine,
             icon: Icons.vpn_key_rounded,
           ),
-          if (perangkat.buzzerTamu || perangkat.buzzerDapur)
+          if (perangkat.buzzerAlrm)
             _SecurityLogItem(
               title: 'Sirine Sistem Aktif',
               subtitle: 'Siren keamanan darurat dipicu secara manual atau sistem.',

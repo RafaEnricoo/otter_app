@@ -103,8 +103,7 @@ class FirebaseService {
           lampuDapur: false,
           kipasKamar: false,
           kecepatanKipas: 255,
-          buzzerDapur: false,
-          buzzerTamu: false,
+          buzzerAlrm: false,
           ledMerahDapur: false,
           kunciPintuRfid: true,
         ),
@@ -201,7 +200,7 @@ class FirebaseService {
     int newKecepatanKipas = state.perangkat.kecepatanKipas;
 
     bool newLedMerahDapur = state.perangkat.ledMerahDapur;
-    bool newBuzzerDapur = state.perangkat.buzzerDapur;
+    bool newBuzzerAlrm = state.perangkat.buzzerAlrm;
 
     // 1. Auto Light Mode (mode_auto_lampu)
     if (state.otomatisasi.modeAutoLampu) {
@@ -240,8 +239,8 @@ class FirebaseService {
     // 3. Smoke & Gas Alarm (dapur_asap_api)
     // If smoke is detected, turn on Kitchen Buzzer and Kitchen Red LED automatically!
     if (state.sensor.dapurAsapApi > 0) {
-      if (!state.perangkat.buzzerDapur || !state.perangkat.ledMerahDapur) {
-        newBuzzerDapur = true;
+      if (!state.perangkat.buzzerAlrm || !state.perangkat.ledMerahDapur) {
+        newBuzzerAlrm = true;
         newLedMerahDapur = true;
         changed = true;
       }
@@ -249,7 +248,7 @@ class FirebaseService {
       // Clear buzzer and warning LED only if smoke is cleared
       if (state.sensor.dapurAsapApi == 0 && (state.perangkat.ledMerahDapur)) {
         newLedMerahDapur = false;
-        newBuzzerDapur = false;
+        newBuzzerAlrm = false;
         changed = true;
       }
     }
@@ -261,7 +260,7 @@ class FirebaseService {
       updatedPerangkat['lampu_dapur'] = newLampuDapur;
       updatedPerangkat['kipas_kamar'] = newKipasKamar;
       updatedPerangkat['kecepatan_kipas'] = newKecepatanKipas;
-      updatedPerangkat['buzzer_dapur'] = newBuzzerDapur;
+      updatedPerangkat['buzzer_alrm'] = newBuzzerAlrm;
       updatedPerangkat['led_merah_dapur'] = newLedMerahDapur;
 
       _localState = state.copyWith(perangkat: SmarthomePerangkat.fromMap(updatedPerangkat));
@@ -275,7 +274,7 @@ class FirebaseService {
           'lampu_dapur': newLampuDapur,
           'kipas_kamar': newKipasKamar,
           'kecepatan_kipas': newKecepatanKipas,
-          'buzzer_dapur': newBuzzerDapur,
+          'buzzer_alrm': newBuzzerAlrm,
           'led_merah_dapur': newLedMerahDapur,
         });
       }

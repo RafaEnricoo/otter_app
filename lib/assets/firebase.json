@@ -16,8 +16,7 @@
       "lampu_dapur": false,
       "kipas_kamar": false,
       "kecepatan_kipas": 255,
-      "buzzer_dapur": false,
-      "buzzer_tamu": false,
+      "buzzer_alrm": false,
       "led_merah_dapur": false,
       "kunci_pintu_rfid": true
     },

@@ -122,12 +122,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
                     // 3. Siren Tamu System Card
                     _buildToggleCard(
-                      title: 'Sirine Ruang Tamu',
-                      statusText: perangkat.buzzerTamu ? 'BERBUNYI (Alarm)' : 'Siaga',
-                      isOn: perangkat.buzzerTamu,
+                      title: 'Sirine Rumah',
+                      statusText: perangkat.buzzerAlrm ? 'BERBUNYI (Alarm)' : 'Siaga',
+                      isOn: perangkat.buzzerAlrm,
                       icon: Icons.campaign_rounded,
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('buzzer_tamu', val);
+                        FirebaseService().updatePerangkat('buzzer_alrm', val);
                       },
                     ),
                   ],
@@ -246,17 +246,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         FirebaseService().updatePerangkat('led_merah_dapur', val);
                       },
                       activeColor: Colors.redAccent,
-                    ),
-
-                    // 4. Kitchen Alarm Buzzer Card
-                    _buildToggleCard(
-                      title: 'Sirine Dapur',
-                      statusText: perangkat.buzzerDapur ? 'SIRINE AKTIF' : 'Siaga',
-                      isOn: perangkat.buzzerDapur,
-                      icon: Icons.campaign_rounded,
-                      onToggle: (val) {
-                        FirebaseService().updatePerangkat('buzzer_dapur', val);
-                      },
                     ),
 
                     // 5. Kitchen Climate Sensor

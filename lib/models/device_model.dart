@@ -103,8 +103,7 @@ class SmarthomePerangkat {
   final bool lampuDapur;
   final bool kipasKamar;
   final int kecepatanKipas;
-  final bool buzzerDapur;
-  final bool buzzerTamu;
+  final bool buzzerAlrm;
   final bool ledMerahDapur;
   final bool kunciPintuRfid;
 
@@ -115,8 +114,7 @@ class SmarthomePerangkat {
     required this.lampuDapur,
     required this.kipasKamar,
     required this.kecepatanKipas,
-    required this.buzzerDapur,
-    required this.buzzerTamu,
+    required this.buzzerAlrm,
     required this.ledMerahDapur,
     required this.kunciPintuRfid,
   });
@@ -131,8 +129,7 @@ class SmarthomePerangkat {
       kecepatanKipas: (map['kecepatan_kipas'] ?? 0) is double
           ? (map['kecepatan_kipas'] as double).toInt()
           : (map['kecepatan_kipas'] ?? 0) as int,
-      buzzerDapur: (map['buzzer_dapur'] ?? false) as bool,
-      buzzerTamu: (map['buzzer_tamu'] ?? false) as bool,
+      buzzerAlrm: (map['buzzer_alrm'] ?? false) as bool,
       ledMerahDapur: (map['led_merah_dapur'] ?? false) as bool,
       kunciPintuRfid: (map['kunci_pintu_rfid'] ?? false) as bool,
     );
@@ -146,8 +143,7 @@ class SmarthomePerangkat {
       'lampu_dapur': lampuDapur,
       'kipas_kamar': kipasKamar,
       'kecepatan_kipas': kecepatanKipas,
-      'buzzer_dapur': buzzerDapur,
-      'buzzer_tamu': buzzerTamu,
+      'buzzer_alrm': buzzerAlrm,
       'led_merah_dapur': ledMerahDapur,
       'kunci_pintu_rfid': kunciPintuRfid,
     };
