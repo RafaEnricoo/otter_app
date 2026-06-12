@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../core/constants.dart';
 import '../services/firebase_service.dart';
 
@@ -50,9 +51,13 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _speechInitialized = false;
   double _soundLevel = 0.0;
+  Timer? _listeningTimeoutTimer;
 
   // ─── Text To Speech ───
   final FlutterTts _tts = FlutterTts();
+
+  // ─── Audio Player ───
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -123,13 +128,23 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       final available = await _speech.initialize(
         onError: (val) {
           print('Speech error: ${val.errorMsg}');
+          if (val.errorMsg == 'error_speech_timeout' || val.errorMsg == 'error_no_match') {
+            try {
+              _audioPlayer.play(AssetSource('sounds/error.wav'));
+            } catch (e) {
+              print('Gagal memutar bunyi error: $e');
+            }
+          }
           if (mounted) {
             setState(() {
               _voiceState = _VoiceState.idle;
+              _transcriptText = '';
               if (val.errorMsg == 'error_speech_timeout' || val.errorMsg == 'error_no_match') {
-                _transcriptText = 'Suara tidak terdengar';
+                _feedbackText = 'Suara tidak terdengar';
+                _tts.speak('Suara tidak terdengar');
               } else {
-                _transcriptText = 'Gagal menggunakan mic';
+                _feedbackText = 'Gagal menggunakan mic';
+                _tts.speak('Gagal menggunakan mik');
               }
             });
           }
@@ -153,6 +168,20 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       });
       return;
     }
+
+    try {
+      _audioPlayer.play(AssetSource('sounds/start.wav'));
+    } catch (e) {
+      print('Gagal memutar bunyi awalan: $e');
+    }
+
+    _listeningTimeoutTimer?.cancel();
+    _listeningTimeoutTimer = Timer(const Duration(seconds: 9), () {
+      if (mounted && _voiceState == _VoiceState.listening) {
+        print("Speech timeout: tidak ada respon terdeteksi. Menghentikan...");
+        _processVoiceCommand('');
+      }
+    });
 
     HapticFeedback.mediumImpact();
     setState(() {
@@ -186,6 +215,11 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
         pauseFor: const Duration(seconds: 3),
       );
     } catch (e) {
+      try {
+        await _audioPlayer.play(AssetSource('sounds/error.wav'));
+      } catch (err) {
+        print('Gagal memutar bunyi error: $err');
+      }
       if (mounted) {
         setState(() {
           _voiceState = _VoiceState.idle;
@@ -197,6 +231,8 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
   }
 
   void _stopListening() async {
+    _listeningTimeoutTimer?.cancel();
+    _listeningTimeoutTimer = null;
     await _speech.stop();
     if (mounted) {
       setState(() {
@@ -207,10 +243,18 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
   }
 
   void _processVoiceCommand(String command) async {
+    _listeningTimeoutTimer?.cancel();
+    _listeningTimeoutTimer = null;
     if (command.isEmpty) {
+      try {
+        _audioPlayer.play(AssetSource('sounds/error.wav'));
+      } catch (e) {
+        print('Gagal memutar bunyi error: $e');
+      }
       if (mounted) {
         setState(() {
           _voiceState = _VoiceState.idle;
+          _transcriptText = '';
           _feedbackText = 'Suara tidak terdengar';
         });
         _tts.speak('Suara tidak terdengar');
@@ -411,12 +455,14 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
 
   @override
   void dispose() {
+    _listeningTimeoutTimer?.cancel();
     _entryController.dispose();
     _pulseController.dispose();
     _waveController.dispose();
     _orbController.dispose();
     _speech.stop();
     _tts.stop();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -530,8 +576,12 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.check_circle_rounded,
-                                  color: Color(AppColors.secondaryContainer),
+                                  _voiceState == _VoiceState.success
+                                      ? Icons.check_circle_rounded
+                                      : Icons.info_outline_rounded,
+                                  color: _voiceState == _VoiceState.success
+                                      ? Color(AppColors.secondaryContainer)
+                                      : Colors.orangeAccent,
                                   size: 18,
                                 ),
                                 const SizedBox(width: 8),
@@ -540,9 +590,11 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(
-                                      AppColors.secondaryContainer,
-                                    ).withValues(alpha: 0.85),
+                                    color: _voiceState == _VoiceState.success
+                                        ? Color(
+                                            AppColors.secondaryContainer,
+                                          ).withValues(alpha: 0.85)
+                                        : Colors.orangeAccent.withValues(alpha: 0.85),
                                   ),
                                 ),
                               ],

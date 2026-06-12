@@ -1352,9 +1352,14 @@ class _SpinningFanBladeState extends State<_SpinningFanBlade>
   @override
   void initState() {
     super.initState();
+    double speedDuration = widget.speed == 3
+        ? 0.6
+        : widget.speed == 2
+            ? 1.3
+            : 2.8;
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: Duration(milliseconds: (speedDuration * 1000).toInt()),
     );
     if (widget.isSpinning) {
       _controller.repeat();

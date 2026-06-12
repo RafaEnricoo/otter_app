@@ -49,4 +49,28 @@ class NotificationModel {
       isRead: isRead ?? this.isRead,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'message': message,
+      'timestamp': timestamp.toIso8601String(),
+      'category': category.name,
+      'priority': priority.name,
+      'isRead': isRead,
+    };
+  }
+
+  factory NotificationModel.fromMap(Map<dynamic, dynamic> map) {
+    return NotificationModel(
+      id: map['id'] as String,
+      title: map['title'] as String,
+      message: map['message'] as String,
+      timestamp: DateTime.parse(map['timestamp'] as String),
+      category: NotificationCategory.values.byName(map['category'] as String),
+      priority: NotificationPriority.values.byName(map['priority'] as String),
+      isRead: (map['isRead'] ?? false) as bool,
+    );
+  }
 }

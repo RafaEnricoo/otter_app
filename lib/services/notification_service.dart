@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../models/notification_model.dart';
+import 'firebase_service.dart';
 
 class NotificationService {
   // Singleton Pattern
@@ -7,55 +10,47 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
+  final _dbRef = FirebaseDatabase.instance.ref('otter_smarthome/notifikasi');
+  bool _isInitialized = false;
+
   // Central Notification State
   final ValueNotifier<List<NotificationModel>> notificationsNotifier =
-      ValueNotifier<List<NotificationModel>>([
-    NotificationModel(
-      id: 'notif_1',
-      title: 'Backyard Intrusion Alert',
-      message: 'Significant motion detected by backyard Cam-04 near the fence line. Security protocol initiated.',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 12)),
-      category: NotificationCategory.security,
-      priority: NotificationPriority.critical,
-      isRead: false,
-    ),
-    NotificationModel(
-      id: 'notif_2',
-      title: 'Climate Sensor Offline',
-      message: 'Living room temperature sensor node \'Node-T4\' failed to ping. Please inspect batteries.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2, minutes: 15)),
-      category: NotificationCategory.climate,
-      priority: NotificationPriority.warning,
-      isRead: false,
-    ),
-    NotificationModel(
-      id: 'notif_3',
-      title: 'Energy Target Achieved',
-      message: 'Congratulations! Total power consumption this week was 18% below the baseline budget.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 6)),
-      category: NotificationCategory.energy,
-      priority: NotificationPriority.info,
-      isRead: false,
-    ),
-    NotificationModel(
-      id: 'notif_4',
-      title: 'System Firmware Updated',
-      message: 'Otter Core OS has successfully updated to version v4.12.0-stable with 8 security patches.',
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      category: NotificationCategory.system,
-      priority: NotificationPriority.info,
-      isRead: true,
-    ),
-    NotificationModel(
-      id: 'notif_5',
-      title: 'Critical Dehumidifier Trigger',
-      message: 'Basement humidity spiked to 72%. Activated auto-exhaust fan to mitigate moisture build-up.',
-      timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 4)),
-      category: NotificationCategory.climate,
-      priority: NotificationPriority.warning,
-      isRead: true,
-    ),
-  ]);
+      ValueNotifier<List<NotificationModel>>([]);
+
+  bool get _isOnline => !FirebaseService().isUsingFallback;
+
+  void init() {
+    if (_isInitialized) return;
+
+    // Listen to Firebase database changes in real-time
+    _dbRef.onValue.listen((event) {
+      if (event.snapshot.value != null) {
+        try {
+          final data = event.snapshot.value;
+          if (data is Map) {
+            final List<NotificationModel> list = [];
+            data.forEach((key, value) {
+              if (value is Map) {
+                list.add(NotificationModel.fromMap(value));
+              }
+            });
+            // Sort notifications by timestamp descending (newest first)
+            list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+            notificationsNotifier.value = list;
+          }
+        } catch (e) {
+          debugPrint("Gagal mengurai data notifikasi dari Firebase: $e");
+        }
+      } else {
+        notificationsNotifier.value = [];
+      }
+    }, onError: (err) {
+      debugPrint("Firebase notifikasi error, berjalan dalam mode lokal: $err");
+      notificationsNotifier.value = [];
+    });
+
+    _isInitialized = true;
+  }
 
   // List getter
   List<NotificationModel> get notifications => notificationsNotifier.value;
@@ -66,51 +61,68 @@ class NotificationService {
 
   // Mark a specific notification as read
   void markAsRead(String id) {
-    final updated = notificationsNotifier.value.map((n) {
-      if (n.id == id) {
-        return n.copyWith(isRead: true);
-      }
-      return n;
-    }).toList();
-    notificationsNotifier.value = updated;
+    if (_isOnline) {
+      _dbRef.child('$id/isRead').set(true);
+    } else {
+      final updated = notificationsNotifier.value.map((n) {
+        if (n.id == id) {
+          return n.copyWith(isRead: true);
+        }
+        return n;
+      }).toList();
+      notificationsNotifier.value = updated;
+    }
   }
 
   // Mark all notifications as read
   void markAllAsRead() {
-    final updated = notificationsNotifier.value.map((n) {
-      return n.copyWith(isRead: true);
-    }).toList();
-    notificationsNotifier.value = updated;
+    if (_isOnline) {
+      final updates = <String, dynamic>{};
+      for (var n in notificationsNotifier.value) {
+        updates['${n.id}/isRead'] = true;
+      }
+      if (updates.isNotEmpty) {
+        _dbRef.update(updates);
+      }
+    } else {
+      final updated = notificationsNotifier.value.map((n) {
+        return n.copyWith(isRead: true);
+      }).toList();
+      notificationsNotifier.value = updated;
+    }
   }
 
   // Delete a specific notification
   void deleteNotification(String id) {
-    final updated = notificationsNotifier.value.where((n) => n.id != id).toList();
-    notificationsNotifier.value = updated;
+    if (_isOnline) {
+      _dbRef.child(id).remove();
+    } else {
+      final updated = notificationsNotifier.value.where((n) => n.id != id).toList();
+      notificationsNotifier.value = updated;
+    }
   }
 
   // Clear all notifications
   void clearAll() {
-    notificationsNotifier.value = [];
+    if (_isOnline) {
+      _dbRef.remove();
+    } else {
+      notificationsNotifier.value = [];
+    }
   }
 
   // Add a new mock notification for demonstration
   void triggerMockNotification() {
-    final categories = NotificationCategory.values;
-    final priorities = NotificationPriority.values;
-    
     final id = 'mock_${DateTime.now().millisecondsSinceEpoch}';
     final timestamp = DateTime.now();
-    
-    // Create an arbitrary notification
     late NotificationModel mock;
     final index = notificationsNotifier.value.length % 3;
-    
+
     if (index == 0) {
       mock = NotificationModel(
         id: id,
-        title: 'Smart Lock Auto-Locked',
-        message: 'Front door locked automatically after remaining idle for 5 minutes.',
+        title: 'Smart Lock Mengunci Otomatis',
+        message: 'Pintu utama berhasil dikunci otomatis setelah tidak aktif selama 5 menit.',
         timestamp: timestamp,
         category: NotificationCategory.security,
         priority: NotificationPriority.info,
@@ -118,8 +130,8 @@ class NotificationService {
     } else if (index == 1) {
       mock = NotificationModel(
         id: id,
-        title: 'High Thermal Demand',
-        message: 'Outdoor temperature reached 36°C. Switched living room AC to Eco Cooling.',
+        title: 'Beban Suhu Tinggi',
+        message: 'Suhu luar ruangan mencapai 36°C. Mengubah AC Ruang Tamu ke mode pendinginan hemat.',
         timestamp: timestamp,
         category: NotificationCategory.climate,
         priority: NotificationPriority.warning,
@@ -127,16 +139,20 @@ class NotificationService {
     } else {
       mock = NotificationModel(
         id: id,
-        title: 'Excess Solar Production',
-        message: 'Solar battery array fully charged. Routing excess 1.2 kW power back to local grid.',
+        title: 'Produksi Energi Berlebih',
+        message: 'Panel surya terisi penuh. Mengalirkan sisa daya 1.2 kW ke jaringan listrik lokal.',
         timestamp: timestamp,
         category: NotificationCategory.energy,
         priority: NotificationPriority.info,
       );
     }
 
-    final updated = List<NotificationModel>.from(notificationsNotifier.value)..insert(0, mock);
-    notificationsNotifier.value = updated;
+    if (_isOnline) {
+      _dbRef.child(id).set(mock.toMap());
+    } else {
+      final updated = List<NotificationModel>.from(notificationsNotifier.value)..insert(0, mock);
+      notificationsNotifier.value = updated;
+    }
   }
 
   void addNotification({
@@ -154,7 +170,12 @@ class NotificationService {
       category: category,
       priority: priority,
     );
-    final updated = List<NotificationModel>.from(notificationsNotifier.value)..insert(0, newNotif);
-    notificationsNotifier.value = updated;
+
+    if (_isOnline) {
+      _dbRef.child(id).set(newNotif.toMap());
+    } else {
+      final updated = List<NotificationModel>.from(notificationsNotifier.value)..insert(0, newNotif);
+      notificationsNotifier.value = updated;
+    }
   }
 }

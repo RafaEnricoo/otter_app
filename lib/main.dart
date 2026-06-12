@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:firebase_core/firebase_core.dart' hide FirebaseService;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
@@ -17,12 +17,14 @@ import 'screens/settings_screen.dart';
 
 import 'services/firebase_service.dart';
 import 'services/system_settings_service.dart';
+import 'services/notification_service.dart';
 import 'models/device_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseService().init();
+  NotificationService().init();
   runApp(const MyApp());
 }
 
@@ -63,6 +65,8 @@ class _MainLayoutState extends State<MainLayout> {
     FirebaseService().stateNotifier.addListener(_onStateChanged);
     SystemSettingsService().enableSound.addListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.addListener(_onSettingsChanged);
+    // Cek state awal — alarm mungkin sudah aktif sebelum listener ditambahkan
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onStateChanged());
   }
 
   @override
@@ -102,23 +106,36 @@ class _MainLayoutState extends State<MainLayout> {
     _isAlarmRunning = true;
     final settings = SystemSettingsService();
 
-    // 1. Play siren sound with high compatibility and local asset
+    // 1. Play siren sound
     if (settings.enableSound.value) {
       try {
         _sirenPlayer ??= AudioPlayer();
+        // Gunakan alarm audio stream agar bunyi meski HP di-silent/vibrate
+        await _sirenPlayer?.setAudioContext(AudioContext(
+          android: AudioContextAndroid(
+            audioFocus: AndroidAudioFocus.gainTransient,
+            usageType: AndroidUsageType.alarm,
+            contentType: AndroidContentType.sonification,
+          ),
+        ));
+        await _sirenPlayer?.setVolume(1.0);
         await _sirenPlayer?.setReleaseMode(ReleaseMode.loop);
-        // Play local siren WAV
         await _sirenPlayer?.play(AssetSource('sounds/siren.wav'));
+        debugPrint("Sirine audio dimulai");
       } catch (e) {
         debugPrint("Gagal memutar audio sirine: $e");
       }
     }
 
-    // 2. Trigger strong continuous vibration pattern
+    // 2. Trigger strong continuous vibration pattern (repeat: -1 = infinite)
     if (settings.enableVibration.value) {
       try {
-        if (await Vibration.hasVibrator() ?? false) {
-          Vibration.vibrate(pattern: [0, 1000, 500, 1000], repeat: 0);
+        final bool hasVibrator = await Vibration.hasVibrator() ?? false;
+        if (hasVibrator == true) {
+          Vibration.vibrate(pattern: [0, 800, 400, 800], repeat: 0);
+          debugPrint("Vibrasi dimulai");
+        } else {
+          debugPrint("Perangkat tidak mendukung vibrasi");
         }
       } catch (e) {
         debugPrint("Gagal menjalankan vibrasi: $e");
@@ -197,22 +214,16 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Widget _buildBody() {
-    return ValueListenableBuilder<Color>(
-      valueListenable: SystemSettingsService().activeAccent,
-      builder: (context, accentColor, _) {
-        switch (_currentIndex) {
-          case 0:
-            return HomeScreen();
-          case 1:
-            return DevicesScreen();
-          case 2:
-            return MonitorScreen();
-          case 3:
-            return SecurityScreen();
-          default:
-            return HomeScreen();
-        }
-      },
+    // IndexedStack menjaga semua screen tetap hidup di memory,
+    // sehingga state tidak reset saat pindah tab atau saat alarm aktif
+    return IndexedStack(
+      index: _currentIndex,
+      children: [
+        HomeScreen(),
+        DevicesScreen(),
+        MonitorScreen(),
+        SecurityScreen(),
+      ],
     );
   }
 }
