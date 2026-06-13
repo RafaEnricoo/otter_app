@@ -409,11 +409,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget _buildInputLabel(String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
-      style: const TextStyle(
-        color: Colors.white38,
-        fontSize: 10,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0.8,
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white38,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }
@@ -494,7 +497,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _presetAvatars.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  separatorBuilder: (context, index) => const SizedBox(width: 16),
                   itemBuilder: (context, index) {
                     final avatar = _presetAvatars[index];
                     final isSelected = _currentAvatarUrl == avatar;
