@@ -1231,20 +1231,33 @@ class _MonitorScreenState extends State<MonitorScreen> {
           ),
           _buildMiniAnalyticCard(
             title: 'KEAMANAN AREA',
-            value: sensor.tamuGerak ? 'ADA GERAKAN' : 'KONDISI AMAN',
-            subtitle: perangkat.kunciPintuRfid ? 'RFID: Terkunci' : 'RFID: Terbuka',
-            icon: sensor.tamuGerak ? Icons.sensors_rounded : Icons.shield_rounded,
-            iconColor: sensor.tamuGerak ? const Color(0xFFFF4963) : const Color(0xFF00E676),
-            valueColor: sensor.tamuGerak ? const Color(0xFFFF4963) : const Color(0xFF00E676),
+            value: perangkat.buzzerAlrm 
+                ? 'ALARM AKTIF!' 
+                : (sensor.tamuGerak ? 'ADA ANOMALI' : 'KONDISI AMAN'),
+            subtitle: perangkat.buzzerAlrm 
+                ? 'Sirine Keamanan Menyala' 
+                : (perangkat.kunciPintuRfid ? 'RFID: Terkunci' : 'RFID: Terbuka'),
+            icon: perangkat.buzzerAlrm 
+                ? Icons.campaign_rounded 
+                : (sensor.tamuGerak ? Icons.person_off_rounded : Icons.shield_rounded),
+            iconColor: (perangkat.buzzerAlrm || sensor.tamuGerak) 
+                ? const Color(0xFFFF4963) 
+                : (perangkat.kunciPintuRfid ? const Color(0xFF00E676) : const Color(0xFFFFB300)),
+            valueColor: (perangkat.buzzerAlrm || sensor.tamuGerak) 
+                ? const Color(0xFFFF4963) 
+                : (perangkat.kunciPintuRfid ? const Color(0xFF00E676) : const Color(0xFFFFB300)),
+            glowColor: (perangkat.buzzerAlrm || sensor.tamuGerak) 
+                ? const Color(0xFFFF4963).withValues(alpha: 0.1) 
+                : null,
           ),
           _buildMiniAnalyticCard(
             title: 'DETEKTOR API',
-            value: sensor.dapurFlame > 0 ? 'BAHAYA API!' : 'NORMAL',
-            subtitle: sensor.dapurFlame > 0 ? 'Deteksi di Dapur' : 'Aman dari Asap/Api',
-            icon: sensor.dapurFlame > 0 ? Icons.local_fire_department_rounded : Icons.smoke_free_rounded,
-            iconColor: sensor.dapurFlame > 0 ? const Color(0xFFFF4963) : const Color(0xFF00E676),
-            valueColor: sensor.dapurFlame > 0 ? const Color(0xFFFF4963) : const Color(0xFF00E676),
-            glowColor: sensor.dapurFlame > 0 ? const Color(0xFFFF4963).withValues(alpha: 0.1) : null,
+            value: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? 'BAHAYA API!' : 'NORMAL',
+            subtitle: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? 'Deteksi di Dapur' : 'Aman dari Asap/Api',
+            icon: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? Icons.local_fire_department_rounded : Icons.smoke_free_rounded,
+            iconColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963) : const Color(0xFF00E676),
+            valueColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963) : const Color(0xFF00E676),
+            glowColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963).withValues(alpha: 0.1) : null,
           ),
         ];
 
