@@ -218,7 +218,7 @@ class FirebaseService {
       );
     }
 
-    final bool disableAutoLampu = (key == 'lampu_kamar' || key == 'lampu_tamu' || key == 'lampu_dapur');
+    final bool disableAutoLampu = (key == 'lampu_kamar' || key == 'lampu_tamu' || key == 'lampu_dapur' || key == 'lampu_kamar_mandi');
     final bool disableAutoKipas = (key == 'kipas_kamar');
 
     if (_isUsingFallback) {
@@ -345,6 +345,7 @@ class FirebaseService {
     bool newLampuKamar = state.perangkat.lampuKamar;
     bool newLampuTamu = state.perangkat.lampuTamu;
     bool newLampuDapur = state.perangkat.lampuDapur;
+    bool newLampuKamarMandi = state.perangkat.lampuKamarMandi;
     
     bool newKipasKamar = state.perangkat.kipasKamar;
     int newKecepatanKipas = state.perangkat.kecepatanKipas;
@@ -356,10 +357,14 @@ class FirebaseService {
     if (state.otomatisasi.modeAutoLampu) {
       // If cahaya_atap < batas_gelap_lampu, turn lights on
       final isDark = state.sensor.cahayaAtap < state.otomatisasi.batasGelapLampu;
-      if (isDark != state.perangkat.lampuTamu) {
+      if (isDark != state.perangkat.lampuTamu || 
+          isDark != state.perangkat.lampuKamar || 
+          isDark != state.perangkat.lampuDapur || 
+          isDark != state.perangkat.lampuKamarMandi) {
         newLampuTamu = isDark;
         newLampuKamar = isDark;
         newLampuDapur = isDark;
+        newLampuKamarMandi = isDark;
         changed = true;
       }
     }
@@ -446,6 +451,7 @@ class FirebaseService {
       updatedPerangkat['lampu_tamu'] = newLampuTamu;
       updatedPerangkat['lampu_kamar'] = newLampuKamar;
       updatedPerangkat['lampu_dapur'] = newLampuDapur;
+      updatedPerangkat['lampu_kamar_mandi'] = newLampuKamarMandi;
       updatedPerangkat['kipas_kamar'] = newKipasKamar;
       updatedPerangkat['kecepatan_kipas'] = newKecepatanKipas;
       updatedPerangkat['buzzer_alrm'] = newBuzzerAlrm;
@@ -460,6 +466,7 @@ class FirebaseService {
           'lampu_tamu': newLampuTamu,
           'lampu_kamar': newLampuKamar,
           'lampu_dapur': newLampuDapur,
+          'lampu_kamar_mandi': newLampuKamarMandi,
           'kipas_kamar': newKipasKamar,
           'kecepatan_kipas': newKecepatanKipas,
           'buzzer_alrm': newBuzzerAlrm,

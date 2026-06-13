@@ -213,15 +213,17 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       title: 'Lampu Dapur',
                       isOn: perangkat.lampuDapur,
                       brightness: 100.0,
-                      isAuto: false,
+                      isAuto: otomatisasi.modeAutoLampu,
                       icon: Icons.lightbulb_rounded,
-                      onModeChanged: (val) {},
+                      onModeChanged: (val) {
+                        FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                      },
                       onToggle: (val) {
                         FirebaseService().updatePerangkat('lampu_dapur', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
-                      hasAutoMode: false,
+                      hasAutoMode: true,
                       isFullWidth: true,
                     ),
 
@@ -273,15 +275,23 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 _buildRoomSection(
                   roomTitle: 'Kamar Mandi',
                   children: [
-                    // 1. Lampu Kamar Mandi
-                    _buildToggleCard(
+                    // 1. Lampu Kamar Mandi LED Card
+                    _buildLEDCard(
                       title: 'Lampu Kamar Mandi',
-                      statusText: perangkat.lampuKamarMandi ? 'Menyala' : 'Mati',
                       isOn: perangkat.lampuKamarMandi,
+                      brightness: 100.0,
+                      isAuto: otomatisasi.modeAutoLampu,
                       icon: Icons.lightbulb_rounded,
+                      onModeChanged: (val) {
+                        FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                      },
                       onToggle: (val) {
                         FirebaseService().updatePerangkat('lampu_kamar_mandi', val);
                       },
+                      onSliderChanged: (val) {},
+                      hasSlider: false,
+                      hasAutoMode: true,
+                      isFullWidth: true,
                     ),
                   ],
                 ),
