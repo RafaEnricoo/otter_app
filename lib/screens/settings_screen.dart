@@ -67,6 +67,8 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
     _glassOpacity = settings.glassOpacity.value;
     _activeAccent = settings.activeAccent.value;
     _tempScaleCelsius = settings.tempScaleCelsius.value;
+    _autoLockDelay = settings.autoLockDelay.value;
+    _defaultBootScreen = settings.defaultBootScreen.value;
   }
 
   // Handle integration tap & mock sync animation
@@ -483,6 +485,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 setState(() {
                   _autoLockDelay = val;
                 });
+                SystemSettingsService().autoLockDelay.value = val;
               },
             ),
           ),
@@ -567,6 +570,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                       setState(() {
                         _defaultBootScreen = newValue;
                       });
+                      SystemSettingsService().defaultBootScreen.value = newValue;
                     }
                   },
                 ),
@@ -850,6 +854,8 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                     _glassOpacity = SystemSettingsService().glassOpacity.value;
                     _activeAccent = SystemSettingsService().activeAccent.value;
                     _tempScaleCelsius = SystemSettingsService().tempScaleCelsius.value;
+                    _autoLockDelay = SystemSettingsService().autoLockDelay.value;
+                    _defaultBootScreen = SystemSettingsService().defaultBootScreen.value;
                   });
                   if (mounted) {
                     Navigator.of(context).pop();
