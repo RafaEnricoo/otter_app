@@ -419,10 +419,9 @@ class FirebaseService {
         });
       }
     } else {
-      // Clear buzzer and warning LED only if flame has just transitioned from detected to cleared
+      // Clear warning LED only if flame has just transitioned from detected to cleared
       if (state.sensor.dapurFlame == 0 && _lastSmokeValue > 0) {
         newLedMerahDapur = false;
-        newBuzzerAlrm = false;
         changed = true;
         _flameBlinkerTimer?.cancel();
         _flameBlinkerTimer = null;
@@ -445,6 +444,15 @@ class FirebaseService {
       }
     }
     _lastPirValue = state.sensor.tamuGerak;
+
+    // 5. Consolidated Alarm Off Logic
+    // Only turn off the alarm buzzer if BOTH fire and motion are cleared
+    if (state.sensor.dapurFlame == 0 && !state.sensor.tamuGerak) {
+      if (state.perangkat.buzzerAlrm && newBuzzerAlrm) {
+        newBuzzerAlrm = false;
+        changed = true;
+      }
+    }
 
     if (changed) {
       final updatedPerangkat = state.perangkat.toMap();
