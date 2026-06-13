@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
+import '../models/notification_model.dart';
 import '../services/firebase_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/quick_status_banner.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -263,27 +265,74 @@ class HomeScreen extends StatelessWidget {
                     // ═══════════════════════════════════════════
                     // RECENT ACTIVITY
                     // ═══════════════════════════════════════════
-                    _SectionHeader(title: 'Aktivitas Terkini'),
+                     _SectionHeader(title: 'Aktivitas Terkini'),
                     const SizedBox(height: 14),
-                    _ActivityTile(
-                      icon: Icons.lock_rounded,
-                      title: perangkat.kunciPintuRfid ? 'Pintu utama terkunci' : 'Pintu utama terbuka',
-                      subtitle: 'Telemetri Langsung',
-                      accentColor: Color(AppColors.secondaryContainer),
-                    ),
-                    const SizedBox(height: 8),
-                    _ActivityTile(
-                      icon: Icons.lightbulb_outline_rounded,
-                      title: perangkat.lampuTamu ? 'Lampu ruang tamu dinyalakan' : 'Lampu ruang tamu dimatikan',
-                      subtitle: 'Sinkron dengan Firebase',
-                      accentColor: const Color(0xFFFFD54F),
-                    ),
-                    const SizedBox(height: 8),
-                    _ActivityTile(
-                      icon: Icons.thermostat_rounded,
-                      title: 'Suhu Kamar terkalibrasi pada ${sensor.kamarSuhu.toStringAsFixed(1)}°C',
-                      subtitle: 'Telemetri Sensor Langsung',
-                      accentColor: const Color(0xFFFF8A65),
+                    ValueListenableBuilder<List<NotificationModel>>(
+                      valueListenable: NotificationService().notificationsNotifier,
+                      builder: (context, notifications, child) {
+                        if (notifications.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20.0),
+                            child: Center(
+                              child: Text(
+                                'Tidak ada aktivitas terbaru',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  color: Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        // Display top 3 recent activities
+                        final displayList = notifications.take(3).toList();
+                        return Column(
+                          children: displayList.map((n) {
+                            final icon = _getNotificationIcon(n);
+                            Color accentColor;
+                            switch (n.category) {
+                              case NotificationCategory.security:
+                                accentColor = n.priority == NotificationPriority.critical
+                                    ? const Color(0xFFFF4963)
+                                    : Color(AppColors.secondaryContainer);
+                                break;
+                              case NotificationCategory.climate:
+                                accentColor = const Color(0xFFFFB300);
+                                break;
+                              case NotificationCategory.energy:
+                                accentColor = Color(AppColors.secondaryContainer);
+                                break;
+                              case NotificationCategory.system:
+                                accentColor = const Color(AppColors.tertiary);
+                                break;
+                            }
+
+                            String timeStr = 'Baru saja';
+                            final difference = DateTime.now().difference(n.timestamp);
+                            if (difference.inMinutes >= 1) {
+                              if (difference.inMinutes < 60) {
+                                timeStr = '${difference.inMinutes}m yang lalu';
+                              } else if (difference.inHours < 24) {
+                                timeStr = '${difference.inHours}j yang lalu';
+                              } else {
+                                timeStr = '${difference.inDays}h yang lalu';
+                              }
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: _ActivityTile(
+                                icon: icon,
+                                title: n.title,
+                                subtitle: '$timeStr • ${n.message}',
+                                accentColor: accentColor,
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 100),
@@ -295,6 +344,64 @@ class HomeScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  // Context-aware icon helper to standardize icons
+  IconData _getNotificationIcon(NotificationModel notif) {
+    final t = notif.title.toLowerCase();
+
+    // ── Lampu ──
+    if (t.contains('lampu') && t.contains('menyala')) return Icons.lightbulb_rounded;
+    if (t.contains('lampu') && t.contains('mati')) return Icons.lightbulb_outline_rounded;
+    if (t.contains('lampu')) return Icons.lightbulb_rounded;
+
+    // ── Kipas ──
+    if (t.contains('kipas') && t.contains('mati')) return Icons.mode_fan_off_rounded;
+    if (t.contains('kipas')) return Icons.air_rounded;
+    if (t.contains('kecepatan kipas')) return Icons.speed_rounded;
+
+    // ── Sirine / Alarm ──
+    if (t.contains('sirine') && (t.contains('aktif') || t.contains('menyala'))) return Icons.campaign_rounded;
+    if (t.contains('sirine')) return Icons.notifications_off_rounded;
+
+    // ── RFID / Pintu ──
+    if (t.contains('rfid') && t.contains('terkunci')) return Icons.lock_rounded;
+    if (t.contains('rfid') && t.contains('terbuka')) return Icons.lock_open_rounded;
+    if (t.contains('pintu')) return Icons.sensor_door_rounded;
+
+    // ── Kebakaran / Api ──
+    if (t.contains('kebakaran') || t.contains('api')) return Icons.local_fire_department_rounded;
+
+    // ── Anomali / Pergerakan / PIR ──
+    if (t.contains('anomali') || t.contains('pergerakan') || t.contains('pir')) return Icons.person_off_rounded;
+
+    // ── Sistem Keamanan ──
+    if (t.contains('keamanan') && t.contains('dinonaktifkan')) return Icons.shield_rounded;
+    if (t.contains('keamanan')) return Icons.security_rounded;
+
+    // ── Otomatisasi Lampu ──
+    if (t.contains('otomatisasi') && t.contains('lampu') && t.contains('aktif')) return Icons.auto_awesome_rounded;
+    if (t.contains('otomatisasi') && t.contains('lampu')) return Icons.auto_mode_rounded;
+
+    // ── Otomatisasi Kipas ──
+    if (t.contains('otomatisasi') && t.contains('kipas')) return Icons.thermostat_auto_rounded;
+
+    // ── Ambang / Threshold ──
+    if (t.contains('ambang') && t.contains('cahaya')) return Icons.wb_twilight_rounded;
+    if (t.contains('ambang') && t.contains('suhu')) return Icons.thermostat_rounded;
+    if (t.contains('ambang')) return Icons.tune_rounded;
+
+    // ── Fallback ──
+    switch (notif.category) {
+      case NotificationCategory.security:
+        return Icons.shield_rounded;
+      case NotificationCategory.climate:
+        return Icons.thermostat_rounded;
+      case NotificationCategory.energy:
+        return Icons.bolt_rounded;
+      case NotificationCategory.system:
+        return Icons.settings_suggest_rounded;
+    }
   }
 }
 

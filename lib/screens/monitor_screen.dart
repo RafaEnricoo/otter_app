@@ -1124,10 +1124,24 @@ class _MonitorScreenState extends State<MonitorScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              item.icon,
-                              size: 20,
-                              color: item.accentColor,
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: item.accentColor.withValues(alpha: 0.08),
+                                border: Border.all(
+                                  color: item.accentColor.withValues(alpha: 0.15),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  item.icon,
+                                  size: 18,
+                                  color: item.accentColor,
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
