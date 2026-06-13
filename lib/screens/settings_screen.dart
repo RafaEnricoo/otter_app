@@ -20,12 +20,14 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
     const Color(0xFFFFB300), // Vibrant Amber
     const Color(0xFF39FF14), // Neon Lime Green
     const Color(0xFFFF007F), // Hot Magenta
-    const Color(0xFFD500F9), // Electric Purple
-    const Color(0xFFFF5722), // Sunset Orange
-    const Color(0xFF00E5FF), // Bright Turquoise
     const Color(0xFF2979FF), // Neon Blue
+    const Color(0xFFFF5722), // Sunset Orange
+    const Color(0xFFD500F9), // Electric Purple
+    const Color(0xFF00FFCC), // Neon Mint
     const Color(0xFFFF4081), // Radiant Pink
     const Color(0xFFCCFF00), // Neon Yellow/Lime
+    const Color(0xFFFF6B6B), // Rose Pink
+    const Color(0xFFFFFFFF), // Pure White
   ];
   late Color _activeAccent;
 
