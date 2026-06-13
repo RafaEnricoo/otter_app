@@ -18,14 +18,14 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
   final List<Color> _accentColors = [
     const Color(0xFF00F4FE), // Neon Cyan
     const Color(0xFFFFB300), // Vibrant Amber
-    const Color(0xFF00E676), // Emerald Green
+    const Color(0xFF39FF14), // Neon Lime Green
     const Color(0xFFFF007F), // Hot Magenta
-    const Color(0xFF2979FF), // Deep Sapphire
-    const Color(0xFFFF5722), // Sunset Orange
     const Color(0xFFD500F9), // Electric Purple
+    const Color(0xFFFF5722), // Sunset Orange
     const Color(0xFF00E5FF), // Bright Turquoise
+    const Color(0xFF2979FF), // Neon Blue
     const Color(0xFFFF4081), // Radiant Pink
-    const Color(0xFFE040FB), // Neon Violet
+    const Color(0xFFCCFF00), // Neon Yellow/Lime
   ];
   late Color _activeAccent;
 
@@ -344,53 +344,47 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           ),
           const SizedBox(height: 10),
 
-          // Horizontal Color Chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            clipBehavior: Clip.none,
-            child: Row(
-              children: _accentColors.map((color) {
-                final isSelected = _activeAccent == color;
+          // Color selector chips in a Wrap to support multiple lines gracefully
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _accentColors.map((color) {
+              final isSelected = _activeAccent == color;
 
-                return Padding(
-                  padding: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.heavyImpact();
-                      setState(() {
-                        _activeAccent = color;
-                      });
-                      SystemSettingsService().activeAccent.value = color;
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: color,
-                        border: Border.all(
-                          color: isSelected ? Colors.white : Colors.transparent,
-                          width: 2.5,
-                        ),
-                        boxShadow: [
-                          if (isSelected)
-                            BoxShadow(
-                              color: color.withValues(alpha: 0.6),
-                              blurRadius: 15,
-                              spreadRadius: 2,
-                            ),
-                        ],
-                      ),
-                      child: isSelected
-                          ? const Icon(Icons.check_rounded, color: Colors.black, size: 20)
-                          : const SizedBox.shrink(),
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.heavyImpact();
+                  setState(() {
+                    _activeAccent = color;
+                  });
+                  SystemSettingsService().activeAccent.value = color;
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                    border: Border.all(
+                      color: isSelected ? Colors.white : Colors.transparent,
+                      width: 2.5,
                     ),
+                    boxShadow: [
+                      if (isSelected)
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.6),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                        ),
+                    ],
                   ),
-                );
-              }).toList(),
-            ),
+                  child: isSelected
+                      ? const Icon(Icons.check_rounded, color: Colors.black, size: 20)
+                      : const SizedBox.shrink(),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
