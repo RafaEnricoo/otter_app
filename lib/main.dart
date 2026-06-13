@@ -416,7 +416,7 @@ class _MainLayoutState extends State<MainLayout> {
                               });
                                 _resetAutoLockTimer();
                               } else {
-                                HapticFeedback.error();
+                                HapticFeedback.vibrate();
                                 setStateLock(() {
                                   errorMessage = 'Password salah!';
                                 });
@@ -472,7 +472,7 @@ class _MainLayoutState extends State<MainLayout> {
                               });
                               _resetAutoLockTimer();
                             } else {
-                              HapticFeedback.error();
+                              HapticFeedback.vibrate();
                               setStateLock(() {
                                 errorMessage = 'Password salah!';
                               });
