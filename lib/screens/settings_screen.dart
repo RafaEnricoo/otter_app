@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
@@ -268,15 +269,9 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                           Container(
                             width: 54,
                             height: 54,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: const Color(0xFF1E2020),
-                              image: avatar.isNotEmpty
-                                  ? DecorationImage(
-                                      image: NetworkImage(avatar),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
+                              color: Color(0xFF1E2020),
                             ),
                             child: avatar.isEmpty
                                 ? Center(
@@ -290,7 +285,24 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                                       ),
                                     ),
                                   )
-                                : null,
+                                : ClipOval(
+                                    child: avatar.startsWith('data:image') && avatar.contains('base64,')
+                                        ? Image.memory(
+                                            base64Decode(avatar.split('base64,')[1]),
+                                            width: 54,
+                                            height: 54,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Image.network(
+                                            avatar,
+                                            width: 54,
+                                            height: 54,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stack) => Center(
+                                              child: Icon(Icons.person_rounded, color: _activeAccent, size: 24),
+                                            ),
+                                          ),
+                                  ),
                           ),
                         ],
                       ),

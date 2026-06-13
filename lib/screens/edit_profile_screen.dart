@@ -1,6 +1,8 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/profile_service.dart';
 import '../services/system_settings_service.dart';
 import '../core/constants.dart';
@@ -18,22 +20,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _roleController;
   late TextEditingController _userController;
   late TextEditingController _passwordController;
-  late TextEditingController _avatarUrlController;
   
   late String _currentAvatarUrl;
   bool _obscurePassword = true;
   bool _isUploading = false;
   late Color _activeAccent;
-
-
-
-  // Gallery simulation photos
-  final List<String> _simulatedGallery = [
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=200&q=80',
-    'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&w=200&q=80',
-    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=200&q=80',
-  ];
 
   @override
   void initState() {
@@ -42,7 +33,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _roleController = TextEditingController(text: _profile.role.value);
     _userController = TextEditingController(text: _profile.username.value);
     _passwordController = TextEditingController(text: _profile.password.value);
-    _avatarUrlController = TextEditingController(text: _profile.avatarUrl.value);
     _currentAvatarUrl = _profile.avatarUrl.value;
     _activeAccent = SystemSettingsService().activeAccent.value;
   }
@@ -53,35 +43,55 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _roleController.dispose();
     _userController.dispose();
     _passwordController.dispose();
-    _avatarUrlController.dispose();
     super.dispose();
   }
 
-  void _simulateUpload() {
+  Future<void> _pickFromGallery() async {
     HapticFeedback.mediumImpact();
-    setState(() {
-      _isUploading = true;
-    });
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 75,
+      );
 
-    // Simulate standard gallery image selection & upload progress
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (!mounted) return;
-      // Pick a random image from simulated gallery
-      final randomImage = (_simulatedGallery..shuffle()).first;
-      setState(() {
-        _currentAvatarUrl = randomImage;
-        _avatarUrlController.text = randomImage;
-        _isUploading = false;
-      });
-      HapticFeedback.lightImpact();
+      if (image != null) {
+        setState(() {
+          _isUploading = true;
+        });
+
+        final bytes = await image.readAsBytes();
+        final base64String = base64Encode(bytes);
+        final dataUrl = 'data:image/jpeg;base64,$base64String';
+
+        setState(() {
+          _currentAvatarUrl = dataUrl;
+          _isUploading = false;
+        });
+
+        HapticFeedback.lightImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto profil berhasil diunggah!'),
+            backgroundColor: Color(0xFF1E2020),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Gagal mengambil gambar dari galeri: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Foto berhasil diunggah dari galeri!'),
-          backgroundColor: Color(0xFF1E2020),
-          duration: Duration(seconds: 1),
+        SnackBar(
+          content: Text('Gagal mengambil gambar: $e'),
+          backgroundColor: Colors.redAccent,
         ),
       );
-    });
+      setState(() {
+        _isUploading = false;
+      });
+    }
   }
 
   void _saveProfile() async {
@@ -254,15 +264,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Container(
                   width: 100,
                   height: 100,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF1E2020),
-                    image: _currentAvatarUrl.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(_currentAvatarUrl),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                    color: Color(0xFF1E2020),
                   ),
                   child: _currentAvatarUrl.isEmpty
                       ? Center(
@@ -276,7 +280,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                           ),
                         )
-                      : null,
+                      : ClipOval(
+                          child: _currentAvatarUrl.startsWith('data:image') && _currentAvatarUrl.contains('base64,')
+                              ? Image.memory(
+                                  base64Decode(_currentAvatarUrl.split('base64,')[1]),
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.network(
+                                  _currentAvatarUrl,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stack) => Center(
+                                    child: Icon(Icons.person_rounded, color: _activeAccent, size: 40),
+                                  ),
+                                ),
+                        ),
                 ),
                 // Upload Overlay Spinner
                 if (_isUploading)
@@ -317,7 +338,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 icon: const Icon(Icons.photo_library_outlined, size: 16),
                 label: const Text('Galeri', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                onPressed: _isUploading ? null : _simulateUpload,
+                onPressed: _isUploading ? null : _pickFromGallery,
               ),
               if (_currentAvatarUrl.isNotEmpty) ...[
                 const SizedBox(width: 12),
@@ -339,7 +360,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     HapticFeedback.mediumImpact();
                     setState(() {
                       _currentAvatarUrl = '';
-                      _avatarUrlController.text = '';
                     });
                   },
                 ),
@@ -408,20 +428,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 });
               },
             ),
-          ),
-          const SizedBox(height: 20),
-
-          // CUSTOM AVATAR URL
-          _buildInputLabel('URL FOTO KUSTOM'),
-          _buildTextField(
-            controller: _avatarUrlController,
-            hint: 'https://...',
-            icon: Icons.link_rounded,
-            onChanged: (val) {
-              setState(() {
-                _currentAvatarUrl = val.isNotEmpty ? val : _profile.avatarUrl.value;
-              });
-            },
           ),
         ],
       ),
