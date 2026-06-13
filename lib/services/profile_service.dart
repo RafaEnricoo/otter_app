@@ -11,6 +11,7 @@ class ProfileService {
   final ValueNotifier<String> password = ValueNotifier<String>('admin123');
   final ValueNotifier<String> displayName = ValueNotifier<String>('Mimah Dudim');
   final ValueNotifier<String> role = ValueNotifier<String>('Administrator Rumah Pintar');
+  final ValueNotifier<String> avatarUrl = ValueNotifier<String>('https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80');
 
   ProfileService._internal() {
     // Check if profile exists, if not, seed it with default values
@@ -21,6 +22,7 @@ class ProfileService {
           'password': 'admin123',
           'display_name': 'Mimah Dudim',
           'role': 'Administrator Rumah Pintar',
+          'avatar_url': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
         });
       }
     }).catchError((err) {
@@ -36,6 +38,7 @@ class ProfileService {
         password.value = data['password']?.toString() ?? 'admin123';
         displayName.value = data['display_name']?.toString() ?? 'Mimah Dudim';
         role.value = data['role']?.toString() ?? 'Administrator Rumah Pintar';
+        avatarUrl.value = data['avatar_url']?.toString() ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
       }
     }, onError: (err) {
       debugPrint("Error listening to profile changes: $err");
@@ -47,11 +50,13 @@ class ProfileService {
     required String newRole,
     required String newUsername,
     required String newPassword,
+    required String newAvatarUrl,
   }) async {
     displayName.value = newDisplayName;
     role.value = newRole;
     username.value = newUsername;
     password.value = newPassword;
+    avatarUrl.value = newAvatarUrl;
 
     try {
       await _profileRef.update({
@@ -59,6 +64,7 @@ class ProfileService {
         'password': newPassword,
         'display_name': newDisplayName,
         'role': newRole,
+        'avatar_url': newAvatarUrl,
       });
     } catch (e) {
       debugPrint("Gagal sinkronisasi update profile ke Firebase: $e");
