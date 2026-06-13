@@ -428,7 +428,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
                 child: Text(
-                  'Rumah pintar Anda berjalan normal. Menunggu notif baru masuk...',
+                  'Seluruh sistem berjalan optimal. Tidak ada aktivitas atau pemberitahuan baru saat ini.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
