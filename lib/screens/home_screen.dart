@@ -286,8 +286,8 @@ class HomeScreen extends StatelessWidget {
                           );
                         }
 
-                        // Display top 3 recent activities
-                        final displayList = notifications.take(3).toList();
+                        // Display top 5 recent activities
+                        final displayList = notifications.take(5).toList();
                         return Column(
                           children: displayList.map((n) {
                             final icon = _getNotificationIcon(n);

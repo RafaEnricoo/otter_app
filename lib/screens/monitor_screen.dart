@@ -1059,7 +1059,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
           );
         }).toList();
 
-        final int displayCount = _isLogExpanded ? activeLogs.length : 3;
+        final int displayCount = _isLogExpanded ? activeLogs.length : 5;
         final int actualCount = math.min(displayCount, activeLogs.length);
 
         return _MonitorGlassCard(
