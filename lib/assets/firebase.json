@@ -25,6 +25,12 @@
       "mode_auto_kipas": true,
       "batas_gelap_lampu": 30,
       "batas_panas_kamar": 29.0
+    },
+    "profile": {
+      "display_name": "Mimah Dudim",
+      "role": "Administrator Rumah Pintar",
+      "username": "admin",
+      "password": "admin123"
     }
   }
 }

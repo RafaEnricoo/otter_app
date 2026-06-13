@@ -1,25 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class ProfileService {
   static final ProfileService _instance = ProfileService._internal();
   factory ProfileService() => _instance;
-  ProfileService._internal();
+
+  final _profileRef = FirebaseDatabase.instance.ref('otter_smarthome/profile');
 
   final ValueNotifier<String> username = ValueNotifier<String>('admin');
   final ValueNotifier<String> password = ValueNotifier<String>('admin123');
   final ValueNotifier<String> displayName = ValueNotifier<String>('Mimah Dudim');
   final ValueNotifier<String> role = ValueNotifier<String>('Administrator Rumah Pintar');
 
-  void updateProfile({
+  ProfileService._internal() {
+    // Check if profile exists, if not, seed it with default values
+    _profileRef.get().then((snapshot) {
+      if (!snapshot.exists) {
+        _profileRef.set({
+          'username': 'admin',
+          'password': 'admin123',
+          'display_name': 'Mimah Dudim',
+          'role': 'Administrator Rumah Pintar',
+        });
+      }
+    }).catchError((err) {
+      debugPrint("Error checking profile existence: $err");
+    });
+
+    // Listen to profile updates from Firebase Realtime Database
+    _profileRef.onValue.listen((event) {
+      final snapshot = event.snapshot;
+      if (snapshot.exists && snapshot.value is Map) {
+        final data = snapshot.value as Map;
+        username.value = data['username']?.toString() ?? 'admin';
+        password.value = data['password']?.toString() ?? 'admin123';
+        displayName.value = data['display_name']?.toString() ?? 'Mimah Dudim';
+        role.value = data['role']?.toString() ?? 'Administrator Rumah Pintar';
+      }
+    }, onError: (err) {
+      debugPrint("Error listening to profile changes: $err");
+    });
+  }
+
+  Future<void> updateProfile({
     required String newDisplayName,
     required String newRole,
     required String newUsername,
     required String newPassword,
-  }) {
+  }) async {
     displayName.value = newDisplayName;
     role.value = newRole;
     username.value = newUsername;
     password.value = newPassword;
+
+    try {
+      await _profileRef.update({
+        'username': newUsername,
+        'password': newPassword,
+        'display_name': newDisplayName,
+        'role': newRole,
+      });
+    } catch (e) {
+      debugPrint("Gagal sinkronisasi update profile ke Firebase: $e");
+    }
   }
 
   String get initials {
