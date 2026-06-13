@@ -1360,6 +1360,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
             devicesText: 'Lampu: ${perangkat.lampuKamar ? 'ON' : 'OFF'}  •  Kipas: ${perangkat.kipasKamar ? 'ON (Spd ${perangkat.kecepatanKipas})' : 'OFF'}',
             sensorsText: '${sensor.kamarSuhu.toStringAsFixed(1)}°C  •  ${sensor.kamarKelembapan.toInt()}% RH',
             isAlert: false,
+            customColor: const Color(0xFFB388FF),
           ),
           const Divider(height: 24, color: Colors.white10),
           _buildRoomSummaryRow(
@@ -1369,6 +1370,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
             sensorsText: '${sensor.dapurSuhu.toStringAsFixed(1)}°C  •  ${sensor.dapurKelembapan.toInt()}% RH${sensor.dapurFlame > 0 ? '  •  ⚠ API!' : ''}',
             isAlert: sensor.dapurFlame > 0,
             alertText: 'Peringatan Api!',
+            customColor: const Color(0xFFFFD54F),
           ),
           const Divider(height: 24, color: Colors.white10),
           _buildRoomSummaryRow(
@@ -1378,6 +1380,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
             sensorsText: sensor.tamuGerak ? '⚠ Gerakan Terdeteksi' : 'Gerakan: Aman',
             isAlert: sensor.tamuGerak,
             alertText: 'Gerakan!',
+            customColor: const Color(0xFF80FFE8),
           ),
           const Divider(height: 24, color: Colors.white10),
           _buildRoomSummaryRow(
@@ -1386,6 +1389,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
             devicesText: 'Lampu: ${perangkat.lampuKamarMandi ? 'ON' : 'OFF'}',
             sensorsText: 'Kondisi Normal',
             isAlert: false,
+            customColor: const Color(0xFF80D8FF),
           ),
           const Divider(height: 24, color: Colors.white10),
           _buildRoomSummaryRow(
@@ -1395,6 +1399,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
             sensorsText: 'Atap: ${sensor.cahayaAtap}% Cahaya',
             isAlert: perangkat.buzzerAlrm,
             alertText: 'Sirine Aktif!',
+            customColor: Color(AppColors.secondaryContainer),
           ),
         ],
       ),
@@ -1408,9 +1413,10 @@ class _MonitorScreenState extends State<MonitorScreen> {
     required String sensorsText,
     required bool isAlert,
     String? alertText,
+    Color? customColor,
   }) {
     final alertColor = const Color(0xFFFF4963);
-    final accentColor = isAlert ? alertColor : Color(AppColors.secondaryContainer);
+    final accentColor = isAlert ? alertColor : (customColor ?? Color(AppColors.secondaryContainer));
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
