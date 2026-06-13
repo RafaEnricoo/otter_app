@@ -445,15 +445,6 @@ class FirebaseService {
     }
     _lastPirValue = state.sensor.tamuGerak;
 
-    // 5. Consolidated Alarm Off Logic
-    // Only turn off the alarm buzzer if BOTH fire and motion are cleared
-    if (state.sensor.dapurFlame == 0 && !state.sensor.tamuGerak) {
-      if (state.perangkat.buzzerAlrm && newBuzzerAlrm) {
-        newBuzzerAlrm = false;
-        changed = true;
-      }
-    }
-
     if (changed) {
       final updatedPerangkat = state.perangkat.toMap();
       updatedPerangkat['lampu_tamu'] = newLampuTamu;
