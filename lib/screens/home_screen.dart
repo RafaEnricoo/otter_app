@@ -292,20 +292,15 @@ class HomeScreen extends StatelessWidget {
                           children: displayList.map((n) {
                             final icon = _getNotificationIcon(n);
                             Color accentColor;
-                            switch (n.category) {
-                              case NotificationCategory.security:
-                                accentColor = n.priority == NotificationPriority.critical
-                                    ? const Color(0xFFFF4963)
-                                    : Color(AppColors.secondaryContainer);
+                            switch (n.priority) {
+                              case NotificationPriority.critical:
+                                accentColor = const Color(0xFFFF4963);
                                 break;
-                              case NotificationCategory.climate:
+                              case NotificationPriority.warning:
                                 accentColor = const Color(0xFFFFB300);
                                 break;
-                              case NotificationCategory.energy:
+                              case NotificationPriority.info:
                                 accentColor = Color(AppColors.secondaryContainer);
-                                break;
-                              case NotificationCategory.system:
-                                accentColor = const Color(AppColors.tertiary);
                                 break;
                             }
 
