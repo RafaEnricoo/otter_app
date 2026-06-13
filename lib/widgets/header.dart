@@ -1,20 +1,18 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/system_settings_service.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
+import '../services/profile_service.dart';
 
 class Header extends StatelessWidget {
-  final String? userName;
-  final String? userImageUrl;
   final VoidCallback? onNotificationsPressed;
   final VoidCallback? onSettingsPressed;
 
   const Header({
     super.key,
-    this.userName = 'Mimah Dudim',
-    this.userImageUrl,
     this.onNotificationsPressed,
     this.onSettingsPressed,
   });
@@ -120,10 +118,7 @@ class Header extends StatelessWidget {
                       // ─── User Avatar (Opens Profile/Settings) ───
                       GestureDetector(
                         onTap: onSettingsPressed,
-                        child: _UserAvatar(
-                          userName: userName,
-                          userImageUrl: userImageUrl,
-                        ),
+                        child: const _UserAvatar(),
                       ),
                     ],
                   ),
@@ -520,13 +515,7 @@ class _NotificationButtonState extends State<_NotificationButton>
 // User Avatar with status ring
 // ─────────────────────────────────────────────────────────
 class _UserAvatar extends StatefulWidget {
-  final String? userName;
-  final String? userImageUrl;
-
-  const _UserAvatar({
-    this.userName,
-    this.userImageUrl,
-  });
+  const _UserAvatar();
 
   @override
   State<_UserAvatar> createState() => _UserAvatarState();
@@ -534,86 +523,104 @@ class _UserAvatar extends StatefulWidget {
 
 class _UserAvatarState extends State<_UserAvatar> {
   bool _isHovered = false;
-
-  String get _initials {
-    if (widget.userName == null || widget.userName!.isEmpty) return '?';
-    final parts = widget.userName!.split(' ');
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
-    return parts[0][0].toUpperCase();
-  }
+  final _profile = ProfileService();
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: _isHovered
-                ? [
-                    Color(AppColors.secondaryContainer),
-                    Color(AppColors.primary),
-                  ]
-                : [
-                    Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
-                    Color(AppColors.primary).withValues(alpha: 0.2),
-                  ],
-          ),
-          boxShadow: _isHovered
-              ? [
-                  BoxShadow(
-                    color:
-                        Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    spreadRadius: 0,
+    return ValueListenableBuilder<String>(
+      valueListenable: _profile.displayName,
+      builder: (context, name, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: _profile.avatarUrl,
+          builder: (context, avatar, _) {
+            final initials = _profile.initials;
+            return MouseRegion(
+              onEnter: (_) => setState(() => _isHovered = true),
+              onExit: (_) => setState(() => _isHovered = false),
+              cursor: SystemMouseCursors.click,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _isHovered
+                        ? [
+                            Color(AppColors.secondaryContainer),
+                            Color(AppColors.primary),
+                          ]
+                        : [
+                            Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
+                            Color(AppColors.primary).withValues(alpha: 0.2),
+                          ],
                   ),
-                ]
-              : [],
-        ),
-        child: Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Color(AppColors.surfaceContainer),
-          ),
-          child: ClipOval(
-            child: widget.userImageUrl != null
-                ? Image.network(
-                    widget.userImageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildInitials();
-                    },
-                  )
-                : _buildInitials(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInitials() {
-    return Center(
-      child: Text(
-        _initials,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: Color(AppColors.secondaryContainer),
-          letterSpacing: 0.5,
-        ),
-      ),
+                  boxShadow: _isHovered
+                      ? [
+                          BoxShadow(
+                            color:
+                                Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            spreadRadius: 0,
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(AppColors.surfaceContainer),
+                  ),
+                  child: ClipOval(
+                    child: avatar.isEmpty
+                        ? Center(
+                            child: Text(
+                              initials,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(AppColors.secondaryContainer),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          )
+                        : (avatar.startsWith('data:image') && avatar.contains('base64,')
+                            ? Image.memory(
+                                base64Decode(avatar.split('base64,')[1]),
+                                width: 34,
+                                height: 34,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.network(
+                                avatar,
+                                width: 34,
+                                height: 34,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Text(
+                                      initials,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(AppColors.secondaryContainer),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )),
+                  ),
+                ),
+              ),
+            );
+          }
+        );
+      }
     );
   }
 }
