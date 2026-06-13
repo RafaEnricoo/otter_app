@@ -1235,8 +1235,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 ? 'ALARM AKTIF!' 
                 : (sensor.tamuGerak ? 'ADA ANOMALI' : 'KONDISI AMAN'),
             subtitle: perangkat.buzzerAlrm 
-                ? 'Sirine Keamanan Menyala' 
-                : (perangkat.kunciPintuRfid ? 'RFID: Terkunci' : 'RFID: Terbuka'),
+                ? 'Sirine Aktif • ${sensor.tamuGerak ? 'Ada Gerakan' : 'Gerakan: Aman'}' 
+                : '${perangkat.kunciPintuRfid ? 'RFID: Terkunci' : 'RFID: Terbuka'} • ${sensor.tamuGerak ? 'Ada Gerakan' : 'Gerakan: Aman'}',
             icon: perangkat.buzzerAlrm 
                 ? Icons.campaign_rounded 
                 : (sensor.tamuGerak ? Icons.person_off_rounded : Icons.shield_rounded),
