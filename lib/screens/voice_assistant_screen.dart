@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:speech_to_text/speech_to_text.dart' show SpeechListenOptions;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../core/constants.dart';
@@ -176,9 +177,10 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     }
 
     _listeningTimeoutTimer?.cancel();
-    _listeningTimeoutTimer = Timer(const Duration(seconds: 9), () {
+    _listeningTimeoutTimer = Timer(const Duration(seconds: 7), () {
       if (mounted && _voiceState == _VoiceState.listening) {
         print("Speech timeout: tidak ada respon terdeteksi. Menghentikan...");
+        _speech.stop();
         _processVoiceCommand('');
       }
     });
@@ -198,7 +200,11 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
             setState(() {
               _transcriptText = '"${result.recognizedWords}"';
             });
-            if (result.finalResult) {
+            // Segera proses dan hentikan saat hasil final tersedia
+            if (result.finalResult && result.recognizedWords.isNotEmpty) {
+              _listeningTimeoutTimer?.cancel();
+              _listeningTimeoutTimer = null;
+              _speech.stop();
               _processVoiceCommand(result.recognizedWords);
             }
           }
@@ -210,9 +216,14 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
             });
           }
         },
-        localeId: 'id_ID', // Set default to Indonesian speech
-        listenFor: const Duration(seconds: 8),
-        pauseFor: const Duration(seconds: 3),
+        listenOptions: SpeechListenOptions(
+          localeId: 'id_ID',
+          listenFor: const Duration(seconds: 7),
+          pauseFor: const Duration(milliseconds: 900), // Kurangi jeda tunggu → lebih cepat finalize
+          partialResults: true,   // Tampilkan kata real-time
+          cancelOnError: false,   // Jangan batalkan saat error minor
+          onDevice: false,        // Gunakan cloud STT Google untuk akurasi lebih baik
+        ),
       );
     } catch (e) {
       try {
