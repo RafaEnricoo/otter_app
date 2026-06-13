@@ -405,7 +405,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                     ),
                     child: Center(
                       child: Icon(
-                        Icons.notifications_none_rounded,
+                        Icons.notifications_off_rounded,
                         size: 40,
                         color: Color(AppColors.secondaryContainer),
                       ),
