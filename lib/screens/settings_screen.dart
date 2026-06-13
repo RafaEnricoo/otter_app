@@ -253,7 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 ),
                 child: Center(
                   child: Text(
-                    'AR',
+                    'MD',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -395,10 +395,19 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                   GestureDetector(
                     onTap: () {
                       HapticFeedback.mediumImpact();
-                      _showResetTransparencyDialog();
+                      setState(() {
+                        _glassOpacity = 0.05;
+                      });
+                      SystemSettingsService().glassOpacity.value = 0.05;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Transparansi latar dikembalikan ke default (5%).'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
                     },
                     child: Text(
-                      'Kembali ke Default',
+                      'Default',
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _activeAccent),
                     ),
                   ),
@@ -864,58 +873,6 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                       const SnackBar(content: Text('Mengembalikan pengaturan sistem & database ke pabrik...')),
                     );
                   }
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showResetTransparencyDialog() {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.55),
-      builder: (BuildContext context) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: AlertDialog(
-            backgroundColor: const Color(0xFF1E2020),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            title: const Text('Reset Transparansi?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            content: const Text(
-              'Apakah Anda yakin ingin mengembalikan transparansi latar ke nilai bawaan (5%)?',
-              style: TextStyle(color: Color(0xFFC6C6CE), fontSize: 14),
-            ),
-            actions: [
-              TextButton(
-                child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  backgroundColor: _activeAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text('Reset', style: TextStyle(fontWeight: FontWeight.bold)),
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  setState(() {
-                    _glassOpacity = 0.05;
-                  });
-                  SystemSettingsService().glassOpacity.value = 0.05;
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Transparansi latar dikembalikan ke default.'), duration: Duration(seconds: 1)),
-                  );
                 },
               ),
             ],
