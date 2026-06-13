@@ -26,6 +26,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─── Interactive Luminance Local State (to avoid Firebase sync lag) ───
   double? _localLuminance;
   double _lastHapticPercent = 75.0;
+  bool _isDraggingDial = false;
 
   // ─── Activity Log Expansion State ───
   bool _isLogExpanded = false;
@@ -129,8 +130,10 @@ class _MonitorScreenState extends State<MonitorScreen> {
         final sensor = state.sensor;
         final perangkat = state.perangkat;
 
-        // Initialize local dial value if not set
-        _localLuminance ??= sensor.cahayaAtap.toDouble();
+        // Initialize local dial value if not set or not dragging
+        if (!_isDraggingDial) {
+          _localLuminance = sensor.cahayaAtap.toDouble();
+        }
 
         final double liveTemp = _selectedTempRoom == 'Kamar' ? sensor.kamarSuhu : sensor.dapurSuhu;
         final String dataKey = _selectedTempRoom == 'Kamar' ? _selectedTimeline : '${_selectedTimeline}_Kitchen';
@@ -657,11 +660,34 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
           Center(
             child: GestureDetector(
+              onPanStart: (_) {
+                setState(() {
+                  _isDraggingDial = true;
+                });
+              },
               onPanUpdate: (details) {
                 _updateDialGesture(details.localPosition, const Size(140, 140));
               },
+              onPanEnd: (_) {
+                setState(() {
+                  _isDraggingDial = false;
+                });
+              },
+              onPanCancel: () {
+                setState(() {
+                  _isDraggingDial = false;
+                });
+              },
               onTapDown: (details) {
+                setState(() {
+                  _isDraggingDial = true;
+                });
                 _updateDialGesture(details.localPosition, const Size(140, 140));
+              },
+              onTapUp: (_) {
+                setState(() {
+                  _isDraggingDial = false;
+                });
               },
               child: Container(
                 width: 140,
