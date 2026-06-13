@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../services/system_settings_service.dart';
 import '../services/firebase_service.dart';
+import '../services/profile_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -217,107 +218,318 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
 
   // Bento Card: User Profile
   Widget _buildProfileCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: _glassOpacity),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          // Animated Avatar with Aura Glow
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: [
-                      _activeAccent,
-                      _activeAccent.withValues(alpha: 0.2),
-                      const Color(0xFFBEC5E5).withValues(alpha: 0.4),
-                      _activeAccent,
+    final profile = ProfileService();
+
+    return ValueListenableBuilder<String>(
+      valueListenable: profile.displayName,
+      builder: (context, name, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: profile.role,
+          builder: (context, role, _) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: _glassOpacity),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  // Animated Avatar with Aura Glow
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: SweepGradient(
+                            colors: [
+                              _activeAccent,
+                              _activeAccent.withValues(alpha: 0.2),
+                              const Color(0xFFBEC5E5).withValues(alpha: 0.4),
+                              _activeAccent,
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _activeAccent.withValues(alpha: 0.25),
+                              blurRadius: 10,
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFF1E2020),
+                        ),
+                        child: Center(
+                          child: Text(
+                            profile.initials,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: _activeAccent,
+                              fontFamily: 'Sora',
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _activeAccent.withValues(alpha: 0.25),
-                      blurRadius: 10,
-                      spreadRadius: 0,
+                  const SizedBox(width: 16),
+
+                  // User info details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          role,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.55),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Profile edit button
+                  ClipOval(
+                    child: Container(
+                      color: Colors.white.withValues(alpha: 0.04),
+                      child: IconButton(
+                        icon: Icon(Icons.edit_rounded, color: _activeAccent, size: 18),
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          _showEditProfileSheet(context);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Edit Profile Bottom Sheet
+  void _showEditProfileSheet(BuildContext context) {
+    final profile = ProfileService();
+    final nameController = TextEditingController(text: profile.displayName.value);
+    final roleController = TextEditingController(text: profile.role.value);
+    final userController = TextEditingController(text: profile.username.value);
+    final passwordController = TextEditingController(text: profile.password.value);
+
+    bool obscurePassword = true;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2020),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                       'Edit Profil Pengguna',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontFamily: 'Sora',
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-              ),
-              Container(
-                width: 54,
-                height: 54,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF1E2020),
+                const SizedBox(height: 16),
+                const Text(
+                  'NAMA LENGKAP',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
                 ),
-                child: Center(
-                  child: Text(
-                    'MD',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: _activeAccent,
-                      fontFamily: 'Sora',
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.03),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'PERAN / JABATAN',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: roleController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.03),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'USERNAME (Kredensial Login)',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: userController,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.03),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'PASSWORD',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                StatefulBuilder(
+                  builder: (context, setStateObscure) {
+                    return TextField(
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.03),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                            color: Colors.white38,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setStateObscure(() {
+                              obscurePassword = !obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                ),
+                const SizedBox(height: 28),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _activeAccent,
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size.fromHeight(46),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-
-          // User info details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Mimah Dudim',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Administrator Rumah Pintar',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.55),
+                  onPressed: () {
+                    HapticFeedback.heavyImpact();
+                    profile.updateProfile(
+                      newDisplayName: nameController.text.trim(),
+                      newRole: roleController.text.trim(),
+                      newUsername: userController.text.trim(),
+                      newPassword: passwordController.text,
+                    );
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Profil berhasil diperbarui!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    'Simpan Perubahan',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Profile edit button
-          ClipOval(
-            child: Container(
-              color: Colors.white.withValues(alpha: 0.04),
-              child: IconButton(
-                icon: Icon(Icons.edit_rounded, color: _activeAccent, size: 18),
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Panel edit profil dinonaktifkan pada demonstrasi ini.')),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
