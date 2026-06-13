@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:firebase_core/firebase_core.dart' hide FirebaseService;
@@ -58,6 +59,7 @@ class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
   AudioPlayer? _sirenPlayer;
   bool _isAlarmRunning = false;
+  Timer? _alarmDebounceTimer;
 
   @override
   void initState() {
@@ -74,6 +76,7 @@ class _MainLayoutState extends State<MainLayout> {
     FirebaseService().stateNotifier.removeListener(_onStateChanged);
     SystemSettingsService().enableSound.removeListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.removeListener(_onSettingsChanged);
+    _alarmDebounceTimer?.cancel();
     _stopAlarmFeedback();
     super.dispose();
   }
@@ -92,14 +95,19 @@ class _MainLayoutState extends State<MainLayout> {
 
   void _onStateChanged() {
     if (!mounted) return;
-    final state = FirebaseService().stateNotifier.value;
-    final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
+    
+    _alarmDebounceTimer?.cancel();
+    _alarmDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      final state = FirebaseService().stateNotifier.value;
+      final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
 
-    if (isAlarmActive && !_isAlarmRunning) {
-      _startAlarmFeedback();
-    } else if (!isAlarmActive && _isAlarmRunning) {
-      _stopAlarmFeedback();
-    }
+      if (isAlarmActive && !_isAlarmRunning) {
+        _startAlarmFeedback();
+      } else if (!isAlarmActive && _isAlarmRunning) {
+        _stopAlarmFeedback();
+      }
+    });
   }
 
   void _startAlarmFeedback() async {
@@ -110,14 +118,28 @@ class _MainLayoutState extends State<MainLayout> {
     if (settings.enableSound.value) {
       try {
         _sirenPlayer ??= AudioPlayer();
-        // Gunakan alarm audio stream agar bunyi meski HP di-silent/vibrate
-        await _sirenPlayer?.setAudioContext(AudioContext(
-          android: AudioContextAndroid(
-            audioFocus: AndroidAudioFocus.gainTransient,
-            usageType: AndroidUsageType.alarm,
-            contentType: AndroidContentType.sonification,
-          ),
-        ));
+        
+        // Terpisah try-catch agar jika setAudioContext error, play tetap berjalan
+        try {
+          await _sirenPlayer?.setAudioContext(AudioContext(
+            android: AudioContextAndroid(
+              isSpeakerphoneOn: true,
+              stayAwake: true,
+              contentType: AndroidContentType.sonification,
+              usageType: AndroidUsageType.alarm,
+              audioFocus: AndroidAudioFocus.gainTransient,
+            ),
+            iOS: AudioContextIOS(
+              category: AVAudioSessionCategory.playback,
+              options: const {
+                AVAudioSessionOptions.mixWithOthers,
+              },
+            ),
+          ));
+        } catch (ctxError) {
+          debugPrint("Gagal menyetel AudioContext (menggunakan default): $ctxError");
+        }
+
         await _sirenPlayer?.setVolume(1.0);
         await _sirenPlayer?.setReleaseMode(ReleaseMode.loop);
         await _sirenPlayer?.play(AssetSource('sounds/siren.wav'));
@@ -130,8 +152,8 @@ class _MainLayoutState extends State<MainLayout> {
     // 2. Trigger strong continuous vibration pattern (repeat: -1 = infinite)
     if (settings.enableVibration.value) {
       try {
-        final bool hasVibrator = await Vibration.hasVibrator() ?? false;
-        if (hasVibrator == true) {
+        final bool hasVibrator = await Vibration.hasVibrator();
+        if (hasVibrator) {
           Vibration.vibrate(pattern: [0, 800, 400, 800], repeat: 0);
           debugPrint("Vibrasi dimulai");
         } else {

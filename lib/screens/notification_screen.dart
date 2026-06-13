@@ -53,9 +53,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
   Future<void> _handleRefresh() async {
     HapticFeedback.mediumImpact();
     await Future.delayed(const Duration(milliseconds: 800));
-    setState(() {
-      _service.triggerMockNotification();
-    });
+    if (mounted) setState(() {});
   }
 
   @override
@@ -249,7 +247,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
 
   // Filter Tabs
   Widget _buildFilterBar() {
-    final categories = ['All', 'Security', 'Climate', 'Energy', 'System'];
+    final categories = ['All', 'Security', 'Climate', 'System'];
     return Container(
       height: 38,
       margin: const EdgeInsets.only(bottom: 8),
@@ -430,7 +428,7 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 40.0),
                 child: Text(
-                  'Rumah pintar Anda berjalan normal. Tarik ke bawah untuk memindai pembaruan sistem.',
+                  'Rumah pintar Anda berjalan normal. Menunggu notif baru masuk...',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -438,23 +436,6 @@ class _NotificationScreenState extends State<NotificationScreen> with SingleTick
                     height: 1.3,
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              // Manual simulate button
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
-                  foregroundColor: Color(AppColors.secondaryContainer),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Color(AppColors.secondaryContainer), width: 0.5),
-                  ),
-                ),
-                icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text('Pindai Perangkat', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                onPressed: _handleRefresh,
               ),
               const SizedBox(height: 80), // Offset for list scroll feel
             ],

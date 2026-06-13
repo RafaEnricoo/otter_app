@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
+import '../models/notification_model.dart';
 import '../services/firebase_service.dart';
+import '../services/notification_service.dart';
+import '../widgets/quick_status_banner.dart';
 
 class MonitorScreen extends StatefulWidget {
   const MonitorScreen({super.key});
@@ -15,6 +18,7 @@ class MonitorScreen extends StatefulWidget {
 class _MonitorScreenState extends State<MonitorScreen> {
   // ─── Timeline State ───
   String _selectedTimeline = '7D'; // '24H', '7D', '30D'
+  String _selectedTempRoom = 'Kamar'; // 'Kamar' atau 'Dapur'
 
   // ─── Chart Tooltip Hover State ───
   int _hoveredBarIndex = -1;
@@ -35,6 +39,13 @@ class _MonitorScreenState extends State<MonitorScreen> {
       values: [26.0, 27.5, 29.0, 28.5, 27.2, 26.8],
       labels: ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
     ),
+    '24H_Kitchen': _ChartData(
+      avgText: '29.5°C',
+      deltaText: '+0.8°',
+      isDeltaPositive: true,
+      values: [27.5, 28.8, 30.2, 29.8, 28.5, 28.0],
+      labels: ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+    ),
     '7D': _ChartData(
       avgText: '28.0°C',
       deltaText: '+1.2°',
@@ -42,11 +53,25 @@ class _MonitorScreenState extends State<MonitorScreen> {
       values: [26.5, 27.0, 28.2, 27.8, 28.8, 29.5, 28.1],
       labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
     ),
+    '7D_Kitchen': _ChartData(
+      avgText: '29.1°C',
+      deltaText: '+1.5°',
+      isDeltaPositive: true,
+      values: [28.0, 28.5, 29.3, 29.0, 30.1, 30.5, 29.2],
+      labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+    ),
     '30D': _ChartData(
       avgText: '27.6°C',
       deltaText: '-0.6°',
       isDeltaPositive: false,
       values: [27.2, 28.0, 28.5, 27.9, 27.1, 26.8],
+      labels: ['Mg 1', 'Mg 2', 'Mg 3', 'Mg 4', 'Mg 5', 'Mg 6'],
+    ),
+    '30D_Kitchen': _ChartData(
+      avgText: '28.8°C',
+      deltaText: '-0.4°',
+      isDeltaPositive: false,
+      values: [28.2, 29.1, 29.5, 28.9, 28.3, 28.0],
       labels: ['Mg 1', 'Mg 2', 'Mg 3', 'Mg 4', 'Mg 5', 'Mg 6'],
     ),
   };
@@ -89,7 +114,6 @@ class _MonitorScreenState extends State<MonitorScreen> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 768;
-    final _ChartData activeData = _datasets[_selectedTimeline]!;
 
     return ValueListenableBuilder<SmarthomeState?>(
       valueListenable: FirebaseService().stateNotifier,
@@ -108,46 +132,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
         // Initialize local dial value if not set
         _localLuminance ??= sensor.cahayaAtap.toDouble();
 
-        // Activity logs built dynamically from live states
-        final List<_LogItem> dynamicLogs = [
-          if (sensor.dapurFlame > 0)
-            _LogItem(
-              icon: Icons.warning_rounded,
-              title: 'KRITIS: Terdeteksi nyala api di dapur!',
-              subtitle: 'Baru saja • Alarm Kebakaran Dapur',
-              accentColor: Colors.redAccent,
-              isVoice: false,
-            ),
-          if (perangkat.buzzerAlrm)
-            _LogItem(
-              icon: Icons.campaign_rounded,
-              title: 'Alarm Darurat Aktif',
-              subtitle: 'Aktif sekarang • Sirine Berbunyi',
-              accentColor: Colors.redAccent,
-              isVoice: false,
-            ),
-          _LogItem(
-            icon: Icons.lock_rounded,
-            title: perangkat.kunciPintuRfid ? 'RFID Pintu utama dikunci' : 'RFID Pintu utama dibuka',
-            subtitle: 'Real-time • Sinkronisasi Keamanan',
-            accentColor: Color(AppColors.secondaryContainer),
-            isVoice: false,
-          ),
-          _LogItem(
-            icon: Icons.lightbulb_rounded,
-            title: perangkat.lampuTamu ? 'Lampu Ruang Tamu dinyalakan' : 'Lampu Ruang Tamu dimatikan',
-            subtitle: 'Pembaruan langsung • Otomatisasi rumah',
-            accentColor: const Color(AppColors.tertiary),
-            isVoice: false,
-          ),
-          _LogItem(
-            icon: Icons.sensors_rounded,
-            title: 'Sensor cahaya atap diperbarui ke ${sensor.cahayaAtap}%',
-            subtitle: 'Telemetri LDR • Langsung',
-            accentColor: const Color(AppColors.tertiary),
-            isVoice: false,
-          ),
-        ];
+        final double liveTemp = _selectedTempRoom == 'Kamar' ? sensor.kamarSuhu : sensor.dapurSuhu;
+        final String dataKey = _selectedTempRoom == 'Kamar' ? _selectedTimeline : '${_selectedTimeline}_Kitchen';
+        final _ChartData activeData = _datasets[dataKey]!;
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -162,7 +149,18 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 // ─── Header Section ───
                 _buildHeader(isMobile),
                 
-                SizedBox(height: isMobile ? 24.0 : AppSpacing.stackLg),
+                const SizedBox(height: 16),
+
+                // ─── Quick Analytics Summary ───
+                _buildQuickAnalyticsRow(sensor, perangkat),
+
+                SizedBox(height: isMobile ? 20.0 : AppSpacing.stackMd),
+
+                // ─── Emergency Status/Warning Banner ───
+                if (sensor.dapurFlame > 0 || sensor.tamuGerak || perangkat.buzzerAlrm) ...[
+                  const QuickStatusBanner(alwaysShow: false),
+                  const SizedBox(height: 16),
+                ],
 
                 // ─── Responsive Bento Grid ───
                 LayoutBuilder(
@@ -178,7 +176,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                             children: [
                               Expanded(
                                 flex: 2,
-                                child: _buildTempChartCard(activeData, sensor.kamarSuhu),
+                                child: _buildTempChartCard(activeData, liveTemp),
                               ),
                               const SizedBox(width: AppSpacing.gutter),
                               Expanded(
@@ -193,12 +191,12 @@ class _MonitorScreenState extends State<MonitorScreen> {
                             children: [
                               Expanded(
                                 flex: 1,
-                                child: _buildHumidityCard(sensor.kamarKelembapan),
+                                child: _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
                               ),
                               const SizedBox(width: AppSpacing.gutter),
                               Expanded(
                                 flex: 2,
-                                child: _buildActivityCard(dynamicLogs),
+                                child: _buildActivityCard(),
                               ),
                             ],
                           ),
@@ -212,9 +210,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
                           Expanded(
                             child: Column(
                               children: [
-                                _buildTempChartCard(activeData, sensor.kamarSuhu),
+                                _buildTempChartCard(activeData, liveTemp),
                                 const SizedBox(height: AppSpacing.gutter),
-                                _buildHumidityCard(sensor.kamarKelembapan),
+                                _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
                               ],
                             ),
                           ),
@@ -224,7 +222,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                               children: [
                                 _buildLuminanceCard(_localLuminance!),
                                 const SizedBox(height: AppSpacing.gutter),
-                                _buildActivityCard(dynamicLogs),
+                                _buildActivityCard(),
                               ],
                             ),
                           ),
@@ -234,18 +232,23 @@ class _MonitorScreenState extends State<MonitorScreen> {
                       // Mobile Layout
                       return Column(
                         children: [
-                          _buildTempChartCard(activeData, sensor.kamarSuhu),
+                          _buildTempChartCard(activeData, liveTemp),
                           const SizedBox(height: AppSpacing.gutter),
                           _buildLuminanceCard(_localLuminance!),
                           const SizedBox(height: AppSpacing.gutter),
-                          _buildHumidityCard(sensor.kamarKelembapan),
+                          _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
                           const SizedBox(height: AppSpacing.gutter),
-                          _buildActivityCard(dynamicLogs),
+                          _buildActivityCard(),
                         ],
                       );
                     }
                   },
                 ),
+                const SizedBox(height: AppSpacing.gutter),
+
+                // ─── Room Status Summary ───
+                _buildRoomStatusSummary(sensor, perangkat),
+
                 const SizedBox(height: 48),
               ],
             ),
@@ -446,10 +449,51 @@ class _MonitorScreenState extends State<MonitorScreen> {
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.more_horiz_rounded),
-                    color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
-                    onPressed: () {},
+                  Container(
+                    height: 28,
+                    padding: const EdgeInsets.all(2.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      color: Colors.white.withValues(alpha: 0.03),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Row(
+                      children: ['Kamar', 'Dapur'].map((room) {
+                        final bool isSel = _selectedTempRoom == room;
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _selectedTempRoom = room;
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              color: isSel
+                                  ? Color(AppColors.secondaryContainer).withValues(alpha: 0.1)
+                                  : Colors.transparent,
+                            ),
+                            child: Text(
+                              room == 'Kamar' ? 'Kamar' : 'Dapur',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isSel
+                                    ? Color(AppColors.secondaryContainer)
+                                    : const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ],
               ),
@@ -710,7 +754,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─────────────────────────────────────────────────
   // D. Card 3: Humidity Gradient Progress Card
   // ─────────────────────────────────────────────────
-  Widget _buildHumidityCard(double liveHumid) {
+  Widget _buildHumidityCard(double kamarHumid, double dapurHumid) {
     return _MonitorGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -748,7 +792,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Sensor Ruangan',
+                  'Multi-Ruangan',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 9,
@@ -760,28 +804,103 @@ class _MonitorScreenState extends State<MonitorScreen> {
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
-          Text(
-            '${liveHumid.toInt()}%',
-            style: const TextStyle(
-              fontFamily: 'Sora',
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Color(AppColors.onSurface),
-            ),
+          // Room 1: Kamar Tidur
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Kamar Tidur',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(AppColors.onSurfaceVariant),
+                ),
+              ),
+              Text(
+                '${kamarHumid.toInt()}% RH',
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(AppColors.onSurface),
+                ),
+              ),
+            ],
           ),
-
-          const SizedBox(height: 12),
-
+          const SizedBox(height: 6),
           TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: liveHumid / 100.0),
+            tween: Tween<double>(begin: 0.0, end: kamarHumid / 100.0),
             duration: const Duration(seconds: 1),
             curve: Curves.easeOutCubic,
             builder: (context, val, _) {
               return Container(
                 width: double.infinity,
-                height: 8,
+                height: 6,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: const Color(AppColors.surfaceContainer),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    width: 1.0,
+                  ),
+                ),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: val,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(AppColors.surfaceVariant),
+                          Color(AppColors.secondaryContainer),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Room 2: Dapur
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Dapur',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(AppColors.onSurfaceVariant),
+                ),
+              ),
+              Text(
+                '${dapurHumid.toInt()}% RH',
+                style: const TextStyle(
+                  fontFamily: 'Sora',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(AppColors.onSurface),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: dapurHumid / 100.0),
+            duration: const Duration(seconds: 1),
+            curve: Curves.easeOutCubic,
+            builder: (context, val, _) {
+              return Container(
+                width: double.infinity,
+                height: 6,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
                   color: const Color(AppColors.surfaceContainer),
@@ -816,126 +935,516 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─────────────────────────────────────────────────
   // E. Card 4: Recent Action Logs
   // ─────────────────────────────────────────────────
-  Widget _buildActivityCard(List<_LogItem> activeLogs) {
-    final int displayCount = _isLogExpanded ? activeLogs.length : 3;
+  Widget _buildActivityCard() {
+    return ValueListenableBuilder<List<NotificationModel>>(
+      valueListenable: NotificationService().notificationsNotifier,
+      builder: (context, notifications, child) {
+        final List<_LogItem> activeLogs = notifications.map((n) {
+          IconData icon;
+          Color accentColor;
+          switch (n.category) {
+            case NotificationCategory.security:
+              icon = n.priority == NotificationPriority.critical
+                  ? Icons.warning_rounded
+                  : Icons.shield_rounded;
+              accentColor = n.priority == NotificationPriority.critical
+                  ? const Color(0xFFFF4963)
+                  : Color(AppColors.secondaryContainer);
+              break;
+            case NotificationCategory.climate:
+              icon = Icons.thermostat_rounded;
+              accentColor = const Color(0xFFFFB300);
+              break;
+            case NotificationCategory.energy:
+              icon = Icons.bolt_rounded;
+              accentColor = Color(AppColors.secondaryContainer);
+              break;
+            case NotificationCategory.system:
+              icon = Icons.settings_suggest_rounded;
+              accentColor = const Color(AppColors.tertiary);
+              break;
+          }
 
+          String timeStr = 'Baru saja';
+          final difference = DateTime.now().difference(n.timestamp);
+          if (difference.inMinutes >= 1) {
+            if (difference.inMinutes < 60) {
+              timeStr = '${difference.inMinutes}m yang lalu';
+            } else if (difference.inHours < 24) {
+              timeStr = '${difference.inHours}j yang lalu';
+            } else {
+              timeStr = '${difference.inDays}h yang lalu';
+            }
+          }
+
+          return _LogItem(
+            icon: icon,
+            title: n.title,
+            subtitle: '$timeStr • ${n.message}',
+            accentColor: accentColor,
+            isVoice: false,
+          );
+        }).toList();
+
+        final int displayCount = _isLogExpanded ? activeLogs.length : 3;
+        final int actualCount = math.min(displayCount, activeLogs.length);
+
+        return _MonitorGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.history_rounded,
+                        color: Color(AppColors.onSurfaceVariant),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'AKTIVITAS TERKINI',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (activeLogs.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        setState(() {
+                          _isLogExpanded = !_isLogExpanded;
+                        });
+                      },
+                      child: Text(
+                        _isLogExpanded ? 'Lebih Sedikit' : 'Lihat Semua',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(AppColors.secondaryContainer),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (activeLogs.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20.0),
+                  child: Center(
+                    child: Text(
+                      'Tidak ada aktivitas terbaru',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: actualCount,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final _LogItem item = activeLogs[index];
+
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.transparent,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              item.icon,
+                              size: 20,
+                              color: item.accentColor,
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.title,
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(AppColors.onSurface),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item.subtitle,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ─── E. Helper: Quick Analytics Summary Row ───
+  Widget _buildQuickAnalyticsRow(SmarthomeSensor sensor, SmarthomePerangkat perangkat) {
+    int activeCount = 0;
+    if (perangkat.lampuKamar) activeCount++;
+    if (perangkat.lampuTamu) activeCount++;
+    if (perangkat.lampuKamarMandi) activeCount++;
+    if (perangkat.lampuDapur) activeCount++;
+    if (perangkat.kipasKamar) activeCount++;
+    if (perangkat.ledMerahDapur) activeCount++;
+    if (perangkat.buzzerAlrm) activeCount++;
+    if (!perangkat.kunciPintuRfid) activeCount++; // unlocked is considered active / open
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final bool isSmall = width < 600;
+
+        final List<Widget> items = [
+          _buildMiniAnalyticCard(
+            title: 'PERANGKAT AKTIF',
+            value: '$activeCount dari 8',
+            subtitle: 'Lampu, Kipas, Alarm',
+            icon: Icons.bolt_rounded,
+            iconColor: Color(AppColors.secondaryContainer),
+          ),
+          _buildMiniAnalyticCard(
+            title: 'KEAMANAN AREA',
+            value: sensor.tamuGerak ? 'ADA GERAKAN' : 'KONDISI AMAN',
+            subtitle: perangkat.kunciPintuRfid ? 'RFID: Terkunci' : 'RFID: Terbuka',
+            icon: sensor.tamuGerak ? Icons.sensors_rounded : Icons.shield_rounded,
+            iconColor: sensor.tamuGerak ? const Color(0xFFFF4963) : const Color(0xFF00E676),
+            valueColor: sensor.tamuGerak ? const Color(0xFFFF4963) : const Color(0xFF00E676),
+          ),
+          _buildMiniAnalyticCard(
+            title: 'DETEKTOR API',
+            value: sensor.dapurFlame > 0 ? 'BAHAYA API!' : 'NORMAL',
+            subtitle: sensor.dapurFlame > 0 ? 'Deteksi di Dapur' : 'Aman dari Asap/Api',
+            icon: sensor.dapurFlame > 0 ? Icons.local_fire_department_rounded : Icons.smoke_free_rounded,
+            iconColor: sensor.dapurFlame > 0 ? const Color(0xFFFF4963) : const Color(0xFF00E676),
+            valueColor: sensor.dapurFlame > 0 ? const Color(0xFFFF4963) : const Color(0xFF00E676),
+            glowColor: sensor.dapurFlame > 0 ? const Color(0xFFFF4963).withValues(alpha: 0.1) : null,
+          ),
+        ];
+
+        if (isSmall) {
+          return SizedBox(
+            height: 96,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: items.length,
+              separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.gutter),
+              itemBuilder: (context, index) {
+                return SizedBox(
+                  width: width * 0.75,
+                  child: items[index],
+                );
+              },
+            ),
+          );
+        } else {
+          return Row(
+            children: items.map((widget) => Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: widget,
+              ),
+            )).toList()..last = Expanded(child: items.last),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildMiniAnalyticCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    Color? valueColor,
+    Color? glowColor,
+  }) {
+    return _MonitorGlassCard(
+      glowColor: glowColor,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: iconColor.withValues(alpha: 0.08),
+              border: Border.all(
+                color: iconColor.withValues(alpha: 0.15),
+              ),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Sora',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: valueColor ?? const Color(AppColors.onSurface),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 9,
+                    color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── F. Helper: Room Status Summary Widget ───
+  Widget _buildRoomStatusSummary(SmarthomeSensor sensor, SmarthomePerangkat perangkat) {
     return _MonitorGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.history_rounded,
-                    color: Color(AppColors.onSurfaceVariant),
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'AKTIVITAS TERKINI',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
+              const Icon(
+                Icons.grid_view_rounded,
+                color: Color(AppColors.onSurfaceVariant),
+                size: 18,
               ),
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.mediumImpact();
-                  setState(() {
-                    _isLogExpanded = !_isLogExpanded;
-                  });
-                },
-                child: Text(
-                  _isLogExpanded ? 'Lebih Sedikit' : 'Lihat Semua',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(AppColors.secondaryContainer),
-                  ),
+              const SizedBox(width: 8),
+              Text(
+                'STATUS PER RUANGAN',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
+                  letterSpacing: 0.8,
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 16),
-
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: displayCount,
-              separatorBuilder: (context, index) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final _LogItem item = activeLogs[index];
-
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: Colors.transparent,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        item.icon,
-                        size: 20,
-                        color: item.accentColor,
-                        shadows: item.isVoice 
-                            ? [
-                                Shadow(
-                                  color: item.accentColor.withValues(alpha: 0.6),
-                                  blurRadius: 8,
-                                )
-                              ] 
-                            : null,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(AppColors.onSurface),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              item.subtitle,
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+          const SizedBox(height: 20),
+          _buildRoomSummaryRow(
+            roomName: 'Kamar Tidur',
+            icon: Icons.bedroom_parent_rounded,
+            devicesText: 'Lampu: ${perangkat.lampuKamar ? 'ON' : 'OFF'}  •  Kipas: ${perangkat.kipasKamar ? 'ON (Spd ${perangkat.kecepatanKipas})' : 'OFF'}',
+            sensorsText: '${sensor.kamarSuhu.toStringAsFixed(1)}°C  •  ${sensor.kamarKelembapan.toInt()}% RH',
+            isAlert: false,
+          ),
+          const Divider(height: 24, color: Colors.white10),
+          _buildRoomSummaryRow(
+            roomName: 'Dapur',
+            icon: Icons.kitchen_rounded,
+            devicesText: 'Lampu: ${perangkat.lampuDapur ? 'ON' : 'OFF'}  •  Led Merah: ${perangkat.ledMerahDapur ? 'ON' : 'OFF'}',
+            sensorsText: '${sensor.dapurSuhu.toStringAsFixed(1)}°C  •  ${sensor.dapurKelembapan.toInt()}% RH${sensor.dapurFlame > 0 ? '  •  ⚠ API!' : ''}',
+            isAlert: sensor.dapurFlame > 0,
+            alertText: 'Peringatan Api!',
+          ),
+          const Divider(height: 24, color: Colors.white10),
+          _buildRoomSummaryRow(
+            roomName: 'Ruang Tamu',
+            icon: Icons.weekend_rounded,
+            devicesText: 'Lampu: ${perangkat.lampuTamu ? 'ON' : 'OFF'}',
+            sensorsText: sensor.tamuGerak ? '⚠ Gerakan Terdeteksi' : 'Gerakan: Aman',
+            isAlert: sensor.tamuGerak,
+            alertText: 'Gerakan!',
+          ),
+          const Divider(height: 24, color: Colors.white10),
+          _buildRoomSummaryRow(
+            roomName: 'Kamar Mandi',
+            icon: Icons.bathroom_rounded,
+            devicesText: 'Lampu: ${perangkat.lampuKamarMandi ? 'ON' : 'OFF'}',
+            sensorsText: 'Kondisi Normal',
+            isAlert: false,
+          ),
+          const Divider(height: 24, color: Colors.white10),
+          _buildRoomSummaryRow(
+            roomName: 'Eksterior & Keamanan',
+            icon: Icons.home_work_rounded,
+            devicesText: 'RFID: ${perangkat.kunciPintuRfid ? 'TERKUNCI' : 'TERBUKA'}  •  Sirine: ${perangkat.buzzerAlrm ? 'AKTIF' : 'MATI'}',
+            sensorsText: 'Atap: ${sensor.cahayaAtap}% Cahaya',
+            isAlert: perangkat.buzzerAlrm,
+            alertText: 'Sirine Aktif!',
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRoomSummaryRow({
+    required String roomName,
+    required IconData icon,
+    required String devicesText,
+    required String sensorsText,
+    required bool isAlert,
+    String? alertText,
+  }) {
+    final alertColor = const Color(0xFFFF4963);
+    final accentColor = isAlert ? alertColor : Color(AppColors.secondaryContainer);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: accentColor.withValues(alpha: 0.08),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.15),
+            ),
+          ),
+          child: Icon(icon, color: accentColor, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    roomName,
+                    style: const TextStyle(
+                      fontFamily: 'Sora',
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(AppColors.onSurface),
+                    ),
+                  ),
+                  if (isAlert) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: alertColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: alertColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        alertText ?? 'Pemicu Terdeteksi',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: alertColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                devicesText,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              sensorsText,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontFamily: 'Sora',
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isAlert ? alertColor : const Color(AppColors.onSurface),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isAlert ? 'PERHATIAN' : 'SINKRON',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: isAlert ? alertColor : const Color(0xFF00E676),
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -946,17 +1455,19 @@ class _MonitorScreenState extends State<MonitorScreen> {
 class _MonitorGlassCard extends StatelessWidget {
   final Widget child;
   final Color? glowColor;
+  final EdgeInsetsGeometry? padding;
 
   const _MonitorGlassCard({
     required this.child,
     this.glowColor,
+    this.padding,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: padding ?? const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         color: Colors.white.withValues(alpha: 0.04),

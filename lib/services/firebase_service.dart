@@ -164,6 +164,60 @@ class FirebaseService {
   Future<void> updatePerangkat(String key, dynamic value) async {
     if (_localState == null) return;
 
+    final currentVal = _localState!.perangkat.toMap()[key];
+    if (currentVal == value) return; // No change, don't log duplication
+
+    // Log the change event to Notification Service
+    String? title;
+    String? message;
+    NotificationCategory category = NotificationCategory.system;
+    NotificationPriority priority = NotificationPriority.info;
+
+    if (key == 'lampu_kamar') {
+      title = value == true ? 'Lampu Kamar Menyala' : 'Lampu Kamar Mati';
+      message = 'Lampu Kamar tidur telah ${value == true ? 'dinyalakan' : 'dimatikan'}.';
+      category = NotificationCategory.system;
+    } else if (key == 'lampu_tamu') {
+      title = value == true ? 'Lampu Tamu Menyala' : 'Lampu Tamu Mati';
+      message = 'Lampu Ruang Tamu telah ${value == true ? 'dinyalakan' : 'dimatikan'}.';
+      category = NotificationCategory.system;
+    } else if (key == 'lampu_kamar_mandi') {
+      title = value == true ? 'Lampu Kamar Mandi Menyala' : 'Lampu Kamar Mandi Mati';
+      message = 'Lampu Kamar Mandi telah ${value == true ? 'dinyalakan' : 'dimatikan'}.';
+      category = NotificationCategory.system;
+    } else if (key == 'lampu_dapur') {
+      title = value == true ? 'Lampu Dapur Menyala' : 'Lampu Dapur Mati';
+      message = 'Lampu Dapur telah ${value == true ? 'dinyalakan' : 'dimatikan'}.';
+      category = NotificationCategory.system;
+    } else if (key == 'kipas_kamar') {
+      title = value == true ? 'Kipas Kamar Aktif' : 'Kipas Kamar Mati';
+      message = 'Kipas Kamar tidur telah ${value == true ? 'dinyalakan' : 'dimatikan'}.';
+      category = NotificationCategory.climate;
+    } else if (key == 'buzzer_alrm') {
+      title = value == true ? 'Sirine Rumah Aktif' : 'Sirine Rumah Siaga';
+      message = 'Sirine keamanan darurat telah ${value == true ? 'diaktifkan' : 'dinonaktifkan'}.';
+      category = NotificationCategory.security;
+      priority = value == true ? NotificationPriority.critical : NotificationPriority.info;
+    } else if (key == 'kunci_pintu_rfid') {
+      title = value == true ? 'RFID Pintu Terkunci' : 'RFID Pintu Terbuka';
+      message = 'Pintu utama berhasil ${value == true ? 'dikunci secara aman' : 'dibuka menggunakan akses RFID/Biometrik'}.';
+      category = NotificationCategory.security;
+      priority = value == true ? NotificationPriority.info : NotificationPriority.warning;
+    } else if (key == 'kecepatan_kipas') {
+      title = 'Kecepatan Kipas Diubah';
+      message = 'Kecepatan kipas kamar tidur disetel ke tingkat ${value == 255 ? '3 (Maksimal)' : value == 170 ? '2 (Sedang)' : '1 (Rendah)'}.';
+      category = NotificationCategory.climate;
+    }
+
+    if (title != null && message != null) {
+      NotificationService().addNotification(
+        title: title,
+        message: message,
+        category: category,
+        priority: priority,
+      );
+    }
+
     final bool disableAutoLampu = (key == 'lampu_kamar' || key == 'lampu_tamu' || key == 'lampu_dapur');
     final bool disableAutoKipas = (key == 'kipas_kamar');
 
@@ -199,8 +253,76 @@ class FirebaseService {
     }
   }
 
+  Future<void> disarmAllAlarms() async {
+    if (_localState == null) return;
+
+    // Cancel blinker timer
+    _flameBlinkerTimer?.cancel();
+    _flameBlinkerTimer = null;
+
+    NotificationService().addNotification(
+      title: 'Sistem Keamanan Dinonaktifkan',
+      message: 'Seluruh alarm, sirine, dan sensor bahaya berhasil dinonaktifkan (disarmed).',
+      category: NotificationCategory.security,
+      priority: NotificationPriority.info,
+    );
+
+    if (_isUsingFallback) {
+      final perangkatMap = _localState!.perangkat.toMap();
+      perangkatMap['buzzer_alrm'] = false;
+      perangkatMap['led_merah_dapur'] = false;
+
+      final sensorMap = _localState!.sensor.toMap();
+      sensorMap['tamu_gerak'] = false;
+      sensorMap['dapur_flame'] = 0;
+
+      _localState = _localState!.copyWith(
+        perangkat: SmarthomePerangkat.fromMap(perangkatMap),
+        sensor: SmarthomeSensor.fromMap(sensorMap),
+      );
+      stateNotifier.value = _localState;
+    } else {
+      final Map<String, dynamic> updates = {
+        'perangkat/buzzer_alrm': false,
+        'perangkat/led_merah_dapur': false,
+        'sensor/tamu_gerak': false,
+        'sensor/dapur_flame': 0,
+      };
+      await _dbRef.update(updates);
+    }
+  }
+
   Future<void> updateOtomatisasi(String key, dynamic value) async {
     if (_localState == null) return;
+
+    final currentVal = _localState!.otomatisasi.toMap()[key];
+    if (currentVal == value) return; // No change, don't log duplication
+
+    // Log update otomatisasi
+    String? title;
+    String? message;
+    if (key == 'mode_auto_lampu') {
+      title = value == true ? 'Otomatisasi Lampu Aktif' : 'Otomatisasi Lampu Mati';
+      message = 'Mode otomatisasi lampu berdasarkan sensor cahaya atap telah ${value == true ? 'diaktifkan' : 'dimatikan'}.';
+    } else if (key == 'mode_auto_kipas') {
+      title = value == true ? 'Otomatisasi Kipas Aktif' : 'Otomatisasi Kipas Mati';
+      message = 'Mode otomatisasi kipas berdasarkan suhu kamar telah ${value == true ? 'diaktifkan' : 'dimatikan'}.';
+    } else if (key == 'batas_gelap_lampu') {
+      title = 'Ambang Cahaya Diperbarui';
+      message = 'Ambang batas kegelapan sensor LDR disetel ke $value%.';
+    } else if (key == 'batas_panas_kamar') {
+      title = 'Ambang Suhu Diperbarui';
+      message = 'Ambang batas panas kamar disetel ke ${value.toStringAsFixed(1)}°C.';
+    }
+
+    if (title != null && message != null) {
+      NotificationService().addNotification(
+        title: title,
+        message: message,
+        category: NotificationCategory.system,
+        priority: NotificationPriority.info,
+      );
+    }
 
     if (_isUsingFallback) {
       final otomatisasiMap = _localState!.otomatisasi.toMap();

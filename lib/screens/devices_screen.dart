@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../services/firebase_service.dart';
+import '../widgets/quick_status_banner.dart';
 
 class DevicesScreen extends StatefulWidget {
   const DevicesScreen({super.key});
@@ -56,12 +57,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ─── Emergency FIRE DETECTED Notification overlay banner ───
-                if (isFlameWarning) ...[
-                  _buildEmergencyBanner(),
-                  const SizedBox(height: 16),
-                ],
-
                 // ─── Page Intro header (Desktop only) ───
                 if (!isMobile) ...[
                   const Text(
@@ -84,6 +79,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
+                ],
+
+                // ─── Emergency Status/Warning Banner ───
+                if (sensor.dapurFlame > 0 || sensor.tamuGerak || perangkat.buzzerAlrm) ...[
+                  const QuickStatusBanner(alwaysShow: false),
+                  const SizedBox(height: 16),
                 ],
 
                 // ─── Room: Living Room ───
@@ -701,12 +702,30 @@ class _DevicesScreenState extends State<DevicesScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    hasFlame ? '🚨 NYALA API TERDETEKSI' : '✅ KONDISI DAPUR AMAN',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: hasFlame ? const Color(AppColors.error) : Colors.green,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        hasFlame
+                            ? Icons.local_fire_department_rounded
+                            : Icons.check_circle_rounded,
+                        color: hasFlame
+                            ? const Color(AppColors.error)
+                            : Colors.green,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        hasFlame ? 'NYALA API TERDETEKSI' : 'KONDISI DAPUR AMAN',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: hasFlame
+                              ? const Color(AppColors.error)
+                              : Colors.green,
+                        ),
+                      ),
+                    ],
                   ),
                   CustomToggleSwitch(
                     value: hasFlame,
@@ -740,12 +759,26 @@ class _DevicesScreenState extends State<DevicesScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    hasMotion ? '🚨 ADA PERGERAKAN' : '✅ KONDISI SUNYI / AMAN',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: hasMotion ? Colors.orange : Colors.green,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        hasMotion
+                            ? Icons.directions_run_rounded
+                            : Icons.check_circle_rounded,
+                        color: hasMotion ? Colors.orange : Colors.green,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        hasMotion ? 'ADA PERGERAKAN' : 'KONDISI SUNYI / AMAN',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: hasMotion ? Colors.orange : Colors.green,
+                        ),
+                      ),
+                    ],
                   ),
                   CustomToggleSwitch(
                     value: hasMotion,
@@ -763,70 +796,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     );
   }
 
-  // Helper Widget: Emergency gas leak banner
-  Widget _buildEmergencyBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(AppColors.error).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(AppColors.error).withValues(alpha: 0.4),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(AppColors.error).withValues(alpha: 0.08),
-            blurRadius: 16,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.warning_rounded, color: Color(AppColors.error), size: 24),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '🚨 BAHAYA: TERDETEKSI API / KEBAKARAN!',
-                  style: TextStyle(
-                    fontFamily: 'Sora',
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Color(AppColors.error),
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Flame sensor mendeteksi nyala api di dapur. LED Merah & sirine menyala otomatis.',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(AppColors.error),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () {
-              // Clear alarm by setting smoke to 0
-              FirebaseService().updateSensor('dapur_asap_api', 0);
-            },
-            child: const Text('CLEAR', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   // Helper Widget: Custom Glass Card Builders for LED Card
   Widget _buildLEDCard({

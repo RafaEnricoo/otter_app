@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:speech_to_text/speech_to_text.dart' show SpeechListenOptions;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../core/constants.dart';
@@ -35,6 +34,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
   _VoiceState _voiceState = _VoiceState.idle;
   String _transcriptText = '';
   String _feedbackText = '';
+  bool _isCommandProcessed = false;
 
   // ─── Animations ───
   late AnimationController _entryController;
@@ -144,8 +144,8 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                 _feedbackText = 'Suara tidak terdengar';
                 _tts.speak('Suara tidak terdengar');
               } else {
-                _feedbackText = 'Gagal menggunakan mic';
-                _tts.speak('Gagal menggunakan mik');
+                _feedbackText = 'Gagal mengenali suara, coba lagi';
+                _tts.speak('Gagal mengenali suara, silakan coba lagi');
               }
             });
           }
@@ -177,13 +177,14 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     }
 
     _listeningTimeoutTimer?.cancel();
-    _listeningTimeoutTimer = Timer(const Duration(seconds: 7), () {
+    _listeningTimeoutTimer = Timer(const Duration(seconds: 9), () {
       if (mounted && _voiceState == _VoiceState.listening) {
         print("Speech timeout: tidak ada respon terdeteksi. Menghentikan...");
-        _speech.stop();
         _processVoiceCommand('');
       }
     });
+    
+    _isCommandProcessed = false;
 
     HapticFeedback.mediumImpact();
     setState(() {
@@ -200,12 +201,12 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
             setState(() {
               _transcriptText = '"${result.recognizedWords}"';
             });
-            // Segera proses dan hentikan saat hasil final tersedia
-            if (result.finalResult && result.recognizedWords.isNotEmpty) {
-              _listeningTimeoutTimer?.cancel();
-              _listeningTimeoutTimer = null;
-              _speech.stop();
-              _processVoiceCommand(result.recognizedWords);
+            final recognizedWords = result.recognizedWords;
+            if (_checkIfCommandIsMatched(recognizedWords)) {
+              _stopListening();
+              _processVoiceCommand(recognizedWords);
+            } else if (result.finalResult) {
+              _processVoiceCommand(recognizedWords);
             }
           }
         },
@@ -216,13 +217,13 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
             });
           }
         },
-        listenOptions: SpeechListenOptions(
-          localeId: 'id_ID',
-          listenFor: const Duration(seconds: 7),
-          pauseFor: const Duration(milliseconds: 900), // Kurangi jeda tunggu → lebih cepat finalize
-          partialResults: true,   // Tampilkan kata real-time
-          cancelOnError: false,   // Jangan batalkan saat error minor
-          onDevice: false,        // Gunakan cloud STT Google untuk akurasi lebih baik
+        localeId: 'id_ID', // Set default to Indonesian speech
+        listenFor: const Duration(seconds: 8),
+        pauseFor: const Duration(seconds: 4),
+        listenOptions: stt.SpeechListenOptions(
+          onDevice: false,
+          listenMode: stt.ListenMode.dictation,
+          partialResults: true,
         ),
       );
     } catch (e) {
@@ -245,7 +246,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     _listeningTimeoutTimer?.cancel();
     _listeningTimeoutTimer = null;
     await _speech.stop();
-    if (mounted) {
+    if (mounted && !_isCommandProcessed) {
       setState(() {
         _voiceState = _VoiceState.processing;
         _soundLevel = 0.0;
@@ -253,7 +254,67 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     }
   }
 
+  bool _checkIfCommandIsMatched(String command) {
+    final cmd = command.toLowerCase().trim();
+    if (cmd.isEmpty) return false;
+
+    // Aksi aktif/nyala
+    final hasActive = cmd.contains('hidup') ||
+        cmd.contains('nyala') ||
+        cmd.contains('on') ||
+        cmd.contains('buka') ||
+        cmd.contains('aktif');
+
+    // Aksi nonaktif/mati
+    final hasInactive = cmd.contains('mati') ||
+        cmd.contains('tutup') ||
+        cmd.contains('off') ||
+        cmd.contains('kunci') ||
+        cmd.contains('nonaktif');
+
+    if (!hasActive && !hasInactive) return false;
+
+    // Check device types
+    final hasLampu = cmd.contains('lampu');
+    final hasKipas = cmd.contains('kipas');
+    final hasAlarm = cmd.contains('alarm') || cmd.contains('sirine') || cmd.contains('buzzer');
+    final hasPintu = cmd.contains('pintu') || cmd.contains('gerbang') || cmd.contains('kunci');
+
+    if (hasLampu) {
+      final hasAuto = cmd.contains('auto') || cmd.contains('otomatis');
+      final hasMandi = cmd.contains('mandi');
+      final hasTamu = cmd.contains('tamu') || cmd.contains('ruang tamu');
+      final hasDapur = cmd.contains('dapur');
+      final hasKamar = cmd.contains('kamar');
+
+      // Jika ada kata mandi, tamu, dapur, atau auto -> langsung cocok secara parsial
+      if (hasAuto || hasMandi || hasTamu || hasDapur) {
+        return true;
+      }
+
+      // Jika hanya mengandung kata 'kamar' tanpa 'mandi', jangan potong mic di tengah jalan.
+      // Kembalikan false agar mic terus merekam suara penuh (siapa tahu pengguna mau bilang 'kamar mandi').
+      // Jika pengguna sudah selesai bicara, block finalResult di onResult yang akan mengeksekusi 'lampu kamar'.
+      if (hasKamar && !hasMandi) {
+        return false;
+      }
+    }
+
+    if (hasKipas) {
+      return true;
+    }
+
+    if (hasAlarm || hasPintu) {
+      return true;
+    }
+
+    return false;
+  }
+
   void _processVoiceCommand(String command) async {
+    if (_isCommandProcessed) return;
+    _isCommandProcessed = true;
+
     _listeningTimeoutTimer?.cancel();
     _listeningTimeoutTimer = null;
     if (command.isEmpty) {
@@ -432,7 +493,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           cmd.contains('sirine') ||
           cmd.contains('buzzer')) {
         final bool alreadyOff = !(currentState?.perangkat.buzzerAlrm ?? true);
-        await FirebaseService().updatePerangkat('buzzer_alrm', false);
+        await FirebaseService().disarmAllAlarms();
         responseText = alreadyOff
             ? 'Alarm darurat sudah mati'
             : 'Alarm darurat dimatikan';
@@ -710,12 +771,17 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
                 
             double amplitude = 1.0;
             if (_voiceState == _VoiceState.listening) {
-              // Normalize sound level (ranges from -2.0 to 10.0)
-              final clamped = _soundLevel.clamp(-2.0, 10.0);
-              amplitude = (clamped + 2.0) / 12.0;
-              amplitude = amplitude.clamp(0.04, 1.0); // Baseline so it doesn't disappear completely
+              // Noise gate: jika soundLevel di bawah 2.0 dB, anggap hening (hanya detak baseline sangat tipis)
+              if (_soundLevel < 2.0) {
+                amplitude = 0.05;
+              } else {
+                // Skala suara aktif dari 2.0 dB ke 10.0 dB
+                final clamped = _soundLevel.clamp(2.0, 10.0);
+                amplitude = (clamped - 2.0) / 8.0;
+                amplitude = amplitude.clamp(0.05, 1.0);
+              }
             } else if (_voiceState == _VoiceState.processing) {
-              amplitude = 0.25; // Gentle constant wave while thinking
+              amplitude = 0.20; // Gentle constant wave while thinking
             }
 
             final heightFactor = 0.08 + (waveValue * 0.92 * amplitude);

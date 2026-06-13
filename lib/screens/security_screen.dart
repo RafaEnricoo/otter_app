@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../services/firebase_service.dart';
+import '../widgets/quick_status_banner.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -60,8 +61,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     if (isCurrentlyActive) {
       // Disarm Alarm
       HapticFeedback.heavyImpact();
-      FirebaseService().updatePerangkat('buzzer_alrm', false);
-      FirebaseService().updatePerangkat('led_merah_dapur', false);
+      FirebaseService().disarmAllAlarms();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -298,6 +298,12 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     _buildHeader(isMobile, isAlarmActive),
                     
                     SizedBox(height: isMobile ? 24.0 : AppSpacing.stackLg),
+
+                    // ─── Emergency Status/Warning Banner ───
+                    if (sensor.dapurFlame > 0 || sensor.tamuGerak || perangkat.buzzerAlrm) ...[
+                      const QuickStatusBanner(alwaysShow: false),
+                      const SizedBox(height: 16),
+                    ],
 
                     LayoutBuilder(
                       builder: (context, constraints) {

@@ -26,10 +26,11 @@ class GlassCard extends StatelessWidget {
         valueListenable: SystemSettingsService().glassOpacity,
         builder: (context, opacity, _) {
           return Container(
+            padding: padding,
             decoration: BoxDecoration(
               borderRadius: borderRadius,
               color: isActive
-                  ? Color(AppColors.secondaryContainer).withValues(alpha: opacity)
+                  ? Color(AppColors.secondaryContainer).withValues(alpha: opacity < 0.1 ? 0.06 : opacity * 0.15)
                   : Colors.white.withValues(alpha: opacity),
               border: Border.all(
                 color: isActive
@@ -46,20 +47,7 @@ class GlassCard extends StatelessWidget {
                   ),
               ],
             ),
-            child: BackdropFilter(
-              filter: const ColorFilter.mode(
-                Colors.transparent,
-                BlendMode.multiply,
-              ),
-              child: Container(
-                padding: padding,
-                decoration: BoxDecoration(
-                  borderRadius: borderRadius,
-                  color: Colors.transparent,
-                ),
-                child: child,
-              ),
-            ),
+            child: child,
           );
         },
       ),

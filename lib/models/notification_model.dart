@@ -64,12 +64,20 @@ class NotificationModel {
 
   factory NotificationModel.fromMap(Map<dynamic, dynamic> map) {
     return NotificationModel(
-      id: map['id'] as String,
-      title: map['title'] as String,
-      message: map['message'] as String,
-      timestamp: DateTime.parse(map['timestamp'] as String),
-      category: NotificationCategory.values.byName(map['category'] as String),
-      priority: NotificationPriority.values.byName(map['priority'] as String),
+      id: (map['id'] ?? '') as String,
+      title: (map['title'] ?? '') as String,
+      message: (map['message'] ?? '') as String,
+      timestamp: map['timestamp'] != null
+          ? DateTime.parse(map['timestamp'] as String)
+          : DateTime.now(),
+      category: NotificationCategory.values.firstWhere(
+        (e) => e.name == map['category'],
+        orElse: () => NotificationCategory.system,
+      ),
+      priority: NotificationPriority.values.firstWhere(
+        (e) => e.name == map['priority'],
+        orElse: () => NotificationPriority.info,
+      ),
       isRead: (map['isRead'] ?? false) as bool,
     );
   }
