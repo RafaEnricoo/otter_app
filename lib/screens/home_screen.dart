@@ -8,6 +8,7 @@ import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
 import '../services/system_settings_service.dart';
 import '../widgets/quick_status_banner.dart';
+import '../widgets/animated_temp_text.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -80,10 +81,6 @@ class HomeScreen extends StatelessWidget {
                     ValueListenableBuilder<bool>(
                       valueListenable: SystemSettingsService().tempScaleCelsius,
                       builder: (context, isCelsius, _) {
-                        final double kamarTemp = isCelsius ? sensor.kamarSuhu : (sensor.kamarSuhu * 1.8 + 32);
-                        final double dapurTemp = isCelsius ? sensor.dapurSuhu : (sensor.dapurSuhu * 1.8 + 32);
-                        final String tempSuffix = isCelsius ? '°C' : '°F';
-
                         return Column(
                           children: [
                             Row(
@@ -92,7 +89,18 @@ class HomeScreen extends StatelessWidget {
                                   child: _SensorCard(
                                     icon: Icons.device_thermostat_rounded,
                                     trend: Icons.trending_up_rounded,
-                                    value: '${kamarTemp.toStringAsFixed(1)}$tempSuffix',
+                                    value: '',
+                                    valueWidget: AnimatedTempText(
+                                      celsiusValue: sensor.kamarSuhu,
+                                      isCelsius: isCelsius,
+                                      style: const TextStyle(
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(AppColors.onSurface),
+                                        letterSpacing: -1.0,
+                                        height: 1.0,
+                                      ),
+                                    ),
                                     label: 'Suhu Kamar',
                                     trendLabel: 'Optimal',
                                     trendColor: const Color(0xFF81C784),
@@ -120,7 +128,18 @@ class HomeScreen extends StatelessWidget {
                                   child: _SensorCard(
                                     icon: Icons.device_thermostat_rounded,
                                     trend: Icons.trending_up_rounded,
-                                    value: '${dapurTemp.toStringAsFixed(1)}$tempSuffix',
+                                    value: '',
+                                    valueWidget: AnimatedTempText(
+                                      celsiusValue: sensor.dapurSuhu,
+                                      isCelsius: isCelsius,
+                                      style: const TextStyle(
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(AppColors.onSurface),
+                                        letterSpacing: -1.0,
+                                        height: 1.0,
+                                      ),
+                                    ),
                                     label: 'Suhu Dapur',
                                     trendLabel: 'Hangat',
                                     trendColor: const Color(0xFFFFB74D),
@@ -596,6 +615,7 @@ class _SensorCard extends StatefulWidget {
   final IconData icon;
   final IconData trend;
   final String value;
+  final Widget? valueWidget;
   final String label;
   final String trendLabel;
   final Color trendColor;
@@ -605,6 +625,7 @@ class _SensorCard extends StatefulWidget {
     required this.icon,
     required this.trend,
     required this.value,
+    this.valueWidget,
     required this.label,
     required this.trendLabel,
     required this.trendColor,
@@ -697,7 +718,7 @@ class _SensorCardState extends State<_SensorCard>
           ),
           const SizedBox(height: 18),
           // Value
-          Text(
+          widget.valueWidget ?? Text(
             widget.value,
             style: TextStyle(
               fontSize: 30,
@@ -1153,23 +1174,50 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            _showTemp 
-                                ? (isCelsius 
-                                    ? '${widget.kamarTemp.toStringAsFixed(1)}° / ${widget.dapurTemp.toStringAsFixed(1)}°C'
-                                    : '${(widget.kamarTemp * 1.8 + 32).toStringAsFixed(1)}° / ${(widget.dapurTemp * 1.8 + 32).toStringAsFixed(1)}°F')
-                                : '${widget.kamarHumid.toInt()}% / ${widget.dapurHumid.toInt()}%',
-                            style: const TextStyle(
-                              fontFamily: 'Sora',
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(AppColors.onSurface),
+                      _showTemp
+                          ? Row(
+                              children: [
+                                AnimatedTempText(
+                                  celsiusValue: widget.kamarTemp,
+                                  isCelsius: isCelsius,
+                                  showUnit: false,
+                                  style: const TextStyle(
+                                    fontFamily: 'Sora',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(AppColors.onSurface),
+                                  ),
+                                ),
+                                const Text(
+                                  '° / ',
+                                  style: TextStyle(
+                                    fontFamily: 'Sora',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(AppColors.onSurface),
+                                  ),
+                                ),
+                                AnimatedTempText(
+                                  celsiusValue: widget.dapurTemp,
+                                  isCelsius: isCelsius,
+                                  style: const TextStyle(
+                                    fontFamily: 'Sora',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(AppColors.onSurface),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              '${widget.kamarHumid.toInt()}% / ${widget.dapurHumid.toInt()}%',
+                              style: const TextStyle(
+                                fontFamily: 'Sora',
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(AppColors.onSurface),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                   // Tab Pill Selector
@@ -1248,21 +1296,55 @@ class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
                 children: [
                   _buildLegendDot(kamarColor),
                   const SizedBox(width: 4),
-                  Text(
-                    _showTemp
-                        ? 'Suhu Kamar (${(isCelsius ? widget.kamarTemp : (widget.kamarTemp * 1.8 + 32)).toStringAsFixed(1)}°${isCelsius ? 'C' : 'F'})'
-                        : 'Kelembapan Kamar (${widget.kamarHumid.toInt()}%)',
-                    style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                  ),
+                  _showTemp
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Suhu Kamar (',
+                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                            ),
+                            AnimatedTempText(
+                              celsiusValue: widget.kamarTemp,
+                              isCelsius: isCelsius,
+                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              ')',
+                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'Kelembapan Kamar (${widget.kamarHumid.toInt()}%)',
+                          style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                        ),
                   const SizedBox(width: 16),
                   _buildLegendDot(dapurColor),
                   const SizedBox(width: 4),
-                  Text(
-                    _showTemp
-                        ? 'Suhu Dapur (${(isCelsius ? widget.dapurTemp : (widget.dapurTemp * 1.8 + 32)).toStringAsFixed(1)}°${isCelsius ? 'C' : 'F'})'
-                        : 'Kelembapan Dapur (${widget.dapurHumid.toInt()}%)',
-                    style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                  ),
+                  _showTemp
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Suhu Dapur (',
+                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                            ),
+                            AnimatedTempText(
+                              celsiusValue: widget.dapurTemp,
+                              isCelsius: isCelsius,
+                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              ')',
+                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'Kelembapan Dapur (${widget.dapurHumid.toInt()}%)',
+                          style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                        ),
                 ],
               ),
 

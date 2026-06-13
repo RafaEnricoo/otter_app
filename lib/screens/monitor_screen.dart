@@ -8,6 +8,7 @@ import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
 import '../services/system_settings_service.dart';
 import '../widgets/quick_status_banner.dart';
+import '../widgets/animated_temp_text.dart';
 
 class MonitorScreen extends StatefulWidget {
   const MonitorScreen({super.key});
@@ -1383,7 +1384,31 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 roomName: 'Kamar Tidur',
                 icon: Icons.bedroom_parent_rounded,
                 devicesText: 'Lampu: ${perangkat.lampuKamar ? 'ON' : 'OFF'}  •  Kipas: ${perangkat.kipasKamar ? 'ON (Spd ${perangkat.kecepatanKipas})' : 'OFF'}',
-                sensorsText: '${kamarTemp.toStringAsFixed(1)}$tempSuffix  •  ${sensor.kamarKelembapan.toInt()}% RH',
+                sensorsText: '',
+                sensorsWidget: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedTempText(
+                      celsiusValue: sensor.kamarSuhu,
+                      isCelsius: isCelsius,
+                      style: const TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(AppColors.onSurface),
+                      ),
+                    ),
+                    Text(
+                      '  •  ${sensor.kamarKelembapan.toInt()}% RH',
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(AppColors.onSurface).withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
                 isAlert: false,
                 customColor: const Color(0xFFB388FF),
               ),
@@ -1392,7 +1417,31 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 roomName: 'Dapur',
                 icon: Icons.kitchen_rounded,
                 devicesText: 'Lampu: ${perangkat.lampuDapur ? 'ON' : 'OFF'}  •  Led Merah: ${perangkat.ledMerahDapur ? 'ON' : 'OFF'}',
-                sensorsText: '${dapurTemp.toStringAsFixed(1)}$tempSuffix  •  ${sensor.dapurKelembapan.toInt()}% RH${sensor.dapurFlame > 0 ? '  •  ⚠ API!' : ''}',
+                sensorsText: '',
+                sensorsWidget: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedTempText(
+                      celsiusValue: sensor.dapurSuhu,
+                      isCelsius: isCelsius,
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: sensor.dapurFlame > 0 ? const Color(0xFFFF4963) : const Color(AppColors.onSurface),
+                      ),
+                    ),
+                    Text(
+                      '  •  ${sensor.dapurKelembapan.toInt()}% RH${sensor.dapurFlame > 0 ? '  •  ⚠ API!' : ''}',
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: sensor.dapurFlame > 0 ? const Color(0xFFFF4963) : const Color(AppColors.onSurface).withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                ),
                 isAlert: sensor.dapurFlame > 0,
                 alertText: 'Peringatan Api!',
                 customColor: const Color(0xFFFFD54F),
@@ -1438,6 +1487,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
     required IconData icon,
     required String devicesText,
     required String sensorsText,
+    Widget? sensorsWidget,
     required bool isAlert,
     String? alertText,
     Color? customColor,
@@ -1515,7 +1565,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
+            sensorsWidget ?? Text(
               sensorsText,
               textAlign: TextAlign.right,
               style: TextStyle(

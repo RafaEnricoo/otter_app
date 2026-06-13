@@ -189,11 +189,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ValueListenableBuilder<bool>(
                       valueListenable: SystemSettingsService().tempScaleCelsius,
                       builder: (context, isCelsius, _) {
-                        final double kamarTemp = isCelsius ? sensor.kamarSuhu : (sensor.kamarSuhu * 1.8 + 32);
-                        final String tempSuffix = isCelsius ? '°C' : '°F';
                         return _buildSensorCard(
                           title: 'Iklim Kamar Tidur',
-                          value: '${kamarTemp.toStringAsFixed(1)}$tempSuffix',
+                          value: '',
+                          valueWidget: AnimatedTempText(
+                            celsiusValue: sensor.kamarSuhu,
+                            isCelsius: isCelsius,
+                            style: const TextStyle(
+                              fontFamily: 'Sora',
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.onSurface),
+                              height: 1.0,
+                            ),
+                          ),
                           unit: ' / ${sensor.kamarKelembapan.toInt()}%',
                           badgeText: 'Sensor DHT11',
                           icon: Icons.thermostat_rounded,
@@ -263,11 +272,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ValueListenableBuilder<bool>(
                       valueListenable: SystemSettingsService().tempScaleCelsius,
                       builder: (context, isCelsius, _) {
-                        final double dapurTemp = isCelsius ? sensor.dapurSuhu : (sensor.dapurSuhu * 1.8 + 32);
-                        final String tempSuffix = isCelsius ? '°C' : '°F';
                         return _buildSensorCard(
                           title: 'Iklim Dapur',
-                          value: '${dapurTemp.toStringAsFixed(1)}$tempSuffix',
+                          value: '',
+                          valueWidget: AnimatedTempText(
+                            celsiusValue: sensor.dapurSuhu,
+                            isCelsius: isCelsius,
+                            style: const TextStyle(
+                              fontFamily: 'Sora',
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.onSurface),
+                              height: 1.0,
+                            ),
+                          ),
                           unit: ' / ${sensor.dapurKelembapan.toInt()}%',
                           badgeText: 'Sensor DHT11',
                           icon: Icons.thermostat_rounded,
@@ -665,22 +683,25 @@ class _DevicesScreenState extends State<DevicesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ValueListenableBuilder<bool>(
-                    valueListenable: SystemSettingsService().tempScaleCelsius,
-                    builder: (context, isCelsius, _) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Suhu Udara', style: TextStyle(color: Colors.white70)),
-                          Text(
-                            isCelsius 
-                                ? '${currentTemp.toStringAsFixed(1)}°C'
-                                : '${(currentTemp * 1.8 + 32).toStringAsFixed(1)}°F',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer)),
-                          ),
-                        ],
-                      );
-                    },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Suhu Udara', style: TextStyle(color: Colors.white70)),
+                      ValueListenableBuilder<bool>(
+                        valueListenable: SystemSettingsService().tempScaleCelsius,
+                        builder: (context, isCelsius, _) {
+                          return AnimatedTempText(
+                            celsiusValue: currentTemp,
+                            isCelsius: isCelsius,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.secondaryContainer),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                   Slider(
                     value: currentTemp,
@@ -942,6 +963,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
   Widget _buildSensorCard({
     required String title,
     required String value,
+    Widget? valueWidget,
     required String unit,
     required String badgeText,
     required IconData icon,
@@ -1009,7 +1031,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
+                  valueWidget ?? Text(
                     value,
                     style: TextStyle(
                       fontFamily: 'Sora',
