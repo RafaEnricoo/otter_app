@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:firebase_core/firebase_core.dart' hide FirebaseService;
 import 'package:audioplayers/audioplayers.dart';
@@ -285,7 +287,7 @@ class _MainLayoutState extends State<MainLayout> {
       builder: (context, setStateLock) {
         return Positioned.fill(
           child: Material(
-            color: Colors.black.withOpacity(0.85),
+            color: Colors.black.withValues(alpha: 0.85),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
               child: SafeArea(
@@ -308,7 +310,7 @@ class _MainLayoutState extends State<MainLayout> {
                                 border: Border.all(color: accentColor, width: 2),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: accentColor.withOpacity(0.3),
+                                    color: accentColor.withValues(alpha: 0.3),
                                     blurRadius: 20,
                                     spreadRadius: 2,
                                   ),
@@ -381,7 +383,7 @@ class _MainLayoutState extends State<MainLayout> {
                             role,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white.withOpacity(0.5),
+                              color: Colors.white.withValues(alpha: 0.5),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -391,14 +393,14 @@ class _MainLayoutState extends State<MainLayout> {
                         // Password Field
                         Container(
                           width: double.infinity,
-                          maxWidth: 320,
+                          constraints: const BoxConstraints(maxWidth: 320),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.04),
+                            color: Colors.white.withValues(alpha: 0.04),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: errorMessage != null
-                                  ? Colors.redAccent.withOpacity(0.5)
-                                  : Colors.white.withOpacity(0.08),
+                                  ? Colors.redAccent.withValues(alpha: 0.5)
+                                  : Colors.white.withValues(alpha: 0.08),
                             ),
                           ),
                           child: TextField(
@@ -411,7 +413,7 @@ class _MainLayoutState extends State<MainLayout> {
                                 HapticFeedback.heavyImpact();
                                 setState(() {
                                   _isLocked = false;
-                                });
+                              });
                                 _resetAutoLockTimer();
                               } else {
                                 HapticFeedback.error();
@@ -422,12 +424,12 @@ class _MainLayoutState extends State<MainLayout> {
                             },
                             decoration: InputDecoration(
                               hintText: 'Masukkan Password...',
-                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
                               prefixIcon: Icon(Icons.lock_outline_rounded, color: accentColor, size: 18),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   size: 18,
                                 ),
                                 onPressed: () {
