@@ -91,9 +91,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 _buildRoomSection(
                   roomTitle: 'Ruang Tamu',
                   children: [
-                    // 1. Lampu Tamu LED Card
+                    // 1. Lampu Ruang Tamu LED Card
                     _buildLEDCard(
-                      title: 'Lampu Tamu',
+                      title: 'Lampu Ruang Tamu',
                       isOn: perangkat.lampuTamu,
                       brightness: 100.0,
                       isAuto: otomatisasi.modeAutoLampu,
@@ -146,7 +146,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isOn: perangkat.lampuKamar,
                       brightness: 100.0,
                       isAuto: otomatisasi.modeAutoLampu,
-                      icon: Icons.lightbulb_outline_rounded,
+                      icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
                         FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
                       },
@@ -278,7 +278,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       title: 'Lampu Kamar Mandi',
                       statusText: perangkat.lampuKamarMandi ? 'Menyala' : 'Mati',
                       isOn: perangkat.lampuKamarMandi,
-                      icon: Icons.bathroom_rounded,
+                      icon: Icons.lightbulb_rounded,
                       onToggle: (val) {
                         FirebaseService().updatePerangkat('lampu_kamar_mandi', val);
                       },
@@ -567,7 +567,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
           builder: (context, setSheetState) {
             return _SimulationModalWrapper(
               title: 'Sensor Cahaya Atap (LDR)',
-              description: 'Seret slider untuk mensimulasikan intensitas cahaya luar ruangan. Pada mode Otomatis, Lampu Kamar & Lampu Tamu akan merespon jika intensitas di bawah ambang batas.',
+              description: 'Seret slider untuk mensimulasikan intensitas cahaya luar ruangan. Pada mode Otomatis, Lampu Kamar & Lampu Ruang Tamu akan merespon jika intensitas di bawah ambang batas.',
               icon: Icons.wb_sunny_rounded,
               child: Column(
                 children: [
