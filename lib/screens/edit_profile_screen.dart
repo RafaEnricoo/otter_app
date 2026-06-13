@@ -461,7 +461,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: TextField(
         controller: controller,
@@ -471,9 +470,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
-          prefixIcon: Icon(icon, color: Colors.white38, size: 18),
+          prefixIcon: Icon(icon, size: 18),
+          prefixIconColor: MaterialStateColor.resolveWith((states) {
+            if (states.contains(MaterialState.focused)) {
+              return _activeAccent;
+            }
+            return Colors.white38;
+          }),
           suffixIcon: suffix,
-          border: InputBorder.none,
+          suffixIconColor: MaterialStateColor.resolveWith((states) {
+            if (states.contains(MaterialState.focused)) {
+              return _activeAccent;
+            }
+            return Colors.white38;
+          }),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.04)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: _activeAccent.withValues(alpha: 0.5), width: 1.5),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
