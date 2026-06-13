@@ -631,7 +631,6 @@ class _MonitorScreenState extends State<MonitorScreen> {
             : const Color(AppColors.error);
 
     return _MonitorGlassCard(
-      glowColor: Color(AppColors.secondaryContainer).withValues(alpha: 0.12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -659,103 +658,72 @@ class _MonitorScreenState extends State<MonitorScreen> {
           const SizedBox(height: 16),
 
           Center(
-            child: GestureDetector(
-              onPanStart: (_) {
-                setState(() {
-                  _isDraggingDial = true;
-                });
-              },
-              onPanUpdate: (details) {
-                _updateDialGesture(details.localPosition, const Size(140, 140));
-              },
-              onPanEnd: (_) {
-                setState(() {
-                  _isDraggingDial = false;
-                });
-              },
-              onPanCancel: () {
-                setState(() {
-                  _isDraggingDial = false;
-                });
-              },
-              onTapDown: (details) {
-                setState(() {
-                  _isDraggingDial = true;
-                });
-                _updateDialGesture(details.localPosition, const Size(140, 140));
-              },
-              onTapUp: (_) {
-                setState(() {
-                  _isDraggingDial = false;
-                });
-              },
-              child: Container(
-                width: 140,
-                height: 140,
-                color: Colors.transparent,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 124,
-                      height: 124,
-                      child: CustomPaint(
-                        painter: _RadialDialPainter(
-                          percentage: activeLuminance,
-                          trackColor: Colors.white.withValues(alpha: 0.04),
-                          progressColor: Color(AppColors.secondaryContainer),
-                        ),
+            child: Container(
+              width: 140,
+              height: 140,
+              color: Colors.transparent,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 124,
+                    height: 124,
+                    child: CustomPaint(
+                      painter: _RadialDialPainter(
+                        percentage: activeLuminance,
+                        trackColor: Colors.white.withValues(alpha: 0.04),
+                        progressColor: Color(AppColors.secondaryContainer),
                       ),
                     ),
+                  ),
 
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              '${activeLuminance.toInt()}',
-                              style: TextStyle(
-                                fontFamily: 'Sora',
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Color(AppColors.onSurface),
-                                shadows: [
-                                  Shadow(
-                                    color: Color(AppColors.secondaryContainer),
-                                    blurRadius: 10,
-                                  )
-                                ],
-                              ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '${activeLuminance.toInt()}',
+                            style: TextStyle(
+                              fontFamily: 'Sora',
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.onSurface),
+                              shadows: [
+                                Shadow(
+                                  color: Color(AppColors.secondaryContainer),
+                                  blurRadius: 10,
+                                )
+                              ],
                             ),
-                            Text(
-                              '%',
-                              style: TextStyle(
-                                fontFamily: 'Sora',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(AppColors.secondaryContainer),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          statusText,
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: statusColor,
                           ),
+                          Text(
+                            '%',
+                            style: TextStyle(
+                              fontFamily: 'Sora',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(AppColors.secondaryContainer),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -764,7 +732,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
           
           Center(
             child: Text(
-              'Geser dial untuk mensimulasikan cahaya matahari',
+              'Nilai telemetri sensor cahaya atap',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 9,
