@@ -11,7 +11,7 @@ class ProfileService {
   final ValueNotifier<String> password = ValueNotifier<String>('admin123');
   final ValueNotifier<String> displayName = ValueNotifier<String>('Mimah Dudim');
   final ValueNotifier<String> role = ValueNotifier<String>('Administrator Rumah Pintar');
-  final ValueNotifier<String> avatarUrl = ValueNotifier<String>('https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80');
+  final ValueNotifier<String> avatarUrl = ValueNotifier<String>('');
 
   ProfileService._internal() {
     // Check if profile exists, if not, seed it with default values
@@ -22,7 +22,7 @@ class ProfileService {
           'password': 'admin123',
           'display_name': 'Mimah Dudim',
           'role': 'Administrator Rumah Pintar',
-          'avatar_url': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+          'avatar_url': '',
         });
       }
     }).catchError((err) {
@@ -38,7 +38,7 @@ class ProfileService {
         password.value = data['password']?.toString() ?? 'admin123';
         displayName.value = data['display_name']?.toString() ?? 'Mimah Dudim';
         role.value = data['role']?.toString() ?? 'Administrator Rumah Pintar';
-        avatarUrl.value = data['avatar_url']?.toString() ?? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+        avatarUrl.value = data['avatar_url']?.toString() ?? '';
       }
     }, onError: (err) {
       debugPrint("Error listening to profile changes: $err");

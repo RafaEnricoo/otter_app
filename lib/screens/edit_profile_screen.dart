@@ -25,15 +25,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isUploading = false;
   late Color _activeAccent;
 
-  // Preset Avatars for quick selection
-  final List<String> _presetAvatars = [
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', // Default Women
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80', // Men Glass
-    'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80', // Tech Woman
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', // Tech Man
-    'https://api.dicebear.com/7.x/bottts/png?seed=otter1&backgroundColor=1e2020', // Cyber Bot 1
-    'https://api.dicebear.com/7.x/bottts/png?seed=otter2&backgroundColor=1e2020', // Cyber Bot 2
-  ];
+
 
   // Gallery simulation photos
   final List<String> _simulatedGallery = [
@@ -258,11 +250,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ],
                   ),
                 ),
-                // Main circular avatar photo
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: const Color(0xFF1E2020),
-                  backgroundImage: NetworkImage(_currentAvatarUrl),
+                // Main circular avatar photo or initials fallback
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF1E2020),
+                    image: _currentAvatarUrl.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(_currentAvatarUrl),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: _currentAvatarUrl.isEmpty
+                      ? Center(
+                          child: Text(
+                            _profile.initials,
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              color: _activeAccent,
+                              fontFamily: 'Sora',
+                            ),
+                          ),
+                        )
+                      : null,
                 ),
                 // Upload Overlay Spinner
                 if (_isUploading)
@@ -285,7 +299,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Upload and Select buttons
+          // Upload and Delete buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -305,23 +319,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 label: const Text('Galeri', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                 onPressed: _isUploading ? null : _simulateUpload,
               ),
-              const SizedBox(width: 12),
-              // Preset Avatar picker dialog trigger
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _activeAccent.withValues(alpha: 0.1),
-                  foregroundColor: _activeAccent,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: _activeAccent.withValues(alpha: 0.2)),
+              if (_currentAvatarUrl.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                // Remove photo button to fallback to initials
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF3B30).withValues(alpha: 0.1),
+                    foregroundColor: const Color(0xFFFF3B30),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: const Color(0xFFFF3B30).withValues(alpha: 0.2)),
+                    ),
                   ),
+                  icon: const Icon(Icons.delete_rounded, size: 16),
+                  label: const Text('Hapus Foto', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    setState(() {
+                      _currentAvatarUrl = '';
+                      _avatarUrlController.text = '';
+                    });
+                  },
                 ),
-                icon: const Icon(Icons.face_retouching_natural_rounded, size: 16),
-                label: const Text('Preset Avatar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                onPressed: () => _showPresetAvatarsSelector(),
-              ),
+              ],
             ],
           ),
         ],
@@ -471,68 +493,5 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  void _showPresetAvatarsSelector() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E2020),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Pilih Preset Avatar',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Sora'),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 90,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _presetAvatars.length,
-                  separatorBuilder: (context, index) => const SizedBox(width: 16),
-                  itemBuilder: (context, index) {
-                    final avatar = _presetAvatars[index];
-                    final isSelected = _currentAvatarUrl == avatar;
-                    return GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        setState(() {
-                          _currentAvatarUrl = avatar;
-                          _avatarUrlController.text = avatar;
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: Container(
-                        width: 74,
-                        height: 74,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected ? _activeAccent : Colors.transparent,
-                            width: 2.5,
-                          ),
-                        ),
-                        child: CircleAvatar(
-                          backgroundImage: NetworkImage(avatar),
-                          backgroundColor: Colors.white10,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+
 }

@@ -271,11 +271,26 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: const Color(0xFF1E2020),
-                              image: DecorationImage(
-                                image: NetworkImage(avatar),
-                                fit: BoxFit.cover,
-                              ),
+                              image: avatar.isNotEmpty
+                                  ? DecorationImage(
+                                      image: NetworkImage(avatar),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
                             ),
+                            child: avatar.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      profile.initials,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: _activeAccent,
+                                        fontFamily: 'Sora',
+                                      ),
+                                    ),
+                                  )
+                                : null,
                           ),
                         ],
                       ),
