@@ -237,9 +237,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
                         children: [
                           _buildTempChartCard(activeData, liveTemp),
                           const SizedBox(height: AppSpacing.gutter),
-                          _buildLuminanceCard(_localLuminance!),
-                          const SizedBox(height: AppSpacing.gutter),
                           _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
+                          const SizedBox(height: AppSpacing.gutter),
+                          _buildLuminanceCard(_localLuminance!),
                           const SizedBox(height: AppSpacing.gutter),
                           _buildActivityCard(),
                         ],
