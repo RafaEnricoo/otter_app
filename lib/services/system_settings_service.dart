@@ -9,11 +9,13 @@ class SystemSettingsService {
   final ValueNotifier<bool> enableVibration = ValueNotifier<bool>(true);
   final ValueNotifier<bool> enableSound = ValueNotifier<bool>(true);
   final ValueNotifier<Color> activeAccent = ValueNotifier<Color>(const Color(0xFF00F4FE)); // Neon Cyan
+  final ValueNotifier<bool> tempScaleCelsius = ValueNotifier<bool>(true);
 
   void resetToDefaults() {
     glassOpacity.value = 0.05;
     enableVibration.value = true;
     enableSound.value = true;
     activeAccent.value = const Color(0xFF00F4FE);
+    tempScaleCelsius.value = true;
   }
 }

@@ -6,6 +6,7 @@ import '../models/device_model.dart';
 import '../models/notification_model.dart';
 import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
+import '../services/system_settings_service.dart';
 import '../widgets/quick_status_banner.dart';
 
 class MonitorScreen extends StatefulWidget {
@@ -362,71 +363,77 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // B. Card 1: Temperature Chart Card
   // ─────────────────────────────────────────────────
   Widget _buildTempChartCard(_ChartData activeData, double liveTemp) {
-    return _MonitorGlassCard(
-      child: Stack(
-        children: [
-          Positioned(
-            bottom: -50,
-            right: -50,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
-                    Colors.transparent,
-                  ],
+    return ValueListenableBuilder<bool>(
+      valueListenable: SystemSettingsService().tempScaleCelsius,
+      builder: (context, isCelsius, _) {
+        final double displayLiveTemp = isCelsius ? liveTemp : (liveTemp * 1.8 + 32);
+        final String tempSuffix = isCelsius ? '°C' : '°F';
+
+        return _MonitorGlassCard(
+          child: Stack(
+            children: [
+              Positioned(
+                bottom: -50,
+                right: -50,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
-                          border: Border.all(
-                            color: Color(AppColors.secondaryContainer).withValues(alpha: 0.15),
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.device_thermostat_rounded,
-                          color: Color(AppColors.secondaryContainer),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          const Text(
-                            'SUHU RUANGAN LIVE',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(AppColors.onSurfaceVariant),
-                              letterSpacing: 0.8,
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
+                              border: Border.all(
+                                color: Color(AppColors.secondaryContainer).withValues(alpha: 0.15),
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.device_thermostat_rounded,
+                              color: Color(AppColors.secondaryContainer),
+                              size: 20,
                             ),
                           ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '${liveTemp.toStringAsFixed(1)}°C',
+                              const Text(
+                                'SUHU RUANGAN LIVE',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(AppColors.onSurfaceVariant),
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '${displayLiveTemp.toStringAsFixed(1)}$tempSuffix',
                                 style: const TextStyle(
                                   fontFamily: 'Sora',
                                   fontSize: 24,
@@ -543,7 +550,9 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                     ],
                                   ),
                                   child: Text(
-                                    '${originalVal.toStringAsFixed(1)}°',
+                                    isCelsius 
+                                        ? '${originalVal.toStringAsFixed(1)}°'
+                                        : '${(originalVal * 1.8 + 32).toStringAsFixed(1)}°',
                                     style: const TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 10,
@@ -611,6 +620,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 
@@ -1336,80 +1347,89 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
   // ─── F. Helper: Room Status Summary Widget ───
   Widget _buildRoomStatusSummary(SmarthomeSensor sensor, SmarthomePerangkat perangkat) {
-    return _MonitorGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return ValueListenableBuilder<bool>(
+      valueListenable: SystemSettingsService().tempScaleCelsius,
+      builder: (context, isCelsius, _) {
+        final double kamarTemp = isCelsius ? sensor.kamarSuhu : (sensor.kamarSuhu * 1.8 + 32);
+        final double dapurTemp = isCelsius ? sensor.dapurSuhu : (sensor.dapurSuhu * 1.8 + 32);
+        final String tempSuffix = isCelsius ? '°C' : '°F';
+
+        return _MonitorGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.grid_view_rounded,
-                color: Color(AppColors.onSurfaceVariant),
-                size: 18,
+              Row(
+                children: [
+                  const Icon(
+                    Icons.grid_view_rounded,
+                    color: Color(AppColors.onSurfaceVariant),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'STATUS PER RUANGAN',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                'STATUS PER RUANGAN',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
-                  letterSpacing: 0.8,
-                ),
+              const SizedBox(height: 20),
+              _buildRoomSummaryRow(
+                roomName: 'Kamar Tidur',
+                icon: Icons.bedroom_parent_rounded,
+                devicesText: 'Lampu: ${perangkat.lampuKamar ? 'ON' : 'OFF'}  •  Kipas: ${perangkat.kipasKamar ? 'ON (Spd ${perangkat.kecepatanKipas})' : 'OFF'}',
+                sensorsText: '${kamarTemp.toStringAsFixed(1)}$tempSuffix  •  ${sensor.kamarKelembapan.toInt()}% RH',
+                isAlert: false,
+                customColor: const Color(0xFFB388FF),
+              ),
+              const Divider(height: 24, color: Colors.white10),
+              _buildRoomSummaryRow(
+                roomName: 'Dapur',
+                icon: Icons.kitchen_rounded,
+                devicesText: 'Lampu: ${perangkat.lampuDapur ? 'ON' : 'OFF'}  •  Led Merah: ${perangkat.ledMerahDapur ? 'ON' : 'OFF'}',
+                sensorsText: '${dapurTemp.toStringAsFixed(1)}$tempSuffix  •  ${sensor.dapurKelembapan.toInt()}% RH${sensor.dapurFlame > 0 ? '  •  ⚠ API!' : ''}',
+                isAlert: sensor.dapurFlame > 0,
+                alertText: 'Peringatan Api!',
+                customColor: const Color(0xFFFFD54F),
+              ),
+              const Divider(height: 24, color: Colors.white10),
+              _buildRoomSummaryRow(
+                roomName: 'Ruang Tamu',
+                icon: Icons.weekend_rounded,
+                devicesText: 'Lampu: ${perangkat.lampuTamu ? 'ON' : 'OFF'}',
+                sensorsText: sensor.tamuGerak ? '⚠ Gerakan Terdeteksi' : 'Gerakan: Aman',
+                isAlert: sensor.tamuGerak,
+                alertText: 'Gerakan!',
+                customColor: const Color(0xFF80FFE8),
+              ),
+              const Divider(height: 24, color: Colors.white10),
+              _buildRoomSummaryRow(
+                roomName: 'Kamar Mandi',
+                icon: Icons.bathroom_rounded,
+                devicesText: 'Lampu: ${perangkat.lampuKamarMandi ? 'ON' : 'OFF'}',
+                sensorsText: 'Kondisi Normal',
+                isAlert: false,
+                customColor: const Color(0xFF80D8FF),
+              ),
+              const Divider(height: 24, color: Colors.white10),
+              _buildRoomSummaryRow(
+                roomName: 'Eksterior & Keamanan',
+                icon: Icons.home_work_rounded,
+                devicesText: 'RFID: ${perangkat.kunciPintuRfid ? 'TERKUNCI' : 'TERBUKA'}  •  Sirine: ${perangkat.buzzerAlrm ? 'AKTIF' : 'MATI'}',
+                sensorsText: 'Atap: ${sensor.cahayaAtap}% Cahaya',
+                isAlert: perangkat.buzzerAlrm,
+                alertText: 'Sirine Hack / Aktif!',
+                customColor: Color(AppColors.secondaryContainer),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          _buildRoomSummaryRow(
-            roomName: 'Kamar Tidur',
-            icon: Icons.bedroom_parent_rounded,
-            devicesText: 'Lampu: ${perangkat.lampuKamar ? 'ON' : 'OFF'}  •  Kipas: ${perangkat.kipasKamar ? 'ON (Spd ${perangkat.kecepatanKipas})' : 'OFF'}',
-            sensorsText: '${sensor.kamarSuhu.toStringAsFixed(1)}°C  •  ${sensor.kamarKelembapan.toInt()}% RH',
-            isAlert: false,
-            customColor: const Color(0xFFB388FF),
-          ),
-          const Divider(height: 24, color: Colors.white10),
-          _buildRoomSummaryRow(
-            roomName: 'Dapur',
-            icon: Icons.kitchen_rounded,
-            devicesText: 'Lampu: ${perangkat.lampuDapur ? 'ON' : 'OFF'}  •  Led Merah: ${perangkat.ledMerahDapur ? 'ON' : 'OFF'}',
-            sensorsText: '${sensor.dapurSuhu.toStringAsFixed(1)}°C  •  ${sensor.dapurKelembapan.toInt()}% RH${sensor.dapurFlame > 0 ? '  •  ⚠ API!' : ''}',
-            isAlert: sensor.dapurFlame > 0,
-            alertText: 'Peringatan Api!',
-            customColor: const Color(0xFFFFD54F),
-          ),
-          const Divider(height: 24, color: Colors.white10),
-          _buildRoomSummaryRow(
-            roomName: 'Ruang Tamu',
-            icon: Icons.weekend_rounded,
-            devicesText: 'Lampu: ${perangkat.lampuTamu ? 'ON' : 'OFF'}',
-            sensorsText: sensor.tamuGerak ? '⚠ Gerakan Terdeteksi' : 'Gerakan: Aman',
-            isAlert: sensor.tamuGerak,
-            alertText: 'Gerakan!',
-            customColor: const Color(0xFF80FFE8),
-          ),
-          const Divider(height: 24, color: Colors.white10),
-          _buildRoomSummaryRow(
-            roomName: 'Kamar Mandi',
-            icon: Icons.bathroom_rounded,
-            devicesText: 'Lampu: ${perangkat.lampuKamarMandi ? 'ON' : 'OFF'}',
-            sensorsText: 'Kondisi Normal',
-            isAlert: false,
-            customColor: const Color(0xFF80D8FF),
-          ),
-          const Divider(height: 24, color: Colors.white10),
-          _buildRoomSummaryRow(
-            roomName: 'Eksterior & Keamanan',
-            icon: Icons.home_work_rounded,
-            devicesText: 'RFID: ${perangkat.kunciPintuRfid ? 'TERKUNCI' : 'TERBUKA'}  •  Sirine: ${perangkat.buzzerAlrm ? 'AKTIF' : 'MATI'}',
-            sensorsText: 'Atap: ${sensor.cahayaAtap}% Cahaya',
-            isAlert: perangkat.buzzerAlrm,
-            alertText: 'Sirine Aktif!',
-            customColor: Color(AppColors.secondaryContainer),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -56,6 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
     final settings = SystemSettingsService();
     _glassOpacity = settings.glassOpacity.value;
     _activeAccent = settings.activeAccent.value;
+    _tempScaleCelsius = settings.tempScaleCelsius.value;
   }
 
   // Handle integration tap & mock sync animation
@@ -379,74 +380,6 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               );
             }).toList(),
           ),
-
-          const SizedBox(height: 20),
-
-          // Slider label
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'TRANSPARANSI LATAR',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.4), letterSpacing: 0.8),
-              ),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.mediumImpact();
-                      setState(() {
-                        _glassOpacity = 0.05;
-                      });
-                      SystemSettingsService().glassOpacity.value = 0.05;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Transparansi latar dikembalikan ke default (5%).'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      'Default',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _activeAccent),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${(_glassOpacity * 100).toInt()}%',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _activeAccent),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-
-          // Custom horizontal slider with live visual change on this screen
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: _activeAccent,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
-              thumbColor: Colors.white,
-              overlayColor: _activeAccent.withValues(alpha: 0.2),
-              trackHeight: 3,
-            ),
-            child: Slider(
-              value: _glassOpacity,
-              min: 0.02,
-              max: 0.25,
-              onChanged: (val) {
-                // Occasional light haptic click based on step increments
-                if ((val * 100).toInt() % 3 == 0) {
-                  HapticFeedback.lightImpact();
-                }
-                setState(() {
-                  _glassOpacity = val;
-                });
-                SystemSettingsService().glassOpacity.value = val;
-              },
-            ),
-          ),
         ],
       ),
     );
@@ -532,10 +465,12 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                     _buildToggleButton('°C', _tempScaleCelsius, () {
                       HapticFeedback.lightImpact();
                       setState(() => _tempScaleCelsius = true);
+                      SystemSettingsService().tempScaleCelsius.value = true;
                     }),
                     _buildToggleButton('°F', !_tempScaleCelsius, () {
                       HapticFeedback.lightImpact();
                       setState(() => _tempScaleCelsius = false);
+                      SystemSettingsService().tempScaleCelsius.value = false;
                     }),
                   ],
                 ),
@@ -866,6 +801,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                   setState(() {
                     _glassOpacity = SystemSettingsService().glassOpacity.value;
                     _activeAccent = SystemSettingsService().activeAccent.value;
+                    _tempScaleCelsius = SystemSettingsService().tempScaleCelsius.value;
                   });
                   if (mounted) {
                     Navigator.of(context).pop();

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../services/firebase_service.dart';
+import '../services/system_settings_service.dart';
 import '../widgets/quick_status_banner.dart';
 
 class DevicesScreen extends StatefulWidget {
@@ -185,19 +186,26 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ),
 
                     // 3. Temp & Humidity Sensor Card Bedroom
-                    _buildSensorCard(
-                      title: 'Iklim Kamar Tidur',
-                      value: '${sensor.kamarSuhu.toStringAsFixed(1)}°C',
-                      unit: ' / ${sensor.kamarKelembapan.toInt()}%',
-                      badgeText: 'Sensor DHT11',
-                      icon: Icons.thermostat_rounded,
-                      onTap: () => _showClimateSimulationSheet(
-                        title: 'Kamar Tidur',
-                        isBedroom: true,
-                        currentTemp: sensor.kamarSuhu,
-                        currentHumid: sensor.kamarKelembapan,
-                      ),
-                      infoText: otomatisasi.modeAutoKipas ? 'Otomatisasi Kipas Aktif' : 'Kontrol iklim manual',
+                    ValueListenableBuilder<bool>(
+                      valueListenable: SystemSettingsService().tempScaleCelsius,
+                      builder: (context, isCelsius, _) {
+                        final double kamarTemp = isCelsius ? sensor.kamarSuhu : (sensor.kamarSuhu * 1.8 + 32);
+                        final String tempSuffix = isCelsius ? '°C' : '°F';
+                        return _buildSensorCard(
+                          title: 'Iklim Kamar Tidur',
+                          value: '${kamarTemp.toStringAsFixed(1)}$tempSuffix',
+                          unit: ' / ${sensor.kamarKelembapan.toInt()}%',
+                          badgeText: 'Sensor DHT11',
+                          icon: Icons.thermostat_rounded,
+                          onTap: () => _showClimateSimulationSheet(
+                            title: 'Kamar Tidur',
+                            isBedroom: true,
+                            currentTemp: sensor.kamarSuhu,
+                            currentHumid: sensor.kamarKelembapan,
+                          ),
+                          infoText: otomatisasi.modeAutoKipas ? 'Otomatisasi Kipas Aktif' : 'Kontrol iklim manual',
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -252,19 +260,26 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ),
 
                     // 5. Kitchen Climate Sensor
-                    _buildSensorCard(
-                      title: 'Iklim Dapur',
-                      value: '${sensor.dapurSuhu.toStringAsFixed(1)}°C',
-                      unit: ' / ${sensor.dapurKelembapan.toInt()}%',
-                      badgeText: 'Sensor DHT11',
-                      icon: Icons.thermostat_rounded,
-                      onTap: () => _showClimateSimulationSheet(
-                        title: 'Dapur',
-                        isBedroom: false,
-                        currentTemp: sensor.dapurSuhu,
-                        currentHumid: sensor.dapurKelembapan,
-                      ),
-                      infoText: 'Sensor dalam ruangan dapur',
+                    ValueListenableBuilder<bool>(
+                      valueListenable: SystemSettingsService().tempScaleCelsius,
+                      builder: (context, isCelsius, _) {
+                        final double dapurTemp = isCelsius ? sensor.dapurSuhu : (sensor.dapurSuhu * 1.8 + 32);
+                        final String tempSuffix = isCelsius ? '°C' : '°F';
+                        return _buildSensorCard(
+                          title: 'Iklim Dapur',
+                          value: '${dapurTemp.toStringAsFixed(1)}$tempSuffix',
+                          unit: ' / ${sensor.dapurKelembapan.toInt()}%',
+                          badgeText: 'Sensor DHT11',
+                          icon: Icons.thermostat_rounded,
+                          onTap: () => _showClimateSimulationSheet(
+                            title: 'Dapur',
+                            isBedroom: false,
+                            currentTemp: sensor.dapurSuhu,
+                            currentHumid: sensor.dapurKelembapan,
+                          ),
+                          infoText: 'Sensor dalam ruangan dapur',
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -650,12 +665,22 @@ class _DevicesScreenState extends State<DevicesScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Suhu Udara', style: TextStyle(color: Colors.white70)),
-                      Text('${currentTemp.toStringAsFixed(1)}°C', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer))),
-                    ],
+                  ValueListenableBuilder<bool>(
+                    valueListenable: SystemSettingsService().tempScaleCelsius,
+                    builder: (context, isCelsius, _) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Suhu Udara', style: TextStyle(color: Colors.white70)),
+                          Text(
+                            isCelsius 
+                                ? '${currentTemp.toStringAsFixed(1)}°C'
+                                : '${(currentTemp * 1.8 + 32).toStringAsFixed(1)}°F',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer)),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   Slider(
                     value: currentTemp,
