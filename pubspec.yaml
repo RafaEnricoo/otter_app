@@ -68,6 +68,7 @@ flutter:
     - assets/sounds/siren.wav
     - assets/sounds/start.wav
     - assets/sounds/error.wav
+    - assets/sounds/notification.wav
     - lib/assets/firebase.json
 
   # To add assets to your application, add an assets section, like this:
