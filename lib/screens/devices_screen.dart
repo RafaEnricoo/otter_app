@@ -6,6 +6,7 @@ import '../models/device_model.dart';
 import '../services/firebase_service.dart';
 import '../services/system_settings_service.dart';
 import '../widgets/quick_status_banner.dart';
+import '../widgets/animated_temp_text.dart';
 
 class DevicesScreen extends StatefulWidget {
   const DevicesScreen({super.key});
@@ -45,8 +46,6 @@ class _DevicesScreenState extends State<DevicesScreen> {
           fanSpeedLevel = 1.0;
         }
 
-        // Show a banner if flame/fire warning is triggered
-        final bool isFlameWarning = sensor.dapurFlame > 0;
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
