@@ -28,6 +28,7 @@ import 'dart:convert';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await SystemSettingsService().init();
   await FirebaseService().init();
   NotificationService().init();
   runApp(const MyApp());
