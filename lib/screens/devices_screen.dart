@@ -291,7 +291,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       onSliderChanged: (val) {},
                       hasSlider: false,
                       hasAutoMode: true,
-                      isFullWidth: true,
+                      isFullWidth: false,
                     ),
                   ],
                 ),
