@@ -345,45 +345,52 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           const SizedBox(height: 10),
 
           // Horizontal Color Chips
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: _accentColors.map((color) {
-              final isSelected = _activeAccent == color;
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            clipBehavior: Clip.none,
+            child: Row(
+              children: _accentColors.map((color) {
+                final isSelected = _activeAccent == color;
 
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.heavyImpact();
-                  setState(() {
-                    _activeAccent = color;
-                  });
-                  SystemSettingsService().activeAccent.value = color;
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: color,
-                    border: Border.all(
-                      color: isSelected ? Colors.white : Colors.transparent,
-                      width: 2.5,
-                    ),
-                    boxShadow: [
-                      if (isSelected)
-                        BoxShadow(
-                          color: color.withValues(alpha: 0.6),
-                          blurRadius: 15,
-                          spreadRadius: 2,
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.heavyImpact();
+                      setState(() {
+                        _activeAccent = color;
+                      });
+                      SystemSettingsService().activeAccent.value = color;
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color,
+                        border: Border.all(
+                          color: isSelected ? Colors.white : Colors.transparent,
+                          width: 2.5,
                         ),
-                    ],
+                        boxShadow: [
+                          if (isSelected)
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.6),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                            ),
+                        ],
+                      ),
+                      child: isSelected
+                          ? const Icon(Icons.check_rounded, color: Colors.black, size: 20)
+                          : const SizedBox.shrink(),
+                    ),
                   ),
-                  child: isSelected
-                      ? const Icon(Icons.check_rounded, color: Colors.black, size: 20)
-                      : const SizedBox.shrink(),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
