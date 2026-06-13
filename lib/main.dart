@@ -23,6 +23,7 @@ import 'services/system_settings_service.dart';
 import 'services/notification_service.dart';
 import 'services/profile_service.dart';
 import 'models/device_model.dart';
+import 'models/notification_model.dart';
 import 'dart:convert';
 
 void main() async {
@@ -502,13 +503,21 @@ class _MainLayoutState extends State<MainLayout> {
     return IndexedStack(
       index: _currentIndex,
       children: [
-        HomeScreen(),
+        HomeScreen(
+          onTabSelected: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+        ),
         DevicesScreen(),
         MonitorScreen(),
         SecurityScreen(),
       ],
     );
   }
+
+
 }
 
 class _FullSirenVignette extends StatefulWidget {

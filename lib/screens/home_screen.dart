@@ -11,7 +11,8 @@ import '../widgets/quick_status_banner.dart';
 import '../widgets/animated_temp_text.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final Function(int)? onTabSelected;
+  const HomeScreen({super.key, this.onTabSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +83,7 @@ class HomeScreen extends StatelessWidget {
                       valueListenable: SystemSettingsService().tempScaleCelsius,
                       builder: (context, isCelsius, _) {
                         return Column(
-                          children: [
+                           children: [
                             Row(
                               children: [
                                 Expanded(
@@ -173,7 +174,11 @@ class HomeScreen extends StatelessWidget {
                     _SectionHeader(
                       title: 'Perangkat Favorit',
                       trailing: 'Lihat Semua',
-                      onTrailingTap: () {},
+                      onTrailingTap: () {
+                        if (onTabSelected != null) {
+                          onTabSelected!(1);
+                        }
+                      },
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
@@ -242,7 +247,15 @@ class HomeScreen extends StatelessWidget {
                     // ═══════════════════════════════════════════
                     // ROOMS OVERVIEW
                     // ═══════════════════════════════════════════
-                    _SectionHeader(title: 'Ruangan', trailing: 'Kelola'),
+                    _SectionHeader(
+                      title: 'Ruangan',
+                      trailing: 'Kelola',
+                      onTrailingTap: () {
+                        if (onTabSelected != null) {
+                          onTabSelected!(1);
+                        }
+                      },
+                    ),
                     const SizedBox(height: 14),
                     GridView.count(
                       crossAxisCount: isMobile ? 2 : 4,

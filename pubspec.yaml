@@ -42,6 +42,7 @@ dependencies:
   vibration: ^3.1.8
   image_picker: ^1.1.2
   shared_preferences: ^2.2.3
+  flutter_local_notifications: ^17.2.1
 
 dev_dependencies:
   flutter_test:
@@ -68,7 +69,7 @@ flutter:
     - assets/sounds/siren.wav
     - assets/sounds/start.wav
     - assets/sounds/error.wav
-    - assets/sounds/notification.wav
+    - assets/sounds/notification.mp3
     - lib/assets/firebase.json
 
   # To add assets to your application, add an assets section, like this:

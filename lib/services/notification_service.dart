@@ -2,8 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:vibration/vibration.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/notification_model.dart';
 import 'firebase_service.dart';
+import 'system_settings_service.dart';
 
 class NotificationService {
   // Singleton Pattern
@@ -14,14 +18,26 @@ class NotificationService {
   final _dbRef = FirebaseDatabase.instance.ref('otter_smarthome/notifikasi');
   bool _isInitialized = false;
 
+  // Local notifications plugin
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   // Central Notification State
   final ValueNotifier<List<NotificationModel>> notificationsNotifier =
       ValueNotifier<List<NotificationModel>>([]);
+
+  // Notifier for newly received notification (for floating banner overlay)
+  final ValueNotifier<NotificationModel?> newNotificationNotifier =
+      ValueNotifier<NotificationModel?>(null);
+
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool get _isOnline => !FirebaseService().isUsingFallback;
 
   void init() {
     if (_isInitialized) return;
+
+    _initLocalNotifications();
 
     // Listen to Firebase database changes in real-time
     _dbRef.onValue.listen((event) {
@@ -43,6 +59,20 @@ class NotificationService {
             });
             // Sort notifications by timestamp descending (newest first)
             list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+            // Check if there is a NEW notification added remotely
+            final currentList = notificationsNotifier.value;
+            if (currentList.isNotEmpty && list.isNotEmpty) {
+              final newest = list.first;
+              final alreadyExists = currentList.any((n) => n.id == newest.id);
+              if (!alreadyExists) {
+                // Trigger overlay and sound for the new remote notification!
+                newNotificationNotifier.value = newest;
+                _playNotificationFeedback(newest.priority);
+                _showNativeNotification(newest);
+              }
+            }
+
             notificationsNotifier.value = list;
           }
         } catch (e) {
@@ -122,6 +152,35 @@ class NotificationService {
   // Add a new mock notification for demonstration (no-op)
   void triggerMockNotification() {}
 
+  void _playNotificationFeedback(NotificationPriority priority) async {
+    final settings = SystemSettingsService();
+    if (settings.enableSound.value) {
+      try {
+        final String soundPath = (priority == NotificationPriority.critical)
+            ? 'sounds/error.wav'
+            : 'sounds/notification.mp3';
+        await _audioPlayer.stop();
+        await _audioPlayer.play(AssetSource(soundPath));
+      } catch (e) {
+        debugPrint("Gagal memutar suara notifikasi: $e");
+      }
+    }
+
+    if (settings.enableVibration.value) {
+      try {
+        if (await Vibration.hasVibrator() ?? false) {
+          if (priority == NotificationPriority.critical) {
+            Vibration.vibrate(pattern: [0, 200, 100, 200]);
+          } else {
+            Vibration.vibrate(duration: 80);
+          }
+        }
+      } catch (e) {
+        debugPrint("Gagal menjalankan getaran: $e");
+      }
+    }
+  }
+
   void addNotification({
     required String title,
     required String message,
@@ -145,8 +204,73 @@ class NotificationService {
     final updated = List<NotificationModel>.from(notificationsNotifier.value)..insert(0, newNotif);
     notificationsNotifier.value = updated;
 
+    // Trigger overlay notifier
+    newNotificationNotifier.value = newNotif;
+    _playNotificationFeedback(priority);
+    _showNativeNotification(newNotif);
+
     if (_isOnline) {
       _dbRef.child(id).set(newNotif.toMap());
+    }
+  }
+
+  Future<void> _initLocalNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+
+    try {
+      await _flutterLocalNotificationsPlugin.initialize(
+        initializationSettings,
+      );
+
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'otter_channel_id',
+        'Otter Smart Home Notifications',
+        description: 'This channel is used for smart home notifications.',
+        importance: Importance.high,
+        playSound: true,
+      );
+
+      await _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+
+      await _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    } catch (e) {
+      debugPrint("Gagal inisialisasi native notifications: $e");
+    }
+  }
+
+  void _showNativeNotification(NotificationModel notif) async {
+    try {
+      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+          AndroidNotificationDetails(
+        'otter_channel_id',
+        'Otter Smart Home Notifications',
+        channelDescription: 'This channel is used for smart home notifications.',
+        importance: Importance.max,
+        priority: Priority.high,
+        showWhen: true,
+      );
+      const NotificationDetails platformChannelSpecifics =
+          NotificationDetails(android: androidPlatformChannelSpecifics);
+
+      await _flutterLocalNotificationsPlugin.show(
+        notif.hashCode,
+        notif.title,
+        notif.message,
+        platformChannelSpecifics,
+        payload: 'notification',
+      );
+    } catch (e) {
+      debugPrint("Gagal memicu native notification: $e");
     }
   }
 }
