@@ -452,11 +452,11 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
           }
 
           // Pisahkan berdasarkan status
-          final pendingCards = <String, Map<dynamic, dynamic>>{};
-          final registeredCards = <String, Map<dynamic, dynamic>>{};
+          final pendingCards = <String, Map>{};
+          final registeredCards = <String, Map>{};
 
           allCards.forEach((key, value) {
-            final cardData = value as Map<dynamic, dynamic>;
+            final cardData = value as Map;
             final status = cardData['status'] ?? 'aktif';
             if (status == 'menunggu') {
               pendingCards[key] = cardData;

@@ -620,11 +620,11 @@ class FirebaseService {
   }
 
   void _checkPendingRfidNotifications(Map<dynamic, dynamic> data) {
-    final rfidMap = data['rfid_terdaftar'] as Map<dynamic, dynamic>?;
+    final rfidMap = data['rfid_terdaftar'] as Map?;
     if (rfidMap == null) return;
 
     rfidMap.forEach((key, value) {
-      final cardData = value as Map<dynamic, dynamic>?;
+      final cardData = value as Map?;
       if (cardData == null) return;
 
       final uid = key.toString();
