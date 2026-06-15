@@ -1971,5 +1971,7 @@ class _SimulationModalWrapper extends StatelessWidget {
           const SizedBox(height: 24),
           child,
         ],
+      ),
+    );
   }
 }
