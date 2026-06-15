@@ -50,6 +50,14 @@ class MyApp extends StatelessWidget {
           title: 'Otter - Smart Home',
           theme: AppTheme.darkTheme,
           home: MainLayout(),
+          builder: (context, child) {
+            if (child == null) return const SizedBox.shrink();
+            return Listener(
+              onPointerDown: (_) => MainLayout.onUserInteraction?.call(),
+              onPointerMove: (_) => MainLayout.onUserInteraction?.call(),
+              child: child,
+            );
+          },
         );
       },
     );
@@ -58,6 +66,8 @@ class MyApp extends StatelessWidget {
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
+
+  static VoidCallback? onUserInteraction;
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -74,6 +84,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
+    MainLayout.onUserInteraction = _resetAutoLockTimer;
     FirebaseService().stateNotifier.addListener(_onStateChanged);
     SystemSettingsService().enableAlarmSound.addListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.addListener(_onSettingsChanged);
@@ -109,6 +120,9 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   void dispose() {
+    if (MainLayout.onUserInteraction == _resetAutoLockTimer) {
+      MainLayout.onUserInteraction = null;
+    }
     FirebaseService().stateNotifier.removeListener(_onStateChanged);
     SystemSettingsService().enableAlarmSound.removeListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.removeListener(_onSettingsChanged);

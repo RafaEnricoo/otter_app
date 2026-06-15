@@ -86,6 +86,45 @@ class HomeScreen extends StatelessWidget {
                     ValueListenableBuilder<bool>(
                       valueListenable: SystemSettingsService().tempScaleCelsius,
                       builder: (context, isCelsius, _) {
+                        // Dynamic helper helpers
+                        String getTempLabel(double temp) {
+                          if (temp <= 22.0) return 'Dingin';
+                          if (temp <= 27.0) return 'Optimal';
+                          if (temp <= 30.0) return 'Hangat';
+                          return 'Panas';
+                        }
+
+                        Color getTempColorStatus(double temp) {
+                          if (temp <= 22.0) return const Color(0xFF4FC3F7); // Cold - Light Blue
+                          if (temp <= 27.0) return const Color(0xFF81C784); // Optimal - Green
+                          if (temp <= 30.0) return const Color(0xFFFFB74D); // Warm - Orange
+                          return const Color(0xFFFF4963); // Hot - Red
+                        }
+
+                        IconData getTempIcon(double temp) {
+                          if (temp <= 22.0) return Icons.trending_down_rounded;
+                          if (temp <= 27.0) return Icons.trending_flat_rounded;
+                          return Icons.trending_up_rounded;
+                        }
+
+                        String getHumidityLabel(double hum) {
+                          if (hum < 40.0) return 'Kering';
+                          if (hum <= 60.0) return 'Stabil';
+                          return 'Lembap';
+                        }
+
+                        Color getHumidityColorStatus(double hum) {
+                          if (hum < 40.0) return const Color(0xFFFFB74D); // Orange
+                          if (hum <= 60.0) return const Color(0xFF81C784); // Green
+                          return const Color(0xFF4FC3F7); // Blue
+                        }
+
+                        IconData getHumidityIcon(double hum) {
+                          if (hum < 40.0) return Icons.trending_down_rounded;
+                          if (hum <= 60.0) return Icons.trending_flat_rounded;
+                          return Icons.trending_up_rounded;
+                        }
+
                         return Column(
                            children: [
                             Row(
@@ -93,7 +132,7 @@ class HomeScreen extends StatelessWidget {
                                 Expanded(
                                   child: _SensorCard(
                                     icon: Icons.device_thermostat_rounded,
-                                    trend: Icons.trending_up_rounded,
+                                    trend: getTempIcon(sensor.kamarSuhu),
                                     value: '',
                                     valueWidget: AnimatedTempText(
                                       celsiusValue: sensor.kamarSuhu,
@@ -107,8 +146,8 @@ class HomeScreen extends StatelessWidget {
                                       ),
                                     ),
                                     label: 'Suhu Kamar',
-                                    trendLabel: 'Optimal',
-                                    trendColor: const Color(0xFF81C784),
+                                    trendLabel: getTempLabel(sensor.kamarSuhu),
+                                    trendColor: getTempColorStatus(sensor.kamarSuhu),
                                     accentColor: getTempColor(sensor.kamarSuhu),
                                   ),
                                 ),
@@ -116,11 +155,11 @@ class HomeScreen extends StatelessWidget {
                                 Expanded(
                                   child: _SensorCard(
                                     icon: Icons.water_drop_rounded,
-                                    trend: Icons.trending_flat_rounded,
+                                    trend: getHumidityIcon(sensor.kamarKelembapan),
                                     value: '${sensor.kamarKelembapan.toInt()}%',
                                     label: 'Kelembapan Kamar',
-                                    trendLabel: 'Stabil',
-                                    trendColor: Color(AppColors.secondaryContainer),
+                                    trendLabel: getHumidityLabel(sensor.kamarKelembapan),
+                                    trendColor: getHumidityColorStatus(sensor.kamarKelembapan),
                                     accentColor: const Color(0xFF4FC3F7),
                                   ),
                                 ),
@@ -132,7 +171,7 @@ class HomeScreen extends StatelessWidget {
                                 Expanded(
                                   child: _SensorCard(
                                     icon: Icons.device_thermostat_rounded,
-                                    trend: Icons.trending_up_rounded,
+                                    trend: getTempIcon(sensor.dapurSuhu),
                                     value: '',
                                     valueWidget: AnimatedTempText(
                                       celsiusValue: sensor.dapurSuhu,
@@ -146,8 +185,8 @@ class HomeScreen extends StatelessWidget {
                                       ),
                                     ),
                                     label: 'Suhu Dapur',
-                                    trendLabel: 'Hangat',
-                                    trendColor: const Color(0xFFFFB74D),
+                                    trendLabel: getTempLabel(sensor.dapurSuhu),
+                                    trendColor: getTempColorStatus(sensor.dapurSuhu),
                                     accentColor: getTempColor(sensor.dapurSuhu),
                                   ),
                                 ),
@@ -155,11 +194,11 @@ class HomeScreen extends StatelessWidget {
                                 Expanded(
                                   child: _SensorCard(
                                     icon: Icons.water_drop_rounded,
-                                    trend: Icons.trending_flat_rounded,
+                                    trend: getHumidityIcon(sensor.dapurKelembapan),
                                     value: '${sensor.dapurKelembapan.toInt()}%',
                                     label: 'Kelembapan Dapur',
-                                    trendLabel: 'Stabil',
-                                    trendColor: const Color(0xFF9FA8DA),
+                                    trendLabel: getHumidityLabel(sensor.dapurKelembapan),
+                                    trendColor: getHumidityColorStatus(sensor.dapurKelembapan),
                                     accentColor: const Color(0xFF9FA8DA),
                                   ),
                                 ),
