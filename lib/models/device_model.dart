@@ -151,19 +151,21 @@ class SmarthomePerangkat {
 }
 
 class SmarthomeOtomatisasi {
-  final bool modeAutoLampuKamar;
-  final bool modeAutoLampuTamu;
-  final bool modeAutoLampuKamarMandi;
-  final bool modeAutoLampuDapur;
+  final bool modeAutoLampu;
+  final bool autoLampuKamar;
+  final bool autoLampuTamu;
+  final bool autoLampuKamarMandi;
+  final bool autoLampuDapur;
   final bool modeAutoKipas;
   final int batasGelapLampu;
   final double batasPanasKamar;
 
   SmarthomeOtomatisasi({
-    required this.modeAutoLampuKamar,
-    required this.modeAutoLampuTamu,
-    required this.modeAutoLampuKamarMandi,
-    required this.modeAutoLampuDapur,
+    required this.modeAutoLampu,
+    required this.autoLampuKamar,
+    required this.autoLampuTamu,
+    required this.autoLampuKamarMandi,
+    required this.autoLampuDapur,
     required this.modeAutoKipas,
     required this.batasGelapLampu,
     required this.batasPanasKamar,
@@ -171,10 +173,11 @@ class SmarthomeOtomatisasi {
 
   factory SmarthomeOtomatisasi.fromMap(Map<dynamic, dynamic> map) {
     return SmarthomeOtomatisasi(
-      modeAutoLampuKamar: (map['mode_auto_lampu_kamar'] ?? false) as bool,
-      modeAutoLampuTamu: (map['mode_auto_lampu_tamu'] ?? false) as bool,
-      modeAutoLampuKamarMandi: (map['mode_auto_lampu_kamar_mandi'] ?? false) as bool,
-      modeAutoLampuDapur: (map['mode_auto_lampu_dapur'] ?? false) as bool,
+      modeAutoLampu: (map['mode_auto_lampu'] ?? false) as bool,
+      autoLampuKamar: (map['auto_lampu_kamar'] ?? false) as bool,
+      autoLampuTamu: (map['auto_lampu_tamu'] ?? false) as bool,
+      autoLampuKamarMandi: (map['auto_lampu_kamar_mandi'] ?? false) as bool,
+      autoLampuDapur: (map['auto_lampu_dapur'] ?? false) as bool,
       modeAutoKipas: (map['mode_auto_kipas'] ?? false) as bool,
       batasGelapLampu: (map['batas_gelap_lampu'] ?? 0) is double
           ? (map['batas_gelap_lampu'] as double).toInt()
@@ -187,10 +190,11 @@ class SmarthomeOtomatisasi {
 
   Map<String, dynamic> toMap() {
     return {
-      'mode_auto_lampu_kamar': modeAutoLampuKamar,
-      'mode_auto_lampu_tamu': modeAutoLampuTamu,
-      'mode_auto_lampu_kamar_mandi': modeAutoLampuKamarMandi,
-      'mode_auto_lampu_dapur': modeAutoLampuDapur,
+      'mode_auto_lampu': modeAutoLampu,
+      'auto_lampu_kamar': autoLampuKamar,
+      'auto_lampu_tamu': autoLampuTamu,
+      'auto_lampu_kamar_mandi': autoLampuKamarMandi,
+      'auto_lampu_dapur': autoLampuDapur,
       'mode_auto_kipas': modeAutoKipas,
       'batas_gelap_lampu': batasGelapLampu,
       'batas_panas_kamar': batasPanasKamar,

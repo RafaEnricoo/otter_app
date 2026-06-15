@@ -141,6 +141,10 @@ class FirebaseService {
         ),
         otomatisasi: SmarthomeOtomatisasi(
           modeAutoLampu: true,
+          autoLampuKamar: true,
+          autoLampuTamu: true,
+          autoLampuKamarMandi: true,
+          autoLampuDapur: true,
           modeAutoKipas: true,
           batasGelapLampu: 30,
           batasPanasKamar: 29.0,
@@ -222,7 +226,11 @@ class FirebaseService {
       );
     }
 
-    final bool disableAutoLampu = (key == 'lampu_kamar' || key == 'lampu_tamu' || key == 'lampu_dapur' || key == 'lampu_kamar_mandi');
+    String? autoLampuKeyToDisable;
+    if (key == 'lampu_kamar') autoLampuKeyToDisable = 'auto_lampu_kamar';
+    if (key == 'lampu_tamu') autoLampuKeyToDisable = 'auto_lampu_tamu';
+    if (key == 'lampu_dapur') autoLampuKeyToDisable = 'auto_lampu_dapur';
+    if (key == 'lampu_kamar_mandi') autoLampuKeyToDisable = 'auto_lampu_kamar_mandi';
     final bool disableAutoKipas = (key == 'kipas_kamar');
 
     if (_isUsingFallback) {
@@ -230,9 +238,9 @@ class FirebaseService {
       perangkatMap[key] = value;
       
       SmarthomeOtomatisasi newOto = _localState!.otomatisasi;
-      if (disableAutoLampu || disableAutoKipas) {
+      if (autoLampuKeyToDisable != null || disableAutoKipas) {
         final otoMap = _localState!.otomatisasi.toMap();
-        if (disableAutoLampu) otoMap['mode_auto_lampu'] = false;
+        if (autoLampuKeyToDisable != null) otoMap[autoLampuKeyToDisable] = false;
         if (disableAutoKipas) otoMap['mode_auto_kipas'] = false;
         newOto = SmarthomeOtomatisasi.fromMap(otoMap);
       }
@@ -247,8 +255,8 @@ class FirebaseService {
       final Map<String, dynamic> updates = {
         'perangkat/$key': value,
       };
-      if (disableAutoLampu) {
-        updates['otomatisasi/mode_auto_lampu'] = false;
+      if (autoLampuKeyToDisable != null) {
+        updates['otomatisasi/$autoLampuKeyToDisable'] = false;
       }
       if (disableAutoKipas) {
         updates['otomatisasi/mode_auto_kipas'] = false;
@@ -455,17 +463,23 @@ class FirebaseService {
     bool newLedMerahDapur = state.perangkat.ledMerahDapur;
     bool newBuzzerAlrm = state.perangkat.buzzerAlrm;
 
-    // 1. Auto Light Mode (mode_auto_lampu)
+    // 1. Auto Light Mode (mode_auto_lampu - Master Switch)
     if (state.otomatisasi.modeAutoLampu) {
-      // If cahaya_atap < batas_gelap_lampu, turn lights on
       final isDark = state.sensor.cahayaAtap < state.otomatisasi.batasGelapLampu;
-      if (isDark != state.perangkat.lampuTamu || 
-          isDark != state.perangkat.lampuKamar || 
-          isDark != state.perangkat.lampuDapur || 
-          isDark != state.perangkat.lampuKamarMandi) {
+      
+      if (state.otomatisasi.autoLampuTamu && newLampuTamu != isDark) {
         newLampuTamu = isDark;
+        changed = true;
+      }
+      if (state.otomatisasi.autoLampuKamar && newLampuKamar != isDark) {
         newLampuKamar = isDark;
+        changed = true;
+      }
+      if (state.otomatisasi.autoLampuDapur && newLampuDapur != isDark) {
         newLampuDapur = isDark;
+        changed = true;
+      }
+      if (state.otomatisasi.autoLampuKamarMandi && newLampuKamarMandi != isDark) {
         newLampuKamarMandi = isDark;
         changed = true;
       }
