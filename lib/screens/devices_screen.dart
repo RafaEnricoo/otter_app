@@ -1474,6 +1474,25 @@ class _DevicesScreenState extends State<DevicesScreen> {
             size: 32,
           );
   }
+
+  Widget _buildSubAutoToggleRow(String title, bool value, ValueChanged<bool> onChanged) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 12, color: Colors.white70, fontFamily: 'Inter'),
+        ),
+        Transform.scale(
+          scale: 0.8,
+          child: CustomToggleSwitch(
+            value: value,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────
@@ -1952,26 +1971,5 @@ class _SimulationModalWrapper extends StatelessWidget {
           const SizedBox(height: 24),
           child,
         ],
-      ),
-    );
-  }
-
-  Widget _buildSubAutoToggleRow(String title, bool value, ValueChanged<bool> onChanged) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 12, color: Colors.white70, fontFamily: 'Inter'),
-        ),
-        Transform.scale(
-          scale: 0.8,
-          child: CustomToggleSwitch(
-            value: value,
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
   }
 }
