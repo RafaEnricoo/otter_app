@@ -1,3 +1,11 @@
 {
-    "jira-plugin.workingProject": ""
+    "jira-plugin.workingProject": "",
+    "cmake.configureOnOpen": false,
+    "cmake.ignoreCMakeListsMissing": true,
+    "java.import.gradle.enabled": false,
+    "java.project.resourceFilters": [
+        "build",
+        ".gradle",
+        ".pub-cache"
+    ]
 }

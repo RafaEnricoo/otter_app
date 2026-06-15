@@ -783,6 +783,29 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
 
           const SizedBox(height: 20),
 
+          // Lock Device Button
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _activeAccent.withValues(alpha: 0.12),
+              foregroundColor: _activeAccent,
+              elevation: 0,
+              minimumSize: const Size.fromHeight(42),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: _activeAccent.withValues(alpha: 0.2)),
+              ),
+            ),
+            icon: const Icon(Icons.lock_rounded, size: 16),
+            label: const Text('Kunci Layar Sekarang', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            onPressed: () {
+              HapticFeedback.heavyImpact();
+              Navigator.pop(context); // Close Settings screen
+              SystemSettingsService().lockScreenTrigger.value = true; // Trigger lock screen
+            },
+          ),
+
+          const SizedBox(height: 12),
+
           // Reset system button
           ElevatedButton(
             style: ElevatedButton.styleFrom(

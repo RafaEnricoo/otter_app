@@ -409,13 +409,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           const SizedBox(height: 20),
 
-          // PASSWORD
-          _buildInputLabel('PASSWORD'),
+          // PASSWORD / PIN
+          _buildInputLabel('PIN KEAMANAN (4-8 DIGIT ANGKA)'),
           _buildTextField(
             controller: _passwordController,
-            hint: 'Password untuk login...',
+            hint: 'Masukkan PIN baru (angka)...',
             icon: Icons.lock_outline_rounded,
             obscureText: _obscurePassword,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(8),
+            ],
             suffix: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
@@ -456,6 +461,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     bool obscureText = false,
     Widget? suffix,
     ValueChanged<String>? onChanged,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -466,6 +473,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         controller: controller,
         obscureText: obscureText,
         onChanged: onChanged,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         style: const TextStyle(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,

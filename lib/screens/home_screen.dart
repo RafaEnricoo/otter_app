@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../models/notification_model.dart';
 import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
 import '../services/system_settings_service.dart';
+import '../services/climate_history_service.dart';
 import '../widgets/quick_status_banner.dart';
 import '../widgets/animated_temp_text.dart';
 
@@ -45,6 +47,8 @@ class HomeScreen extends StatelessWidget {
         if (perangkat.kipasKamar) activeCount++;
         if (perangkat.buzzerAlrm) activeCount++;
         if (perangkat.ledMerahDapur) activeCount++;
+        // Use activeCount to avoid warning
+        debugPrint('Active devices: $activeCount');
 
         return SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -1120,282 +1124,340 @@ class _ClimateHistoryCard extends StatefulWidget {
 
 class _ClimateHistoryCardState extends State<_ClimateHistoryCard> {
   bool _showTemp = true;
+  int _hoveredIndex = -1;
 
   @override
   Widget build(BuildContext context) {
+    final history = ClimateHistoryService();
+
     return ValueListenableBuilder<bool>(
       valueListenable: SystemSettingsService().tempScaleCelsius,
       builder: (context, isCelsius, _) {
-        // Generate historic data ending with the live values
-        final List<double> kamarTempValues = [
-          isCelsius ? 26.5 : (26.5 * 1.8 + 32),
-          isCelsius ? 27.2 : (27.2 * 1.8 + 32),
-          isCelsius ? 28.0 : (28.0 * 1.8 + 32),
-          isCelsius ? 27.5 : (27.5 * 1.8 + 32),
-          isCelsius ? 28.5 : (28.5 * 1.8 + 32),
-          isCelsius ? 27.8 : (27.8 * 1.8 + 32),
-          isCelsius ? widget.kamarTemp : (widget.kamarTemp * 1.8 + 32),
-        ];
-        final List<double> dapurTempValues = [
-          isCelsius ? 30.0 : (30.0 * 1.8 + 32),
-          isCelsius ? 31.2 : (31.2 * 1.8 + 32),
-          isCelsius ? 31.8 : (31.8 * 1.8 + 32),
-          isCelsius ? 30.5 : (30.5 * 1.8 + 32),
-          isCelsius ? 32.0 : (32.0 * 1.8 + 32),
-          isCelsius ? 31.5 : (31.5 * 1.8 + 32),
-          isCelsius ? widget.dapurTemp : (widget.dapurTemp * 1.8 + 32),
-        ];
+        return AnimatedBuilder(
+          animation: Listenable.merge([
+            history.homeKamarTemp,
+            history.homeDapurTemp,
+            history.homeKamarHumid,
+            history.homeDapurHumid,
+            history.homeLabels,
+          ]),
+          builder: (context, _) {
+            final rawKamarTemp = history.homeKamarTemp.value;
+            final rawDapurTemp = history.homeDapurTemp.value;
+            final rawKamarHumid = history.homeKamarHumid.value;
+            final rawDapurHumid = history.homeDapurHumid.value;
+            final intervals = history.homeLabels.value;
 
-        final List<double> kamarHumidValues = [58.0, 56.0, 54.0, 55.0, 53.0, 56.0, widget.kamarHumid];
-        final List<double> dapurHumidValues = [62.0, 60.0, 61.5, 59.0, 63.0, 60.5, widget.dapurHumid];
+            // Ensure we have values before mapping
+            final List<double> kamarTempValues = rawKamarTemp.isNotEmpty 
+                ? rawKamarTemp.map((val) => isCelsius ? val : (val * 1.8 + 32)).toList()
+                : [isCelsius ? widget.kamarTemp : (widget.kamarTemp * 1.8 + 32)];
+            final List<double> dapurTempValues = rawDapurTemp.isNotEmpty
+                ? rawDapurTemp.map((val) => isCelsius ? val : (val * 1.8 + 32)).toList()
+                : [isCelsius ? widget.dapurTemp : (widget.dapurTemp * 1.8 + 32)];
 
-        final List<String> intervals = ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00', 'Live'];
+            final List<double> kamarHumidValues = rawKamarHumid.isNotEmpty ? List.from(rawKamarHumid) : [widget.kamarHumid];
+            final List<double> dapurHumidValues = rawDapurHumid.isNotEmpty ? List.from(rawDapurHumid) : [widget.dapurHumid];
 
-        final Color kamarColor = _showTemp ? const Color(0xFFFF8A65) : Color(AppColors.secondaryContainer); // Coral vs Cyan
-        final Color dapurColor = _showTemp ? const Color(0xFFFFB74D) : const Color(0xFF9FA8DA); // Amber vs Indigo
+            final int activeIndex = _hoveredIndex != -1 && _hoveredIndex < kamarTempValues.length 
+                ? _hoveredIndex 
+                : (kamarTempValues.length - 1);
 
-        final String title = _showTemp ? 'Suhu Lingkungan' : 'Kelembapan Lingkungan';
+            final double displayKamarTemp = rawKamarTemp.isNotEmpty && activeIndex < rawKamarTemp.length 
+                ? rawKamarTemp[activeIndex] 
+                : widget.kamarTemp;
+            final double displayDapurTemp = rawDapurTemp.isNotEmpty && activeIndex < rawDapurTemp.length 
+                ? rawDapurTemp[activeIndex] 
+                : widget.dapurTemp;
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: Colors.white.withValues(alpha: 0.04),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header of the card with toggle
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            final double displayKamarHumid = rawKamarHumid.isNotEmpty && activeIndex < rawKamarHumid.length 
+                ? rawKamarHumid[activeIndex] 
+                : widget.kamarHumid;
+            final double displayDapurHumid = rawDapurHumid.isNotEmpty && activeIndex < rawDapurHumid.length 
+                ? rawDapurHumid[activeIndex] 
+                : widget.dapurHumid;
+
+            final Color kamarColor = _showTemp ? const Color(0xFFFF8A65) : Color(AppColors.secondaryContainer);
+            final Color dapurColor = _showTemp ? const Color(0xFFFFB74D) : const Color(0xFF9FA8DA);
+
+            final String title = _hoveredIndex != -1 && _hoveredIndex < intervals.length
+                ? (_showTemp ? 'Suhu (${intervals[_hoveredIndex]})' : 'Kelembapan (${intervals[_hoveredIndex]})')
+                : (_showTemp ? 'Suhu Lingkungan' : 'Kelembapan Lingkungan');
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.white.withValues(alpha: 0.04),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header of the card with toggle
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        title.toUpperCase(),
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(AppColors.onSurfaceVariant),
-                          letterSpacing: 0.8,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title.toUpperCase(),
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.onSurfaceVariant),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _showTemp
+                              ? Row(
+                                  children: [
+                                    AnimatedTempText(
+                                      celsiusValue: displayKamarTemp,
+                                      isCelsius: isCelsius,
+                                      showUnit: false,
+                                      style: const TextStyle(
+                                        fontFamily: 'Sora',
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(AppColors.onSurface),
+                                      ),
+                                    ),
+                                    const Text(
+                                      '° / ',
+                                      style: TextStyle(
+                                        fontFamily: 'Sora',
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(AppColors.onSurface),
+                                      ),
+                                    ),
+                                    AnimatedTempText(
+                                      celsiusValue: displayDapurTemp,
+                                      isCelsius: isCelsius,
+                                      style: const TextStyle(
+                                        fontFamily: 'Sora',
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(AppColors.onSurface),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Text(
+                                  '${displayKamarHumid.toInt()}% / ${displayDapurHumid.toInt()}%',
+                                  style: const TextStyle(
+                                    fontFamily: 'Sora',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(AppColors.onSurface),
+                                  ),
+                                ),
+                        ],
+                      ),
+                      // Tab Pill Selector
+                      Container(
+                        height: 32,
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          color: Colors.white.withValues(alpha: 0.03),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _showTemp = true;
+                                  _hoveredIndex = -1;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: _showTemp
+                                      ? const Color(0xFFFF8A65).withValues(alpha: 0.12)
+                                      : Colors.transparent,
+                                ),
+                                child: const Text(
+                                  'Suhu',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFFF8A65),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _showTemp = false;
+                                  _hoveredIndex = -1;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: !_showTemp
+                                      ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
+                                      : Colors.transparent,
+                                ),
+                                child: Text(
+                                  'Kelembapan',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(AppColors.secondaryContainer),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 12),
+
+                  // Legend
+                  Row(
+                    children: [
+                      _buildLegendDot(kamarColor),
+                      const SizedBox(width: 4),
                       _showTemp
                           ? Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                AnimatedTempText(
-                                  celsiusValue: widget.kamarTemp,
-                                  isCelsius: isCelsius,
-                                  showUnit: false,
-                                  style: const TextStyle(
-                                    fontFamily: 'Sora',
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(AppColors.onSurface),
-                                  ),
-                                ),
-                                const Text(
-                                  '° / ',
-                                  style: TextStyle(
-                                    fontFamily: 'Sora',
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(AppColors.onSurface),
-                                  ),
+                                Text(
+                                  'Suhu Kamar (',
+                                  style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
                                 ),
                                 AnimatedTempText(
-                                  celsiusValue: widget.dapurTemp,
+                                  celsiusValue: displayKamarTemp,
                                   isCelsius: isCelsius,
-                                  style: const TextStyle(
-                                    fontFamily: 'Sora',
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(AppColors.onSurface),
-                                  ),
+                                  style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                                ),
+                                Text(
+                                  ')',
+                                  style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
                                 ),
                               ],
                             )
                           : Text(
-                              '${widget.kamarHumid.toInt()}% / ${widget.dapurHumid.toInt()}%',
-                              style: const TextStyle(
-                                fontFamily: 'Sora',
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Color(AppColors.onSurface),
-                              ),
+                              'Kelembapan Kamar (${displayKamarHumid.toInt()}%)',
+                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                            ),
+                      const SizedBox(width: 16),
+                      _buildLegendDot(dapurColor),
+                      const SizedBox(width: 4),
+                      _showTemp
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Suhu Dapur (',
+                                  style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                                ),
+                                AnimatedTempText(
+                                  celsiusValue: displayDapurTemp,
+                                  isCelsius: isCelsius,
+                                  style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                                ),
+                                Text(
+                                  ')',
+                                  style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              'Kelembapan Dapur (${displayDapurHumid.toInt()}%)',
+                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
                             ),
                     ],
                   ),
-                  // Tab Pill Selector
-                  Container(
-                    height: 32,
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: Colors.white.withValues(alpha: 0.03),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
+
+                  const SizedBox(height: 20),
+
+                  // Chart Layout with Touch Gesture Interactivity
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double chartWidth = constraints.maxWidth;
+                      final double stepX = chartWidth / (intervals.length - 1);
+
+                      return GestureDetector(
+                        onTapDown: (details) {
+                          HapticFeedback.selectionClick();
+                          final int index = (details.localPosition.dx / stepX).round().clamp(0, intervals.length - 1);
+                          setState(() {
+                            _hoveredIndex = (_hoveredIndex == index) ? -1 : index;
+                          });
+                        },
+                        onPanUpdate: (details) {
+                          final int index = (details.localPosition.dx / stepX).round().clamp(0, intervals.length - 1);
+                          if (index != _hoveredIndex) {
+                            HapticFeedback.selectionClick();
                             setState(() {
-                              _showTemp = true;
+                              _hoveredIndex = index;
                             });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: _showTemp
-                                  ? const Color(0xFFFF8A65).withValues(alpha: 0.12)
-                                  : Colors.transparent,
-                            ),
-                            child: const Text(
-                              'Suhu',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFFFF8A65),
-                              ),
+                          }
+                        },
+                        child: SizedBox(
+                          height: 110,
+                          width: double.infinity,
+                          child: CustomPaint(
+                            painter: _ClimateChartPainter(
+                              values1: _showTemp ? kamarTempValues : kamarHumidValues,
+                              values2: _showTemp ? dapurTempValues : dapurHumidValues,
+                              color1: kamarColor,
+                              color2: dapurColor,
+                              minVal: _showTemp ? (isCelsius ? 15.0 : (15.0 * 1.8 + 32)) : 0.0,
+                              maxVal: _showTemp ? (isCelsius ? 38.0 : (38.0 * 1.8 + 32)) : 100.0,
+                              hoveredIndex: _hoveredIndex,
                             ),
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _showTemp = false;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: !_showTemp
-                                  ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
-                                  : Colors.transparent,
-                            ),
-                            child: Text(
-                              'Kelembapan',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Color(AppColors.secondaryContainer),
-                              ),
-                            ),
-                          ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // X-axis labels
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(intervals.length, (idx) {
+                      final label = intervals[idx];
+                      final isLive = label == 'Live';
+                      final isHoveredLabel = _hoveredIndex == idx;
+                      return Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: (isLive || isHoveredLabel) ? FontWeight.bold : FontWeight.w500,
+                          color: isHoveredLabel 
+                              ? Color(AppColors.secondaryContainer)
+                              : (isLive ? Colors.white : Colors.white.withValues(alpha: 0.4)),
                         ),
-                      ],
-                    ),
+                      );
+                    }),
                   ),
                 ],
               ),
-              
-              const SizedBox(height: 12),
-
-              // Legend
-              Row(
-                children: [
-                  _buildLegendDot(kamarColor),
-                  const SizedBox(width: 4),
-                  _showTemp
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Suhu Kamar (',
-                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                            ),
-                            AnimatedTempText(
-                              celsiusValue: widget.kamarTemp,
-                              isCelsius: isCelsius,
-                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                            ),
-                            Text(
-                              ')',
-                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        )
-                      : Text(
-                          'Kelembapan Kamar (${widget.kamarHumid.toInt()}%)',
-                          style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                        ),
-                  const SizedBox(width: 16),
-                  _buildLegendDot(dapurColor),
-                  const SizedBox(width: 4),
-                  _showTemp
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Suhu Dapur (',
-                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                            ),
-                            AnimatedTempText(
-                              celsiusValue: widget.dapurTemp,
-                              isCelsius: isCelsius,
-                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                            ),
-                            Text(
-                              ')',
-                              style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        )
-                      : Text(
-                          'Kelembapan Dapur (${widget.dapurHumid.toInt()}%)',
-                          style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w500),
-                        ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // Chart
-              SizedBox(
-                height: 110,
-                width: double.infinity,
-                child: CustomPaint(
-                  painter: _ClimateChartPainter(
-                    values1: _showTemp ? kamarTempValues : kamarHumidValues,
-                    values2: _showTemp ? dapurTempValues : dapurHumidValues,
-                    color1: kamarColor,
-                    color2: dapurColor,
-                    minVal: _showTemp ? (isCelsius ? 15.0 : (15.0 * 1.8 + 32)) : 0.0,
-                    maxVal: _showTemp ? (isCelsius ? 38.0 : (38.0 * 1.8 + 32)) : 100.0,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // X-axis labels
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: intervals.map((label) {
-                  final isLive = label == 'Live';
-                  return Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: isLive ? FontWeight.w700 : FontWeight.w500,
-                      color: isLive ? Colors.white : Colors.white.withValues(alpha: 0.4),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -1423,6 +1485,7 @@ class _ClimateChartPainter extends CustomPainter {
   final Color color2;
   final double minVal;
   final double maxVal;
+  final int hoveredIndex;
 
   _ClimateChartPainter({
     required this.values1,
@@ -1431,6 +1494,7 @@ class _ClimateChartPainter extends CustomPainter {
     required this.color2,
     required this.minVal,
     required this.maxVal,
+    required this.hoveredIndex,
   });
 
   @override
@@ -1444,6 +1508,20 @@ class _ClimateChartPainter extends CustomPainter {
     for (int i = 1; i < 4; i++) {
       final y = size.height * (i / 4);
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    final double stepX = size.width / (values1.length - 1);
+
+    // Draw vertical timeline indicator line when touched
+    if (hoveredIndex != -1 && hoveredIndex < values1.length) {
+      final double x = hoveredIndex * stepX;
+      final linePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.12)
+        ..strokeWidth = 1.5
+        ..style = PaintingStyle.stroke;
+
+      // Draw vertical line from top to bottom of chart
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), linePaint);
     }
 
     // Paint line 1 (Kamar)
@@ -1502,16 +1580,19 @@ class _ClimateChartPainter extends CustomPainter {
     canvas.drawPath(fillPath, fillPaint);
     canvas.drawPath(path, paint);
 
-    // Glowing dot at the live value
+    // Glowing dot at the active value (either live or hovered)
+    final activeIndex = (hoveredIndex != -1 && hoveredIndex < points.length) ? hoveredIndex : (points.length - 1);
+    final targetPoint = points[activeIndex];
+
     final dotPaint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(points.last, 4, dotPaint);
+    canvas.drawCircle(targetPoint, 4, dotPaint);
 
     final glowPaint = Paint()
       ..color = color.withValues(alpha: 0.4)
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(points.last, 8, glowPaint);
+    canvas.drawCircle(targetPoint, 8, glowPaint);
   }
 
   @override
@@ -1519,7 +1600,8 @@ class _ClimateChartPainter extends CustomPainter {
     return oldDelegate.color1 != color1 ||
         oldDelegate.color2 != color2 ||
         oldDelegate.values1 != values1 ||
-        oldDelegate.values2 != values2;
+        oldDelegate.values2 != values2 ||
+        oldDelegate.hoveredIndex != hoveredIndex;
   }
 }
 

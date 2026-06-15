@@ -7,6 +7,7 @@ import '../models/notification_model.dart';
 import '../services/firebase_service.dart';
 import '../services/notification_service.dart';
 import '../services/system_settings_service.dart';
+import '../services/climate_history_service.dart';
 import '../widgets/quick_status_banner.dart';
 import '../widgets/animated_temp_text.dart';
 
@@ -138,126 +139,191 @@ class _MonitorScreenState extends State<MonitorScreen> {
         }
 
         final double liveTemp = _selectedTempRoom == 'Kamar' ? sensor.kamarSuhu : sensor.dapurSuhu;
-        final String dataKey = _selectedTempRoom == 'Kamar' ? _selectedTimeline : '${_selectedTimeline}_Kitchen';
-        final _ChartData activeData = _datasets[dataKey]!;
+        final history = ClimateHistoryService();
 
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.containerPadding,
-              vertical: isMobile ? 16.0 : AppSpacing.stackMd,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ─── Header Section ───
-                _buildHeader(isMobile),
-                
-                const SizedBox(height: 16),
+        return AnimatedBuilder(
+          animation: Listenable.merge([
+            history.monitor24hKamarTemp,
+            history.monitor24hKamarHumid,
+            history.monitor24hDapurTemp,
+            history.monitor24hDapurHumid,
+            history.monitor24hLabels,
+            history.monitor7dKamarTemp,
+            history.monitor7dKamarHumid,
+            history.monitor7dDapurTemp,
+            history.monitor7dDapurHumid,
+            history.monitor7dLabels,
+            history.monitor30dKamarTemp,
+            history.monitor30dKamarHumid,
+            history.monitor30dDapurTemp,
+            history.monitor30dDapurHumid,
+            history.monitor30dLabels,
+          ]),
+          builder: (context, _) {
+            List<double> values = [];
+            List<String> labels = [];
+            String avgText = '';
+            String deltaText = '';
+            bool isDeltaPositive = true;
 
-                // ─── Quick Analytics Summary ───
-                _buildQuickAnalyticsRow(sensor, perangkat),
+            final isKamar = _selectedTempRoom == 'Kamar';
+            if (_selectedTimeline == '24H') {
+              values = isKamar ? history.monitor24hKamarTemp.value : history.monitor24hDapurTemp.value;
+              labels = history.monitor24hLabels.value;
+            } else if (_selectedTimeline == '7D') {
+              values = isKamar ? history.monitor7dKamarTemp.value : history.monitor7dDapurTemp.value;
+              labels = history.monitor7dLabels.value;
+            } else {
+              values = isKamar ? history.monitor30dKamarTemp.value : history.monitor30dDapurTemp.value;
+              labels = history.monitor30dLabels.value;
+            }
 
-                SizedBox(height: isMobile ? 20.0 : AppSpacing.stackMd),
+            // Fallback to static baseline if dynamic data is still empty
+            if (values.isEmpty) {
+              values = isKamar ? [26.0, 27.5, 29.0, 28.5, 27.2, 26.8] : [27.5, 28.8, 30.2, 29.8, 28.5, 28.0];
+              labels = ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+            }
 
-                // ─── Emergency Status/Warning Banner ───
-                if (sensor.dapurFlame > 0 || sensor.tamuGerak || perangkat.buzzerAlrm) ...[
-                  const QuickStatusBanner(alwaysShow: false),
-                  const SizedBox(height: 16),
-                ],
+            if (values.isNotEmpty) {
+              final avg = values.reduce((a, b) => a + b) / values.length;
+              avgText = "${avg.toStringAsFixed(1)}°C";
+              
+              if (values.length > 1) {
+                final delta = values.last - values[values.length - 2];
+                isDeltaPositive = delta >= 0;
+                deltaText = "${isDeltaPositive ? '+' : ''}${delta.toStringAsFixed(1)}°";
+              } else {
+                deltaText = "0.0°";
+              }
+            }
 
-                // ─── Responsive Bento Grid ───
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final double width = constraints.maxWidth;
+            final activeData = _ChartData(
+              avgText: avgText,
+              deltaText: deltaText,
+              isDeltaPositive: isDeltaPositive,
+              values: values,
+              labels: labels,
+            );
 
-                    if (width > 900) {
-                      // Desktop 2-Row Bento Grid
-                      return Column(
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: _buildTempChartCard(activeData, liveTemp),
-                              ),
-                              const SizedBox(width: AppSpacing.gutter),
-                              Expanded(
-                                flex: 1,
-                                child: _buildLuminanceCard(_localLuminance!),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.gutter),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 1,
-                                child: _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
-                              ),
-                              const SizedBox(width: AppSpacing.gutter),
-                              Expanded(
-                                flex: 2,
-                                child: _buildActivityCard(),
-                              ),
-                            ],
-                          ),
-                        ],
-                      );
-                    } else if (width > 600) {
-                      // Tablet Layout
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                _buildTempChartCard(activeData, liveTemp),
-                                const SizedBox(height: AppSpacing.gutter),
-                                _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.gutter),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                _buildLuminanceCard(_localLuminance!),
-                                const SizedBox(height: AppSpacing.gutter),
-                                _buildActivityCard(),
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    } else {
-                      // Mobile Layout
-                      return Column(
-                        children: [
-                          _buildTempChartCard(activeData, liveTemp),
-                          const SizedBox(height: AppSpacing.gutter),
-                          _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
-                          const SizedBox(height: AppSpacing.gutter),
-                          _buildLuminanceCard(_localLuminance!),
-                          const SizedBox(height: AppSpacing.gutter),
-                          _buildActivityCard(),
-                        ],
-                      );
-                    }
-                  },
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.containerPadding,
+                  vertical: isMobile ? 16.0 : AppSpacing.stackMd,
                 ),
-                const SizedBox(height: AppSpacing.gutter),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ─── Header Section ───
+                    _buildHeader(isMobile),
+                    
+                    const SizedBox(height: 16),
 
-                // ─── Room Status Summary ───
-                _buildRoomStatusSummary(sensor, perangkat),
+                    // ─── Quick Analytics Summary ───
+                    _buildQuickAnalyticsRow(sensor, perangkat),
 
-                const SizedBox(height: 48),
-              ],
-            ),
-          ),
+                    SizedBox(height: isMobile ? 20.0 : AppSpacing.stackMd),
+
+                    // ─── Emergency Status/Warning Banner ───
+                    if (sensor.dapurFlame > 0 || sensor.tamuGerak || perangkat.buzzerAlrm) ...[
+                      const QuickStatusBanner(alwaysShow: false),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // ─── Responsive Bento Grid ───
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double width = constraints.maxWidth;
+
+                        if (width > 900) {
+                          // Desktop 2-Row Bento Grid
+                          return Column(
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: _buildTempChartCard(activeData, liveTemp),
+                                  ),
+                                  const SizedBox(width: AppSpacing.gutter),
+                                  Expanded(
+                                    flex: 1,
+                                    child: _buildLuminanceCard(_localLuminance!),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.gutter),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    flex: 1,
+                                    child: _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
+                                  ),
+                                  const SizedBox(width: AppSpacing.gutter),
+                                  Expanded(
+                                    flex: 2,
+                                    child: _buildActivityCard(),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        } else if (width > 600) {
+                          // Tablet Layout
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    _buildTempChartCard(activeData, liveTemp),
+                                    const SizedBox(height: AppSpacing.gutter),
+                                    _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.gutter),
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    _buildLuminanceCard(_localLuminance!),
+                                    const SizedBox(height: AppSpacing.gutter),
+                                    _buildActivityCard(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Mobile Layout
+                          return Column(
+                            children: [
+                              _buildTempChartCard(activeData, liveTemp),
+                              const SizedBox(height: AppSpacing.gutter),
+                              _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
+                              const SizedBox(height: AppSpacing.gutter),
+                              _buildLuminanceCard(_localLuminance!),
+                              const SizedBox(height: AppSpacing.gutter),
+                              _buildActivityCard(),
+                            ],
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.gutter),
+
+                    // ─── Room Status Summary ───
+                    _buildRoomStatusSummary(sensor, perangkat),
+
+                    const SizedBox(height: 48),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -760,7 +826,24 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─────────────────────────────────────────────────
   // D. Card 3: Humidity Gradient Progress Card
   // ─────────────────────────────────────────────────
-  Widget _buildHumidityCard(double kamarHumid, double dapurHumid) {
+  Widget _buildHumidityCard(double liveKamarHumid, double liveDapurHumid) {
+    final history = ClimateHistoryService();
+    
+    // Fetch dynamic humidity values based on selected timeline for display values
+    double displayKamarHumid = liveKamarHumid;
+    double displayDapurHumid = liveDapurHumid;
+
+    if (_selectedTimeline == '24H') {
+      if (history.monitor24hKamarHumid.value.isNotEmpty) displayKamarHumid = history.monitor24hKamarHumid.value.last;
+      if (history.monitor24hDapurHumid.value.isNotEmpty) displayDapurHumid = history.monitor24hDapurHumid.value.last;
+    } else if (_selectedTimeline == '7D') {
+      if (history.monitor7dKamarHumid.value.isNotEmpty) displayKamarHumid = history.monitor7dKamarHumid.value.last;
+      if (history.monitor7dDapurHumid.value.isNotEmpty) displayDapurHumid = history.monitor7dDapurHumid.value.last;
+    } else if (_selectedTimeline == '30D') {
+      if (history.monitor30dKamarHumid.value.isNotEmpty) displayKamarHumid = history.monitor30dKamarHumid.value.last;
+      if (history.monitor30dDapurHumid.value.isNotEmpty) displayDapurHumid = history.monitor30dDapurHumid.value.last;
+    }
+
     return _MonitorGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -826,7 +909,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 ),
               ),
               Text(
-                '${kamarHumid.toInt()}% RH',
+                '${displayKamarHumid.toInt()}% RH',
                 style: const TextStyle(
                   fontFamily: 'Sora',
                   fontSize: 14,
@@ -838,7 +921,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
           ),
           const SizedBox(height: 6),
           TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: kamarHumid / 100.0),
+            tween: Tween<double>(begin: 0.0, end: displayKamarHumid / 100.0),
             duration: const Duration(seconds: 1),
             curve: Curves.easeOutCubic,
             builder: (context, val, _) {
@@ -888,7 +971,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 ),
               ),
               Text(
-                '${dapurHumid.toInt()}% RH',
+                '${displayDapurHumid.toInt()}% RH',
                 style: const TextStyle(
                   fontFamily: 'Sora',
                   fontSize: 14,
@@ -900,7 +983,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
           ),
           const SizedBox(height: 6),
           TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: dapurHumid / 100.0),
+            tween: Tween<double>(begin: 0.0, end: displayDapurHumid / 100.0),
             duration: const Duration(seconds: 1),
             curve: Curves.easeOutCubic,
             builder: (context, val, _) {

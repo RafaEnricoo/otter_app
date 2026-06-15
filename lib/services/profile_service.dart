@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 
@@ -12,6 +14,20 @@ class ProfileService {
   final ValueNotifier<String> displayName = ValueNotifier<String>('Mimah Dudim');
   final ValueNotifier<String> role = ValueNotifier<String>('Administrator Rumah Pintar');
   final ValueNotifier<String> avatarUrl = ValueNotifier<String>('');
+  final ValueNotifier<Uint8List?> avatarBytes = ValueNotifier<Uint8List?>(null);
+
+  void _updateAvatarBytes(String url) {
+    if (url.startsWith('data:image') && url.contains('base64,')) {
+      try {
+        final base64Str = url.split('base64,')[1];
+        avatarBytes.value = base64Decode(base64Str);
+      } catch (e) {
+        avatarBytes.value = null;
+      }
+    } else {
+      avatarBytes.value = null;
+    }
+  }
 
   ProfileService._internal() {
     // Check if profile exists, if not, seed it with default values
@@ -38,7 +54,12 @@ class ProfileService {
         password.value = data['password']?.toString() ?? 'admin123';
         displayName.value = data['display_name']?.toString() ?? 'Mimah Dudim';
         role.value = data['role']?.toString() ?? 'Administrator Rumah Pintar';
-        avatarUrl.value = data['avatar_url']?.toString() ?? '';
+        
+        final newUrl = data['avatar_url']?.toString() ?? '';
+        if (avatarUrl.value != newUrl) {
+          avatarUrl.value = newUrl;
+          _updateAvatarBytes(newUrl);
+        }
       }
     }, onError: (err) {
       debugPrint("Error listening to profile changes: $err");
@@ -56,7 +77,10 @@ class ProfileService {
     role.value = newRole;
     username.value = newUsername;
     password.value = newPassword;
-    avatarUrl.value = newAvatarUrl;
+    if (avatarUrl.value != newAvatarUrl) {
+      avatarUrl.value = newAvatarUrl;
+      _updateAvatarBytes(newAvatarUrl);
+    }
 
     try {
       await _profileRef.update({

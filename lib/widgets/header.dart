@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../services/system_settings_service.dart';
@@ -530,93 +531,105 @@ class _UserAvatarState extends State<_UserAvatar> {
     return ValueListenableBuilder<String>(
       valueListenable: _profile.displayName,
       builder: (context, name, _) {
-        return ValueListenableBuilder<String>(
-          valueListenable: _profile.avatarUrl,
-          builder: (context, avatar, _) {
-            final initials = _profile.initials;
-            return MouseRegion(
-              onEnter: (_) => setState(() => _isHovered = true),
-              onExit: (_) => setState(() => _isHovered = false),
-              cursor: SystemMouseCursors.click,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOut,
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: _isHovered
-                        ? [
-                            Color(AppColors.secondaryContainer),
-                            Color(AppColors.primary),
-                          ]
-                        : [
-                            Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
-                            Color(AppColors.primary).withValues(alpha: 0.2),
-                          ],
-                  ),
-                  boxShadow: _isHovered
-                      ? [
-                          BoxShadow(
-                            color:
-                                Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
-                            blurRadius: 12,
-                            spreadRadius: 0,
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Container(
-                  width: 34,
-                  height: 34,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(AppColors.surfaceContainer),
-                  ),
-                  child: ClipOval(
-                    child: avatar.isEmpty
-                        ? Center(
-                            child: Text(
-                              initials,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Color(AppColors.secondaryContainer),
-                                letterSpacing: 0.5,
+        return ValueListenableBuilder<Uint8List?>(
+          valueListenable: _profile.avatarBytes,
+          builder: (context, cachedBytes, _) {
+            return ValueListenableBuilder<String>(
+              valueListenable: _profile.avatarUrl,
+              builder: (context, avatar, _) {
+                final initials = _profile.initials;
+                return MouseRegion(
+                  onEnter: (_) => setState(() => _isHovered = true),
+                  onExit: (_) => setState(() => _isHovered = false),
+                  cursor: SystemMouseCursors.click,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut,
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: _isHovered
+                            ? [
+                                Color(AppColors.secondaryContainer),
+                                Color(AppColors.primary),
+                              ]
+                            : [
+                                Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
+                                Color(AppColors.primary).withValues(alpha: 0.2),
+                              ],
+                      ),
+                      boxShadow: _isHovered
+                          ? [
+                              BoxShadow(
+                                color:
+                                    Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                spreadRadius: 0,
                               ),
-                            ),
-                          )
-                        : (avatar.startsWith('data:image') && avatar.contains('base64,')
-                            ? Image.memory(
-                                base64Decode(avatar.split('base64,')[1]),
-                                width: 34,
-                                height: 34,
-                                fit: BoxFit.cover,
+                            ]
+                          : [],
+                    ),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(AppColors.surfaceContainer),
+                      ),
+                      child: ClipOval(
+                        child: avatar.isEmpty
+                            ? Center(
+                                child: Text(
+                                  initials,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(AppColors.secondaryContainer),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               )
-                            : Image.network(
-                                avatar,
-                                width: 34,
-                                height: 34,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Center(
-                                    child: Text(
-                                      initials,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(AppColors.secondaryContainer),
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )),
+                            : (cachedBytes != null
+                                ? Image.memory(
+                                    cachedBytes,
+                                    width: 34,
+                                    height: 34,
+                                    fit: BoxFit.cover,
+                                  )
+                                : (avatar.startsWith('data:image') && avatar.contains('base64,')
+                                    ? Image.memory(
+                                        base64Decode(avatar.split('base64,')[1]),
+                                        width: 34,
+                                        height: 34,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Image.network(
+                                        avatar,
+                                        width: 34,
+                                        height: 34,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Center(
+                                            child: Text(
+                                              initials,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: Color(AppColors.secondaryContainer),
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ))),
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              }
             );
           }
         );

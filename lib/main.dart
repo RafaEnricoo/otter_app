@@ -22,8 +22,8 @@ import 'services/firebase_service.dart';
 import 'services/system_settings_service.dart';
 import 'services/notification_service.dart';
 import 'services/profile_service.dart';
+import 'services/climate_history_service.dart';
 import 'models/device_model.dart';
-import 'models/notification_model.dart';
 import 'dart:convert';
 
 void main() async {
@@ -32,6 +32,7 @@ void main() async {
   await SystemSettingsService().init();
   await FirebaseService().init();
   NotificationService().init();
+  await ClimateHistoryService().init();
   runApp(const MyApp());
 }
 
@@ -67,7 +68,7 @@ class _MainLayoutState extends State<MainLayout> {
   bool _isAlarmRunning = false;
   Timer? _alarmDebounceTimer;
   Timer? _autoLockTimer;
-  bool _isLocked = false;
+  bool _isLocked = true;
 
   @override
   void initState() {
@@ -75,6 +76,7 @@ class _MainLayoutState extends State<MainLayout> {
     FirebaseService().stateNotifier.addListener(_onStateChanged);
     SystemSettingsService().enableSound.addListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.addListener(_onSettingsChanged);
+    SystemSettingsService().lockScreenTrigger.addListener(_onLockTriggered);
     
     // Set initial index based on defaultBootScreen
     final bootScreen = SystemSettingsService().defaultBootScreen.value;
@@ -95,11 +97,21 @@ class _MainLayoutState extends State<MainLayout> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _onStateChanged());
   }
 
+  void _onLockTriggered() {
+    if (SystemSettingsService().lockScreenTrigger.value) {
+      SystemSettingsService().lockScreenTrigger.value = false;
+      setState(() {
+        _isLocked = true;
+      });
+    }
+  }
+
   @override
   void dispose() {
     FirebaseService().stateNotifier.removeListener(_onStateChanged);
     SystemSettingsService().enableSound.removeListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.removeListener(_onSettingsChanged);
+    SystemSettingsService().lockScreenTrigger.removeListener(_onLockTriggered);
     _alarmDebounceTimer?.cancel();
     _autoLockTimer?.cancel();
     _stopAlarmFeedback();
@@ -270,230 +282,18 @@ class _MainLayoutState extends State<MainLayout> {
                   child: _FullSirenVignette(),
                 ),
               if (_isLocked)
-                _buildLockScreenOverlay(),
+                _LockScreenOverlay(
+                  onUnlock: () {
+                    setState(() {
+                      _isLocked = false;
+                    });
+                    _resetAutoLockTimer();
+                  },
+                ),
             ],
           );
         },
       ),
-    );
-  }
-
-  Widget _buildLockScreenOverlay() {
-    final profile = ProfileService();
-    final accentColor = SystemSettingsService().activeAccent.value;
-    final passwordController = TextEditingController();
-    bool obscureText = true;
-    String? errorMessage;
-
-    return StatefulBuilder(
-      builder: (context, setStateLock) {
-        return Positioned.fill(
-          child: Material(
-            color: Colors.black.withValues(alpha: 0.85),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-              child: SafeArea(
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Dynamic Avatar
-                        ValueListenableBuilder<String>(
-                          valueListenable: profile.avatarUrl,
-                          builder: (context, avatar, _) {
-                            final initials = profile.initials;
-                            return Container(
-                              width: 90,
-                              height: 90,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: accentColor, width: 2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: accentColor.withValues(alpha: 0.3),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: ClipOval(
-                                child: avatar.isEmpty
-                                    ? Container(
-                                        color: const Color(0xFF1E2020),
-                                        child: Center(
-                                          child: Text(
-                                            initials,
-                                            style: TextStyle(
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w800,
-                                              color: accentColor,
-                                              fontFamily: 'Sora',
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : (avatar.startsWith('data:image') && avatar.contains('base64,')
-                                        ? Image.memory(
-                                            base64Decode(avatar.split('base64,')[1]),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Image.network(
-                                            avatar,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => Container(
-                                              color: const Color(0xFF1E2020),
-                                              child: Center(
-                                                child: Text(
-                                                  initials,
-                                                  style: TextStyle(
-                                                    fontSize: 28,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: accentColor,
-                                                    fontFamily: 'Sora',
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          )),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Name
-                        ValueListenableBuilder<String>(
-                          valueListenable: profile.displayName,
-                          builder: (context, name, _) => Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              fontFamily: 'Sora',
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-
-                        // Role
-                        ValueListenableBuilder<String>(
-                          valueListenable: profile.role,
-                          builder: (context, role, _) => Text(
-                            role,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Password Field
-                        Container(
-                          width: double.infinity,
-                          constraints: const BoxConstraints(maxWidth: 320),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.04),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: errorMessage != null
-                                  ? Colors.redAccent.withValues(alpha: 0.5)
-                                  : Colors.white.withValues(alpha: 0.08),
-                            ),
-                          ),
-                          child: TextField(
-                            controller: passwordController,
-                            obscureText: obscureText,
-                            style: const TextStyle(color: Colors.white),
-                            onSubmitted: (_) {
-                              // Trigger unlock
-                              if (passwordController.text == profile.password.value) {
-                                HapticFeedback.heavyImpact();
-                                setState(() {
-                                  _isLocked = false;
-                              });
-                                _resetAutoLockTimer();
-                              } else {
-                                HapticFeedback.vibrate();
-                                setStateLock(() {
-                                  errorMessage = 'Password salah!';
-                                });
-                              }
-                            },
-                            decoration: InputDecoration(
-                              hintText: 'Masukkan Password...',
-                              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
-                              prefixIcon: Icon(Icons.lock_outline_rounded, color: accentColor, size: 18),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  size: 18,
-                                ),
-                                onPressed: () {
-                                  setStateLock(() {
-                                    obscureText = !obscureText;
-                                  });
-                                },
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            ),
-                          ),
-                        ),
-
-                        if (errorMessage != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            errorMessage!,
-                            style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                        const SizedBox(height: 24),
-
-                        // Unlock button
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accentColor,
-                            foregroundColor: Colors.black,
-                            minimumSize: const Size(180, 46),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: 0,
-                          ),
-                          onPressed: () {
-                            if (passwordController.text == profile.password.value) {
-                              HapticFeedback.heavyImpact();
-                              setState(() {
-                                _isLocked = false;
-                              });
-                              _resetAutoLockTimer();
-                            } else {
-                              HapticFeedback.vibrate();
-                              setStateLock(() {
-                                errorMessage = 'Password salah!';
-                              });
-                            }
-                          },
-                          child: const Text(
-                            'Buka Kunci',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -516,8 +316,448 @@ class _MainLayoutState extends State<MainLayout> {
       ],
     );
   }
+}
 
+class _LockScreenOverlay extends StatefulWidget {
+  final VoidCallback onUnlock;
+  const _LockScreenOverlay({required this.onUnlock});
 
+  @override
+  State<_LockScreenOverlay> createState() => _LockScreenOverlayState();
+}
+
+class _LockScreenOverlayState extends State<_LockScreenOverlay> with TickerProviderStateMixin {
+  final _lockPasswordController = TextEditingController();
+  String? _errorMessage;
+  late AnimationController _shakeController;
+  late AnimationController _pulseController;
+  Timer? _errorTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _lockPasswordController.dispose();
+    _shakeController.dispose();
+    _pulseController.dispose();
+    _errorTimer?.cancel();
+    super.dispose();
+  }
+
+  void triggerShake() {
+    _shakeController.forward(from: 0.0);
+  }
+
+  void _showError(String message) {
+    _errorTimer?.cancel();
+    HapticFeedback.vibrate();
+    triggerShake();
+    setState(() {
+      _errorMessage = message;
+      _lockPasswordController.clear();
+    });
+    _errorTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _errorMessage = null;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = ProfileService();
+    final accentColor = SystemSettingsService().activeAccent.value;
+    final pinLength = _lockPasswordController.text.length;
+    final int totalPinDots = profile.password.value.length;
+
+    // Shake animation definition
+    final shakeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 15.0), weight: 1),
+      TweenSequenceItem(tween: Tween<double>(begin: 15.0, end: -15.0), weight: 2),
+      TweenSequenceItem(tween: Tween<double>(begin: -15.0, end: 15.0), weight: 2),
+      TweenSequenceItem(tween: Tween<double>(begin: 15.0, end: -10.0), weight: 2),
+      TweenSequenceItem(tween: Tween<double>(begin: -10.0, end: 10.0), weight: 2),
+      TweenSequenceItem(tween: Tween<double>(begin: 10.0, end: 0.0), weight: 1),
+    ]).animate(_shakeController);
+
+    void handleNumberPress(String val) {
+      final pwdLength = profile.password.value.length;
+      if (_lockPasswordController.text.length < pwdLength) {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _lockPasswordController.text += val;
+          _errorMessage = null;
+        });
+        
+        // Auto submit if it reaches the length of password
+        if (_lockPasswordController.text.length == pwdLength) {
+          if (_lockPasswordController.text == profile.password.value) {
+            HapticFeedback.heavyImpact();
+            widget.onUnlock();
+          } else {
+            _showError('PIN Keamanan Salah!');
+          }
+        }
+      }
+    }
+
+    void handleBackspace() {
+      if (_lockPasswordController.text.isNotEmpty) {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _lockPasswordController.text = _lockPasswordController.text.substring(0, _lockPasswordController.text.length - 1);
+          _errorMessage = null;
+        });
+      }
+    }
+
+    void handleUnlock() {
+      if (_lockPasswordController.text == profile.password.value) {
+        HapticFeedback.heavyImpact();
+        widget.onUnlock();
+      } else {
+        _showError('PIN Keamanan Salah!');
+      }
+    }
+
+    Widget buildPinDot(int index) {
+      final bool isFilled = index < pinLength;
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        width: 14,
+        height: 14,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isFilled ? accentColor : Colors.white.withOpacity(0.15),
+          border: Border.all(
+            color: isFilled ? accentColor : Colors.white.withOpacity(0.25),
+            width: 1.5,
+          ),
+          boxShadow: isFilled
+              ? [
+                  BoxShadow(
+                    color: accentColor.withOpacity(0.6),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  )
+                ]
+              : [],
+        ),
+      );
+    }
+
+    Widget buildKeypadButton(String label, {VoidCallback? onPressed, IconData? icon}) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed ?? () => handleNumberPress(label),
+          borderRadius: BorderRadius.circular(40),
+          splashColor: accentColor.withOpacity(0.15),
+          highlightColor: Colors.white.withOpacity(0.03),
+          child: Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.02),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.05),
+                width: 1,
+              ),
+            ),
+            child: Center(
+              child: icon != null
+                  ? Icon(icon, color: Colors.white, size: 24)
+                  : Text(
+                      label,
+                      style: const TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: 26,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Positioned.fill(
+      child: Material(
+        color: const Color(0xFF030508),
+        child: Stack(
+          children: [
+            // Ambient glowing blobs
+            Positioned(
+              top: -50,
+              left: -50,
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColor.withOpacity(0.12),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 100,
+              right: -50,
+              child: Container(
+                width: 320,
+                height: 320,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF6366F1).withOpacity(0.08),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+
+            // Top Header Branding
+            Positioned(
+              top: 24,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock_outline_rounded, color: accentColor.withOpacity(0.7), size: 14),
+                      const SizedBox(width: 8),
+                      Text(
+                        'OTTER SECURE',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white.withOpacity(0.5),
+                          letterSpacing: 2.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Main UI
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+
+                        // Dynamic Avatar with animated glow
+                        ValueListenableBuilder<Uint8List?>(
+                          valueListenable: profile.avatarBytes,
+                          builder: (context, cachedBytes, _) {
+                            return ValueListenableBuilder<String>(
+                              valueListenable: profile.avatarUrl,
+                              builder: (context, avatar, _) {
+                                final initials = profile.initials;
+                                return AnimatedBuilder(
+                                  animation: _pulseController,
+                                  builder: (context, child) {
+                                    final double pulse = _pulseController.value;
+                                    return Container(
+                                      width: 92,
+                                      height: 92,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: accentColor.withOpacity(0.5 + pulse * 0.5),
+                                          width: 2,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: accentColor.withOpacity(0.15 + pulse * 0.2),
+                                            blurRadius: 15 + pulse * 12,
+                                            spreadRadius: pulse * 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipOval(
+                                        child: avatar.isEmpty
+                                            ? Container(
+                                                color: const Color(0xFF1E2020),
+                                                child: Center(
+                                                  child: Text(
+                                                    initials,
+                                                    style: TextStyle(
+                                                      fontSize: 28,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: accentColor,
+                                                      fontFamily: 'Sora',
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                            : (cachedBytes != null
+                                                ? Image.memory(
+                                                    cachedBytes,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : (avatar.startsWith('data:image') && avatar.contains('base64,')
+                                                    ? Image.memory(
+                                                        base64Decode(avatar.split('base64,')[1]),
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                    : Image.network(
+                                                        avatar,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context, error, stackTrace) => Container(
+                                                          color: const Color(0xFF1E2020),
+                                                          child: Center(
+                                                            child: Text(
+                                                              initials,
+                                                              style: TextStyle(
+                                                                fontSize: 28,
+                                                                fontWeight: FontWeight.w800,
+                                                                color: accentColor,
+                                                                fontFamily: 'Sora',
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ))),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Name
+                        ValueListenableBuilder<String>(
+                          valueListenable: profile.displayName,
+                          builder: (context, name, _) => Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontFamily: 'Sora',
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+
+                        // Status Text
+                        Text(
+                          _errorMessage ?? 'Sistem Terkunci',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            color: _errorMessage != null ? Colors.redAccent : Colors.white.withOpacity(0.45),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // PIN Dots Row wrapped with Shake Animation
+                        AnimatedBuilder(
+                          animation: _shakeController,
+                          builder: (context, child) {
+                            final offset = shakeAnimation.value;
+                            return Transform.translate(
+                              offset: Offset(offset, 0),
+                              child: child,
+                            );
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(totalPinDots, (index) => buildPinDot(index)),
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+
+                        // Numeric Keypad Layout
+                        Container(
+                          constraints: const BoxConstraints(maxWidth: 280),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  buildKeypadButton('1'),
+                                  buildKeypadButton('2'),
+                                  buildKeypadButton('3'),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  buildKeypadButton('4'),
+                                  buildKeypadButton('5'),
+                                  buildKeypadButton('6'),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  buildKeypadButton('7'),
+                                  buildKeypadButton('8'),
+                                  buildKeypadButton('9'),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Backspace
+                                  buildKeypadButton('', icon: Icons.backspace_outlined, onPressed: handleBackspace),
+                                  buildKeypadButton('0'),
+                                  // Checkmark Submit
+                                  buildKeypadButton('', icon: Icons.check_circle_outline_rounded, onPressed: handleUnlock),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _FullSirenVignette extends StatefulWidget {

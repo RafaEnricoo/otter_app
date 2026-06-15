@@ -15,6 +15,7 @@ class SystemSettingsService {
   final ValueNotifier<bool> tempScaleCelsius = ValueNotifier<bool>(true);
   final ValueNotifier<String> defaultBootScreen = ValueNotifier<String>('Beranda');
   final ValueNotifier<double> autoLockDelay = ValueNotifier<double>(3.0); // minutes
+  final ValueNotifier<bool> lockScreenTrigger = ValueNotifier<bool>(false);
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
