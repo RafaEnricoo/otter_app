@@ -32,6 +32,16 @@
       "username": "admin",
       "password": "1234",
       "avatar_url": ""
+    },
+    "rfid_terdaftar": {
+      "A3B2C5D1": {
+        "nama_pemilik": "Rafa Enrico",
+        "status": "aktif"
+      },
+      "E5F60718": {
+        "nama_pemilik": "Mimah Dudim",
+        "status": "aktif"
+      }
     }
   }
 }
