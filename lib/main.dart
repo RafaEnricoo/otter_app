@@ -74,7 +74,7 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     FirebaseService().stateNotifier.addListener(_onStateChanged);
-    SystemSettingsService().enableSound.addListener(_onSettingsChanged);
+    SystemSettingsService().enableAlarmSound.addListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.addListener(_onSettingsChanged);
     SystemSettingsService().lockScreenTrigger.addListener(_onLockTriggered);
     
@@ -109,7 +109,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void dispose() {
     FirebaseService().stateNotifier.removeListener(_onStateChanged);
-    SystemSettingsService().enableSound.removeListener(_onSettingsChanged);
+    SystemSettingsService().enableAlarmSound.removeListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.removeListener(_onSettingsChanged);
     SystemSettingsService().lockScreenTrigger.removeListener(_onLockTriggered);
     _alarmDebounceTimer?.cancel();
@@ -164,7 +164,7 @@ class _MainLayoutState extends State<MainLayout> {
     final settings = SystemSettingsService();
 
     // 1. Play siren sound
-    if (settings.enableSound.value) {
+    if (settings.enableAlarmSound.value) {
       try {
         _sirenPlayer ??= AudioPlayer();
         

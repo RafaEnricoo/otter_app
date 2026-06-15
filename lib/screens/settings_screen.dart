@@ -626,9 +626,15 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           ),
           const SizedBox(height: 16),
 
-          _buildSwitchRow('Suara Alarm & Notifikasi', 'Aktifkan suara sirine dan pemberitahuan audio', settings.enableSound.value, (val) {
+          _buildSwitchRow('Suara Alarm Kritis', 'Aktifkan suara sirine darurat ketika alarm aktif', settings.enableAlarmSound.value, (val) {
             setState(() {
-              settings.enableSound.value = val;
+              settings.enableAlarmSound.value = val;
+            });
+          }),
+          const Divider(color: Colors.white10, height: 16),
+          _buildSwitchRow('Suara Notifikasi', 'Aktifkan pemberitahuan audio untuk notifikasi baru', settings.enableNotificationSound.value, (val) {
+            setState(() {
+              settings.enableNotificationSound.value = val;
             });
           }),
           const Divider(color: Colors.white10, height: 16),

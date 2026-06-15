@@ -154,7 +154,7 @@ class NotificationService {
 
   void _playNotificationFeedback(NotificationPriority priority) async {
     final settings = SystemSettingsService();
-    if (settings.enableSound.value) {
+    if (settings.enableNotificationSound.value) {
       try {
         final String soundPath = (priority == NotificationPriority.critical)
             ? 'sounds/error.wav'
@@ -249,8 +249,9 @@ class NotificationService {
   }
 
   void _showNativeNotification(NotificationModel notif) async {
+    final settings = SystemSettingsService();
     try {
-      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      final AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
         'otter_channel_id',
         'Otter Smart Home Notifications',
@@ -258,8 +259,9 @@ class NotificationService {
         importance: Importance.max,
         priority: Priority.high,
         showWhen: true,
+        playSound: settings.enableNotificationSound.value,
       );
-      const NotificationDetails platformChannelSpecifics =
+      final NotificationDetails platformChannelSpecifics =
           NotificationDetails(android: androidPlatformChannelSpecifics);
 
       await _flutterLocalNotificationsPlugin.show(

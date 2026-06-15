@@ -11,6 +11,8 @@ class SystemSettingsService {
   final ValueNotifier<double> glassOpacity = ValueNotifier<double>(0.05);
   final ValueNotifier<bool> enableVibration = ValueNotifier<bool>(true);
   final ValueNotifier<bool> enableSound = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> enableAlarmSound = ValueNotifier<bool>(true);
+  final ValueNotifier<bool> enableNotificationSound = ValueNotifier<bool>(true);
   final ValueNotifier<Color> activeAccent = ValueNotifier<Color>(const Color(0xFF00F4FE)); // Neon Cyan
   final ValueNotifier<bool> tempScaleCelsius = ValueNotifier<bool>(true);
   final ValueNotifier<String> defaultBootScreen = ValueNotifier<String>('Beranda');
@@ -24,6 +26,8 @@ class SystemSettingsService {
     glassOpacity.value = _prefs.getDouble('glassOpacity') ?? 0.05;
     enableVibration.value = _prefs.getBool('enableVibration') ?? true;
     enableSound.value = _prefs.getBool('enableSound') ?? true;
+    enableAlarmSound.value = _prefs.getBool('enableAlarmSound') ?? true;
+    enableNotificationSound.value = _prefs.getBool('enableNotificationSound') ?? true;
     final accentValue = _prefs.getInt('activeAccent');
     if (accentValue != null) {
       activeAccent.value = Color(accentValue);
@@ -38,6 +42,8 @@ class SystemSettingsService {
     glassOpacity.addListener(() => _prefs.setDouble('glassOpacity', glassOpacity.value));
     enableVibration.addListener(() => _prefs.setBool('enableVibration', enableVibration.value));
     enableSound.addListener(() => _prefs.setBool('enableSound', enableSound.value));
+    enableAlarmSound.addListener(() => _prefs.setBool('enableAlarmSound', enableAlarmSound.value));
+    enableNotificationSound.addListener(() => _prefs.setBool('enableNotificationSound', enableNotificationSound.value));
     activeAccent.addListener(() => _prefs.setInt('activeAccent', activeAccent.value.value));
     tempScaleCelsius.addListener(() => _prefs.setBool('tempScaleCelsius', tempScaleCelsius.value));
     defaultBootScreen.addListener(() => _prefs.setString('defaultBootScreen', defaultBootScreen.value));
@@ -48,6 +54,8 @@ class SystemSettingsService {
     glassOpacity.value = 0.05;
     enableVibration.value = true;
     enableSound.value = true;
+    enableAlarmSound.value = true;
+    enableNotificationSound.value = true;
     activeAccent.value = const Color(0xFF00F4FE);
     tempScaleCelsius.value = true;
     defaultBootScreen.value = 'Beranda';
