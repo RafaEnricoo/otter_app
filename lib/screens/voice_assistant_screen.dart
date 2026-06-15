@@ -393,15 +393,27 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       if (cmd.contains('lampu')) {
         if (cmd.contains('kamar') && !cmd.contains('mandi')) {
           await FirebaseService().updateOtomatisasi('auto_lampu_kamar', targetAutoState);
+          if (targetAutoState) {
+            await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          }
           responseText = targetAutoState ? 'Mode auto lampu kamar diaktifkan' : 'Mode auto lampu kamar dinonaktifkan';
         } else if (cmd.contains('tamu')) {
           await FirebaseService().updateOtomatisasi('auto_lampu_tamu', targetAutoState);
+          if (targetAutoState) {
+            await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          }
           responseText = targetAutoState ? 'Mode auto lampu ruang tamu diaktifkan' : 'Mode auto lampu ruang tamu dinonaktifkan';
         } else if (cmd.contains('dapur')) {
           await FirebaseService().updateOtomatisasi('auto_lampu_dapur', targetAutoState);
+          if (targetAutoState) {
+            await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          }
           responseText = targetAutoState ? 'Mode auto lampu dapur diaktifkan' : 'Mode auto lampu dapur dinonaktifkan';
         } else if (cmd.contains('mandi')) {
           await FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', targetAutoState);
+          if (targetAutoState) {
+            await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          }
           responseText = targetAutoState ? 'Mode auto lampu kamar mandi diaktifkan' : 'Mode auto lampu kamar mandi dinonaktifkan';
         } else {
           final bool alreadyInState = ((currentState?.otomatisasi.modeAutoLampu ?? false) == targetAutoState);
@@ -428,15 +440,19 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           cmd.contains('lampu')) {
         if (cmd.contains('kamar') && !cmd.contains('mandi')) {
           await FirebaseService().updateOtomatisasi('auto_lampu_kamar', true);
+          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = 'Mode auto lampu kamar diaktifkan';
         } else if (cmd.contains('tamu')) {
           await FirebaseService().updateOtomatisasi('auto_lampu_tamu', true);
+          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = 'Mode auto lampu ruang tamu diaktifkan';
         } else if (cmd.contains('dapur')) {
           await FirebaseService().updateOtomatisasi('auto_lampu_dapur', true);
+          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = 'Mode auto lampu dapur diaktifkan';
         } else if (cmd.contains('mandi')) {
           await FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', true);
+          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = 'Mode auto lampu kamar mandi diaktifkan';
         } else {
           final bool alreadyOn = currentState?.otomatisasi.modeAutoLampu ?? false;

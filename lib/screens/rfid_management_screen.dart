@@ -99,10 +99,11 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                 child: const Text('Hapus Akses', style: TextStyle(fontWeight: FontWeight.w600)),
                 onPressed: () async {
                   HapticFeedback.heavyImpact();
+                  final messenger = ScaffoldMessenger.of(this.context);
                   await _firebaseService.removeRfidCard(uid);
                   if (mounted) {
                     Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(content: Text('Akses kartu $name telah dihapus.')),
                     );
                   }
@@ -306,6 +307,101 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
     );
   }
 
+  void _showApproveDialog(String uid) {
+    final nameController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    HapticFeedback.mediumImpact();
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (BuildContext context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF1E2020),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            title: Row(
+              children: [
+                Icon(Icons.verified_user_outlined, color: _activeAccent, size: 24),
+                const SizedBox(width: 8),
+                const Text('Setujui Kartu RFID', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Masukkan nama pemilik untuk kartu dengan UID: $uid',
+                    style: const TextStyle(color: Color(0xFFC6C6CE), fontSize: 13, height: 1.3),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'NAMA PEMILIK',
+                    style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: nameController,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: _buildInputDecoration('Nama pemilik kartu...', Icons.person_outline_rounded),
+                    autofocus: true,
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Nama tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: _activeAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Setujui & Aktifkan', style: TextStyle(fontWeight: FontWeight.w600)),
+                onPressed: () async {
+                  if (formKey.currentState!.validate()) {
+                    HapticFeedback.heavyImpact();
+                    final name = nameController.text.trim();
+                    final messenger = ScaffoldMessenger.of(this.context);
+                    await _firebaseService.approveRfidCard(uid, name);
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Kartu RFID $uid berhasil diaktifkan untuk $name!'),
+                          backgroundColor: const Color(0xFF1E2020),
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    ).then((_) => nameController.dispose());
+  }
+
   Widget _buildCardListSection() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -314,43 +410,257 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Daftar Kartu Terdaftar',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              fontFamily: 'Sora',
-            ),
-          ),
-          const SizedBox(height: 16),
-          StreamBuilder<Map<String, dynamic>>(
-            stream: _firebaseService.getRfidCardsStream(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                );
-              }
+      child: StreamBuilder<Map<String, dynamic>>(
+        stream: _firebaseService.getRfidCardsStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.0),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            );
+          }
 
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text(
-                    'Gagal memuat data: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.redAccent),
-                  ),
-                );
-              }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Gagal memuat data: ${snapshot.error}',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            );
+          }
 
-              final cards = snapshot.data ?? {};
-              if (cards.isEmpty) {
-                return Center(
+          final allCards = snapshot.data ?? {};
+          if (allCards.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32.0),
+                child: Column(
+                  children: [
+                    Icon(Icons.credit_card_off_rounded, color: Colors.white.withValues(alpha: 0.2), size: 48),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Belum ada kartu RFID terdaftar',
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          // Pisahkan berdasarkan status
+          final pendingCards = <String, Map<dynamic, dynamic>>{};
+          final registeredCards = <String, Map<dynamic, dynamic>>{};
+
+          allCards.forEach((key, value) {
+            final cardData = value as Map<dynamic, dynamic>;
+            final status = cardData['status'] ?? 'aktif';
+            if (status == 'menunggu') {
+              pendingCards[key] = cardData;
+            } else {
+              registeredCards[key] = cardData;
+            }
+          });
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ─── SECTION 1: PERMINTAAN PENDAFTARAN (PENDING APPROVAL) ───
+              if (pendingCards.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.pending_actions_rounded, color: Colors.amber, size: 18),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Permintaan Pendaftaran',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.amber,
+                        fontFamily: 'Sora',
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${pendingCards.length}',
+                        style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: pendingCards.length,
+                  separatorBuilder: (context, index) => const Divider(color: Colors.white10, height: 16),
+                  itemBuilder: (context, index) {
+                    final key = pendingCards.keys.elementAt(index);
+                    final cardData = pendingCards[key]!;
+                    final name = cardData['nama_pemilik'] ?? 'Kartu Baru Terdeteksi';
+
+                    return Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.nfc_rounded,
+                            color: Colors.amber,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                key,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Approve Button
+                        IconButton(
+                          icon: Icon(Icons.check_circle_outline_rounded, color: _activeAccent, size: 22),
+                          onPressed: () => _showApproveDialog(key),
+                          tooltip: 'Setujui',
+                        ),
+                        // Reject Button
+                        IconButton(
+                          icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent, size: 22),
+                          onPressed: () => _deleteCard(key, name),
+                          tooltip: 'Tolak',
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                if (registeredCards.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  const Divider(color: Colors.white12, height: 2),
+                  const SizedBox(height: 20),
+                ],
+              ],
+
+              // ─── SECTION 2: DAFTAR KARTU TERDAFTAR ───
+              if (registeredCards.isNotEmpty) ...[
+                const Text(
+                  'Daftar Kartu Terdaftar',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    fontFamily: 'Sora',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: registeredCards.length,
+                  separatorBuilder: (context, index) => const Divider(color: Colors.white10, height: 16),
+                  itemBuilder: (context, index) {
+                    final key = registeredCards.keys.elementAt(index);
+                    final cardData = registeredCards[key]!;
+                    final name = cardData['nama_pemilik'] ?? 'Tanpa Nama';
+                    final status = cardData['status'] ?? 'aktif';
+                    final isActive = status == 'aktif';
+
+                    return Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isActive ? _activeAccent.withValues(alpha: 0.1) : Colors.white10,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.nfc_rounded,
+                            color: isActive ? _activeAccent : Colors.white24,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                key,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: isActive,
+                            activeColor: _activeAccent,
+                            activeTrackColor: _activeAccent.withValues(alpha: 0.3),
+                            inactiveThumbColor: Colors.white38,
+                            inactiveTrackColor: Colors.white12,
+                            onChanged: (val) {
+                              HapticFeedback.lightImpact();
+                              final newStatus = val ? 'aktif' : 'nonaktif';
+                              _firebaseService.updateRfidCardStatus(key, newStatus);
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                          onPressed: () => _deleteCard(key, name),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ] else if (pendingCards.isEmpty) ...[
+                Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32.0),
                     child: Column(
@@ -364,95 +674,11 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                       ],
                     ),
                   ),
-                );
-              }
-
-              return ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: cards.length,
-                separatorBuilder: (context, index) => const Divider(color: Colors.white10, height: 16),
-                itemBuilder: (context, index) {
-                  final key = cards.keys.elementAt(index);
-                  final cardData = cards[key] as Map<dynamic, dynamic>;
-                  final name = cardData['nama_pemilik'] ?? 'Tanpa Nama';
-                  final status = cardData['status'] ?? 'aktif';
-                  final isActive = status == 'aktif';
-
-                  return Row(
-                    children: [
-                      // NFC Icon Badge
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isActive ? _activeAccent.withValues(alpha: 0.1) : Colors.white10,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.nfc_rounded,
-                          color: isActive ? _activeAccent : Colors.white24,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-
-                      // Card Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              key, // UID
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontFamily: 'monospace',
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white.withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Status Switch
-                      Transform.scale(
-                        scale: 0.8,
-                        child: Switch(
-                          value: isActive,
-                          activeColor: _activeAccent,
-                          activeTrackColor: _activeAccent.withValues(alpha: 0.3),
-                          inactiveThumbColor: Colors.white38,
-                          inactiveTrackColor: Colors.white12,
-                          onChanged: (val) {
-                            HapticFeedback.lightImpact();
-                            final newStatus = val ? 'aktif' : 'nonaktif';
-                            _firebaseService.updateRfidCardStatus(key, newStatus);
-                          },
-                        ),
-                      ),
-
-                      // Delete Button
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
-                        onPressed: () => _deleteCard(key, name),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-        ],
+                ),
+              ],
+            ],
+          );
+        },
       ),
     );
   }

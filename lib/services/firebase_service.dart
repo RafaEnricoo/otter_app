@@ -29,6 +29,7 @@ class FirebaseService {
   Timer? _settingsNotificationTimer;
   Map<String, dynamic> _localRfidCards = {};
   final _rfidStreamController = StreamController<Map<String, dynamic>>.broadcast();
+  final Set<String> _notifiedPendingUids = {};
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -53,6 +54,7 @@ class FirebaseService {
           _localState = SmarthomeState.fromMap(data);
           stateNotifier.value = _localState;
           _runAutomationRulesIfNeeded();
+          _checkPendingRfidNotifications(data);
         }
       }, onError: (err) {
         print("Firebase stream error, falling back to local simulation: $err");
@@ -445,6 +447,32 @@ class FirebaseService {
     }
   }
 
+  Future<void> approveRfidCard(String uid, String namaPemilik) async {
+    final uidClean = uid.trim().toUpperCase().replaceAll(' ', '');
+    final cleanName = namaPemilik.trim();
+    if (uidClean.isEmpty || cleanName.isEmpty) return;
+
+    if (_isUsingFallback) {
+      if (_localRfidCards.containsKey(uidClean)) {
+        _localRfidCards[uidClean]['nama_pemilik'] = cleanName;
+        _localRfidCards[uidClean]['status'] = 'aktif';
+        _rfidStreamController.add(_localRfidCards);
+      }
+    } else {
+      await _dbRef.child('rfid_terdaftar/$uidClean').update({
+        'nama_pemilik': cleanName,
+        'status': 'aktif',
+      });
+    }
+
+    NotificationService().addNotification(
+      title: 'Akses RFID Disetujui',
+      message: 'Kartu $uidClean telah diaktifkan untuk $cleanName.',
+      category: NotificationCategory.security,
+      priority: NotificationPriority.info,
+    );
+  }
+
   // Automation logic
   void _runAutomationRulesIfNeeded() {
     if (_localState == null) return;
@@ -589,6 +617,34 @@ class FirebaseService {
         });
       }
     }
+  }
+
+  void _checkPendingRfidNotifications(Map<dynamic, dynamic> data) {
+    final rfidMap = data['rfid_terdaftar'] as Map<dynamic, dynamic>?;
+    if (rfidMap == null) return;
+
+    rfidMap.forEach((key, value) {
+      final cardData = value as Map<dynamic, dynamic>?;
+      if (cardData == null) return;
+
+      final uid = key.toString();
+      final status = cardData['status']?.toString() ?? '';
+
+      if (status == 'menunggu') {
+        if (!_notifiedPendingUids.contains(uid)) {
+          _notifiedPendingUids.add(uid);
+          
+          NotificationService().addNotification(
+            title: 'Pendaftaran RFID Fisik',
+            message: 'Kartu RFID baru ($uid) mendeteksi akses ketukan dan menunggu persetujuan Anda.',
+            category: NotificationCategory.security,
+            priority: NotificationPriority.warning,
+          );
+        }
+      } else {
+        _notifiedPendingUids.remove(uid);
+      }
+    });
   }
 
   void dispose() {
