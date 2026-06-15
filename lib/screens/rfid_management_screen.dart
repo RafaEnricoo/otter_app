@@ -101,6 +101,7 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                   HapticFeedback.heavyImpact();
                   final nameVal = name;
                   Navigator.of(context).pop();
+                  await Future.delayed(const Duration(milliseconds: 350));
                   await _firebaseService.removeRfidCard(uid);
                   if (mounted) {
                     ScaffoldMessenger.of(this.context).showSnackBar(
@@ -382,6 +383,7 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                     HapticFeedback.heavyImpact();
                     final name = nameController.text.trim();
                     Navigator.of(context).pop();
+                    await Future.delayed(const Duration(milliseconds: 350));
                     await _firebaseService.approveRfidCard(uid, name);
                     if (mounted) {
                       ScaffoldMessenger.of(this.context).showSnackBar(
