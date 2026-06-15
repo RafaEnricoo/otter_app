@@ -8,6 +8,7 @@ import '../services/system_settings_service.dart';
 import '../services/firebase_service.dart';
 import '../services/profile_service.dart';
 import 'edit_profile_screen.dart';
+import 'rfid_management_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -168,6 +169,10 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
 
                       // Card 4: Notification Toggles
                       _buildNotificationsCard(),
+                      const SizedBox(height: 16),
+
+                      // Card 5: RFID Management
+                      _buildRfidManagementCard(),
                       const SizedBox(height: 16),
 
                       // Card 6: System actions
@@ -829,6 +834,59 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
               _showResetDialog();
             },
             child: const Text('Reset Gateway', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Bento Card: RFID Access Management
+  Widget _buildRfidManagementCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: _glassOpacity),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Manajemen Akses RFID',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Sora'),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Kelola daftar kartu RFID terdaftar untuk akses masuk rumah.',
+                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.45)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: _activeAccent.withValues(alpha: 0.1),
+                  foregroundColor: _activeAccent,
+                ),
+                icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RfidManagementScreen()),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),

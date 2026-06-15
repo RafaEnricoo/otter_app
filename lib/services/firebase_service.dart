@@ -27,6 +27,8 @@ class FirebaseService {
   bool _lastPirValue = false;
   Timer? _flameBlinkerTimer;
   Timer? _settingsNotificationTimer;
+  Map<String, dynamic> _localRfidCards = {};
+  final _rfidStreamController = StreamController<Map<String, dynamic>>.broadcast();
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -110,6 +112,7 @@ class FirebaseService {
       final rawData = jsonMap['otter_smarthome'] as Map<String, dynamic>;
       
       _localState = SmarthomeState.fromMap(rawData);
+      _localRfidCards = rawData['rfid_terdaftar'] as Map<String, dynamic>? ?? {};
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } catch (e) {
@@ -348,6 +351,89 @@ class FirebaseService {
       _runAutomationRulesIfNeeded();
     } else {
       await _dbRef.child('otomatisasi/$key').set(value);
+    }
+  }
+
+  // ─── RFID Management Methods ───
+  Stream<Map<String, dynamic>> getRfidCardsStream() {
+    if (_isUsingFallback) {
+      Timer.run(() {
+        _rfidStreamController.add(_localRfidCards);
+      });
+      return _rfidStreamController.stream;
+    } else {
+      return _dbRef.child('rfid_terdaftar').onValue.map((event) {
+        if (event.snapshot.value == null) return {};
+        final Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
+        return Map<String, dynamic>.from(data);
+      });
+    }
+  }
+
+  Future<void> addRfidCard(String uid, String namaPemilik) async {
+    final uidClean = uid.trim().toUpperCase().replaceAll(' ', '');
+    if (uidClean.isEmpty || namaPemilik.trim().isEmpty) return;
+
+    if (_isUsingFallback) {
+      _localRfidCards[uidClean] = {
+        'nama_pemilik': namaPemilik.trim(),
+        'status': 'aktif',
+      };
+      _rfidStreamController.add(_localRfidCards);
+    } else {
+      await _dbRef.child('rfid_terdaftar/$uidClean').set({
+        'nama_pemilik': namaPemilik.trim(),
+        'status': 'aktif',
+      });
+    }
+    
+    NotificationService().addNotification(
+      title: 'Kartu RFID Didaftarkan',
+      message: 'Kartu milik ${namaPemilik.trim()} ($uidClean) berhasil didaftarkan.',
+      category: NotificationCategory.security,
+      priority: NotificationPriority.info,
+    );
+  }
+
+  Future<void> removeRfidCard(String uid) async {
+    final uidClean = uid.trim().toUpperCase().replaceAll(' ', '');
+    if (uidClean.isEmpty) return;
+
+    String namaPemilik = 'Kartu RFID';
+    if (_isUsingFallback) {
+      if (_localRfidCards.containsKey(uidClean)) {
+        namaPemilik = _localRfidCards[uidClean]['nama_pemilik'] ?? 'Kartu RFID';
+        _localRfidCards.remove(uidClean);
+        _rfidStreamController.add(_localRfidCards);
+      }
+    } else {
+      final snapshot = await _dbRef.child('rfid_terdaftar/$uidClean').get();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        namaPemilik = data['nama_pemilik'] ?? 'Kartu RFID';
+      }
+      await _dbRef.child('rfid_terdaftar/$uidClean').remove();
+    }
+
+    NotificationService().addNotification(
+      title: 'Kartu RFID Dihapus',
+      message: 'Kartu milik $namaPemilik ($uidClean) telah dihapus dari sistem.',
+      category: NotificationCategory.security,
+      priority: NotificationPriority.info,
+    );
+  }
+
+  Future<void> updateRfidCardStatus(String uid, String status) async {
+    final uidClean = uid.trim().toUpperCase().replaceAll(' ', '');
+    if (uidClean.isEmpty) return;
+
+    if (_isUsingFallback) {
+      if (_localRfidCards.containsKey(uidClean)) {
+        _localRfidCards[uidClean]['status'] = status;
+        _rfidStreamController.add(_localRfidCards);
+      }
+    } else {
+      await _dbRef.child('rfid_terdaftar/$uidClean/status').set(status);
     }
   }
 
