@@ -174,10 +174,10 @@ class SmarthomeOtomatisasi {
   factory SmarthomeOtomatisasi.fromMap(Map<dynamic, dynamic> map) {
     return SmarthomeOtomatisasi(
       modeAutoLampu: (map['mode_auto_lampu'] ?? false) as bool,
-      autoLampuKamar: (map['auto_lampu_kamar'] ?? false) as bool,
-      autoLampuTamu: (map['auto_lampu_tamu'] ?? false) as bool,
-      autoLampuKamarMandi: (map['auto_lampu_kamar_mandi'] ?? false) as bool,
-      autoLampuDapur: (map['auto_lampu_dapur'] ?? false) as bool,
+      autoLampuKamar: (map['auto_lampu_kamar'] ?? true) as bool,
+      autoLampuTamu: (map['auto_lampu_tamu'] ?? true) as bool,
+      autoLampuKamarMandi: (map['auto_lampu_kamar_mandi'] ?? true) as bool,
+      autoLampuDapur: (map['auto_lampu_dapur'] ?? true) as bool,
       modeAutoKipas: (map['mode_auto_kipas'] ?? false) as bool,
       batasGelapLampu: (map['batas_gelap_lampu'] ?? 0) is double
           ? (map['batas_gelap_lampu'] as double).toInt()
