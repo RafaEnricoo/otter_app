@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../models/notification_model.dart';
 import 'firebase_service.dart';
 import 'system_settings_service.dart';
@@ -14,6 +15,11 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
+
+  @pragma('vm:entry-point')
+  static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+    debugPrint("Background FCM Message: ${message.messageId}");
+  }
 
   final _dbRef = FirebaseDatabase.instance.ref('otter_smarthome/notifikasi');
   bool _isInitialized = false;
@@ -38,6 +44,7 @@ class NotificationService {
     if (_isInitialized) return;
 
     _initLocalNotifications();
+    _initFirebaseMessaging();
 
     // Listen to Firebase database changes in real-time
     _dbRef.onValue.listen((event) {
@@ -273,6 +280,31 @@ class NotificationService {
       );
     } catch (e) {
       debugPrint("Gagal memicu native notification: $e");
+    }
+  }
+
+  Future<void> _initFirebaseMessaging() async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+      
+      // Request notification permissions
+      await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      // Subscribe to the global smarthome topic
+      await messaging.subscribeToTopic('otter_home');
+      debugPrint("FCM: Subscribed to topic 'otter_home'");
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint("FCM Foreground: ${message.notification?.title}");
+      });
+
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    } catch (e) {
+      debugPrint("FCM Initialization error: $e");
     }
   }
 }
