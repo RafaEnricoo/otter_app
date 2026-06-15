@@ -99,12 +99,12 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                 child: const Text('Hapus Akses', style: TextStyle(fontWeight: FontWeight.w600)),
                 onPressed: () async {
                   HapticFeedback.heavyImpact();
-                  final messenger = ScaffoldMessenger.of(this.context);
+                  final nameVal = name;
+                  Navigator.of(context).pop();
                   await _firebaseService.removeRfidCard(uid);
                   if (mounted) {
-                    Navigator.of(context).pop();
-                    messenger.showSnackBar(
-                      SnackBar(content: Text('Akses kartu $name telah dihapus.')),
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      SnackBar(content: Text('Akses kartu $nameVal telah dihapus.')),
                     );
                   }
                 },
@@ -381,11 +381,10 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                   if (formKey.currentState!.validate()) {
                     HapticFeedback.heavyImpact();
                     final name = nameController.text.trim();
-                    final messenger = ScaffoldMessenger.of(this.context);
+                    Navigator.of(context).pop();
                     await _firebaseService.approveRfidCard(uid, name);
                     if (mounted) {
-                      Navigator.of(context).pop();
-                      messenger.showSnackBar(
+                      ScaffoldMessenger.of(this.context).showSnackBar(
                         SnackBar(
                           content: Text('Kartu RFID $uid berhasil diaktifkan untuk $name!'),
                           backgroundColor: const Color(0xFF1E2020),
