@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/notification_model.dart';
+import '../screens/rfid_management_screen.dart';
 import 'glass_card.dart';
 
 class NotificationTile extends StatefulWidget {
@@ -191,9 +192,21 @@ class _NotificationTileState extends State<NotificationTile>
                 isActive: !widget.notification.isRead,
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
+                  final t = widget.notification.title.toLowerCase();
+                  final m = widget.notification.message.toLowerCase();
+                  final isRfidPending = t.contains('pendaftaran rfid fisik') || m.contains('menunggu persetujuan');
+
+                  if (isRfidPending) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const RfidManagementScreen()),
+                    );
+                  } else {
+                    setState(() {
+                      _isExpanded = !_isExpanded;
+                    });
+                  }
+
                   if (!widget.notification.isRead) {
                     widget.onMarkedRead();
                   }
