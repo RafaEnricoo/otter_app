@@ -26,6 +26,7 @@ class FirebaseService {
   int _lastSmokeValue = 0;
   bool _lastPirValue = false;
   Timer? _flameBlinkerTimer;
+  Timer? _settingsNotificationTimer;
 
   Future<void> init() async {
     if (_isInitialized) return;
@@ -307,12 +308,6 @@ class FirebaseService {
     } else if (key == 'mode_auto_kipas') {
       title = value == true ? 'Otomatisasi Kipas Aktif' : 'Otomatisasi Kipas Mati';
       message = 'Mode otomatisasi kipas berdasarkan suhu kamar telah ${value == true ? 'diaktifkan' : 'dimatikan'}.';
-    } else if (key == 'batas_gelap_lampu') {
-      title = 'Ambang Cahaya Diperbarui';
-      message = 'Ambang batas kegelapan sensor LDR disetel ke $value%.';
-    } else if (key == 'batas_panas_kamar') {
-      title = 'Ambang Suhu Diperbarui';
-      message = 'Ambang batas panas kamar disetel ke ${value.toStringAsFixed(1)}°C.';
     }
 
     if (title != null && message != null) {
@@ -322,6 +317,27 @@ class FirebaseService {
         category: NotificationCategory.system,
         priority: NotificationPriority.info,
       );
+    } else if (key == 'batas_gelap_lampu' || key == 'batas_panas_kamar') {
+      _settingsNotificationTimer?.cancel();
+      _settingsNotificationTimer = Timer(const Duration(seconds: 3), () {
+        if (_localState == null) return;
+        final currentVal = _localState!.otomatisasi.toMap()[key];
+        String debouncedTitle;
+        String debouncedMessage;
+        if (key == 'batas_gelap_lampu') {
+          debouncedTitle = 'Ambang Cahaya Diperbarui';
+          debouncedMessage = 'Ambang batas kegelapan sensor LDR disetel ke $currentVal%.';
+        } else {
+          debouncedTitle = 'Ambang Suhu Diperbarui';
+          debouncedMessage = 'Ambang batas panas kamar disetel ke ${currentVal.toStringAsFixed(1)}°C.';
+        }
+        NotificationService().addNotification(
+          title: debouncedTitle,
+          message: debouncedMessage,
+          category: NotificationCategory.system,
+          priority: NotificationPriority.info,
+        );
+      });
     }
 
     if (_isUsingFallback) {

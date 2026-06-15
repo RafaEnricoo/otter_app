@@ -22,9 +22,11 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─── Timeline State ───
   String _selectedTimeline = '7D'; // '24H', '7D', '30D'
   String _selectedTempRoom = 'Kamar'; // 'Kamar' atau 'Dapur'
+  String _selectedHumidRoom = 'Kamar'; // 'Kamar' atau 'Dapur'
 
   // ─── Chart Tooltip Hover State ───
   int _hoveredBarIndex = -1;
+  int _hoveredHumidBarIndex = -1;
 
   // ─── Interactive Luminance Local State (to avoid Firebase sync lag) ───
   double? _localLuminance;
@@ -55,14 +57,14 @@ class _MonitorScreenState extends State<MonitorScreen> {
       deltaText: '+1.2°',
       isDeltaPositive: true,
       values: [26.5, 27.0, 28.2, 27.8, 28.8, 29.5, 28.1],
-      labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+      labels: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
     ),
     '7D_Kitchen': _ChartData(
       avgText: '29.1°C',
       deltaText: '+1.5°',
       isDeltaPositive: true,
       values: [28.0, 28.5, 29.3, 29.0, 30.1, 30.5, 29.2],
-      labels: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+      labels: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
     ),
     '30D': _ChartData(
       avgText: '27.6°C',
@@ -180,8 +182,16 @@ class _MonitorScreenState extends State<MonitorScreen> {
 
             // Fallback to static baseline if dynamic data is still empty
             if (values.isEmpty) {
-              values = isKamar ? [26.0, 27.5, 29.0, 28.5, 27.2, 26.8] : [27.5, 28.8, 30.2, 29.8, 28.5, 28.0];
-              labels = ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+              if (_selectedTimeline == '24H') {
+                values = isKamar ? [26.0, 27.5, 29.0, 28.5, 27.2, 26.8] : [27.5, 28.8, 30.2, 29.8, 28.5, 28.0];
+                labels = ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+              } else if (_selectedTimeline == '7D') {
+                values = isKamar ? [26.5, 27.0, 28.2, 27.8, 28.8, 29.5, 28.1] : [28.0, 28.5, 29.3, 29.0, 30.1, 30.5, 29.2];
+                labels = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+              } else {
+                values = isKamar ? [27.2, 28.0, 28.5, 27.9, 27.1, 26.8] : [28.2, 29.1, 29.5, 28.9, 28.3, 28.0];
+                labels = ['Mg 1', 'Mg 2', 'Mg 3', 'Mg 4', 'Mg 5', 'Mg 6'];
+              }
             }
 
             if (values.isNotEmpty) {
@@ -205,8 +215,62 @@ class _MonitorScreenState extends State<MonitorScreen> {
               labels: labels,
             );
 
+            // Humidity Data Processing
+            List<double> humidValues = [];
+            List<String> humidLabels = [];
+            String humidAvgText = '';
+            String humidDeltaText = '';
+            bool isHumidDeltaPositive = true;
+
+            final isHumidKamar = _selectedHumidRoom == 'Kamar';
+            if (_selectedTimeline == '24H') {
+              humidValues = isHumidKamar ? history.monitor24hKamarHumid.value : history.monitor24hDapurHumid.value;
+              humidLabels = history.monitor24hLabels.value;
+            } else if (_selectedTimeline == '7D') {
+              humidValues = isHumidKamar ? history.monitor7dKamarHumid.value : history.monitor7dDapurHumid.value;
+              humidLabels = history.monitor7dLabels.value;
+            } else {
+              humidValues = isHumidKamar ? history.monitor30dKamarHumid.value : history.monitor30dDapurHumid.value;
+              humidLabels = history.monitor30dLabels.value;
+            }
+
+            // Fallback to static baseline if dynamic data is still empty
+            if (humidValues.isEmpty) {
+              if (_selectedTimeline == '24H') {
+                humidValues = isHumidKamar ? [55.0, 57.0, 54.0, 56.0, 58.0, 55.0] : [60.0, 58.0, 62.0, 61.0, 59.0, 60.0];
+                humidLabels = ['04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+              } else if (_selectedTimeline == '7D') {
+                humidValues = isHumidKamar ? [54.0, 56.0, 55.0, 57.0, 56.0, 55.0, 54.0] : [61.0, 63.0, 60.0, 62.0, 64.0, 61.0, 62.0];
+                humidLabels = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+              } else {
+                humidValues = isHumidKamar ? [53.0, 55.0, 56.0, 54.0, 55.0, 53.0] : [59.0, 61.0, 60.0, 62.0, 60.0, 59.0];
+                humidLabels = ['Mg 1', 'Mg 2', 'Mg 3', 'Mg 4', 'Mg 5', 'Mg 6'];
+              }
+            }
+
+            if (humidValues.isNotEmpty) {
+              final avg = humidValues.reduce((a, b) => a + b) / humidValues.length;
+              humidAvgText = "${avg.toStringAsFixed(1)}% RH";
+              
+              if (humidValues.length > 1) {
+                final delta = humidValues.last - humidValues[humidValues.length - 2];
+                isHumidDeltaPositive = delta >= 0;
+                humidDeltaText = "${isHumidDeltaPositive ? '+' : ''}${delta.toStringAsFixed(1)}%";
+              } else {
+                humidDeltaText = "0.0%";
+              }
+            }
+
+            final activeHumidData = _ChartData(
+              avgText: humidAvgText,
+              deltaText: humidDeltaText,
+              isDeltaPositive: isHumidDeltaPositive,
+              values: humidValues,
+              labels: humidLabels,
+            );
+
             return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: AppSpacing.containerPadding,
@@ -260,7 +324,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                 children: [
                                   Expanded(
                                     flex: 1,
-                                    child: _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
+                                    child: _buildHumidityChartCard(activeHumidData, sensor.kamarKelembapan, sensor.dapurKelembapan),
                                   ),
                                   const SizedBox(width: AppSpacing.gutter),
                                   Expanded(
@@ -281,7 +345,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                                   children: [
                                     _buildTempChartCard(activeData, liveTemp),
                                     const SizedBox(height: AppSpacing.gutter),
-                                    _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
+                                    _buildHumidityChartCard(activeHumidData, sensor.kamarKelembapan, sensor.dapurKelembapan),
                                   ],
                                 ),
                               ),
@@ -303,7 +367,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                             children: [
                               _buildTempChartCard(activeData, liveTemp),
                               const SizedBox(height: AppSpacing.gutter),
-                              _buildHumidityCard(sensor.kamarKelembapan, sensor.dapurKelembapan),
+                              _buildHumidityChartCard(activeHumidData, sensor.kamarKelembapan, sensor.dapurKelembapan),
                               const SizedBox(height: AppSpacing.gutter),
                               _buildLuminanceCard(_localLuminance!),
                               const SizedBox(height: AppSpacing.gutter),
@@ -470,14 +534,14 @@ class _MonitorScreenState extends State<MonitorScreen> {
                             height: 36,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Color(AppColors.secondaryContainer).withValues(alpha: 0.08),
+                              color: getTempColor(liveTemp).withValues(alpha: 0.08),
                               border: Border.all(
-                                color: Color(AppColors.secondaryContainer).withValues(alpha: 0.15),
+                                color: getTempColor(liveTemp).withValues(alpha: 0.15),
                               ),
                             ),
                             child: Icon(
                               Icons.device_thermostat_rounded,
-                              color: Color(AppColors.secondaryContainer),
+                              color: getTempColor(liveTemp),
                               size: 20,
                             ),
                           ),
@@ -826,195 +890,255 @@ class _MonitorScreenState extends State<MonitorScreen> {
   // ─────────────────────────────────────────────────
   // D. Card 3: Humidity Gradient Progress Card
   // ─────────────────────────────────────────────────
-  Widget _buildHumidityCard(double liveKamarHumid, double liveDapurHumid) {
-    final history = ClimateHistoryService();
-    
-    // Fetch dynamic humidity values based on selected timeline for display values
-    double displayKamarHumid = liveKamarHumid;
-    double displayDapurHumid = liveDapurHumid;
-
-    if (_selectedTimeline == '24H') {
-      if (history.monitor24hKamarHumid.value.isNotEmpty) displayKamarHumid = history.monitor24hKamarHumid.value.last;
-      if (history.monitor24hDapurHumid.value.isNotEmpty) displayDapurHumid = history.monitor24hDapurHumid.value.last;
-    } else if (_selectedTimeline == '7D') {
-      if (history.monitor7dKamarHumid.value.isNotEmpty) displayKamarHumid = history.monitor7dKamarHumid.value.last;
-      if (history.monitor7dDapurHumid.value.isNotEmpty) displayDapurHumid = history.monitor7dDapurHumid.value.last;
-    } else if (_selectedTimeline == '30D') {
-      if (history.monitor30dKamarHumid.value.isNotEmpty) displayKamarHumid = history.monitor30dKamarHumid.value.last;
-      if (history.monitor30dDapurHumid.value.isNotEmpty) displayDapurHumid = history.monitor30dDapurHumid.value.last;
-    }
+  Widget _buildHumidityChartCard(_ChartData activeData, double liveKamarHumid, double liveDapurHumid) {
+    final double displayLiveHumid = _selectedHumidRoom == 'Kamar' ? liveKamarHumid : liveDapurHumid;
 
     return _MonitorGlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Positioned(
+            bottom: -50,
+            right: -50,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(
-                    Icons.water_drop_rounded,
-                    color: Color(AppColors.onSurfaceVariant),
-                    size: 16,
+                  Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                          border: Border.all(
+                            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.water_drop_rounded,
+                          color: Color(0xFF3B82F6),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'KELEMBAPAN RUANGAN LIVE',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.onSurfaceVariant),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                '${displayLiveHumid.toStringAsFixed(1)}% RH',
+                                style: const TextStyle(
+                                  fontFamily: 'Sora',
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(AppColors.onSurface),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                activeData.deltaText,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: activeData.isDeltaPositive
+                                      ? const Color(0xFF3B82F6)
+                                      : const Color(AppColors.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'KELEMBAPAN',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
-                      letterSpacing: 0.8,
+                  Container(
+                    height: 28,
+                    padding: const EdgeInsets.all(2.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      color: Colors.white.withValues(alpha: 0.03),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Row(
+                      children: ['Kamar', 'Dapur'].map((room) {
+                        final bool isSel = _selectedHumidRoom == room;
+                        return GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _selectedHumidRoom = room;
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              color: isSel
+                                  ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
+                                  : Colors.transparent,
+                            ),
+                            child: Text(
+                              room,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isSel
+                                    ? const Color(0xFF3B82F6)
+                                    : const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.5),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: const Color(AppColors.surfaceContainerLow),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.04),
-                  ),
-                ),
-                child: const Text(
-                  'Multi-Ruangan',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: Color(AppColors.onSurface),
-                  ),
-                ),
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-          // Room 1: Kamar Tidur
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Kamar Tidur',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(AppColors.onSurfaceVariant),
-                ),
-              ),
-              Text(
-                '${displayKamarHumid.toInt()}% RH',
-                style: const TextStyle(
-                  fontFamily: 'Sora',
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(AppColors.onSurface),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: displayKamarHumid / 100.0),
-            duration: const Duration(seconds: 1),
-            curve: Curves.easeOutCubic,
-            builder: (context, val, _) {
-              return Container(
-                width: double.infinity,
-                height: 6,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: const Color(AppColors.surfaceContainer),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    width: 1.0,
-                  ),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: val,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      gradient: LinearGradient(
-                        colors: [
-                          Color(AppColors.surfaceVariant),
-                          Color(AppColors.secondaryContainer),
-                        ],
+              SizedBox(
+                height: 140,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(activeData.values.length, (index) {
+                    final double originalVal = activeData.values[index];
+                    final double normalizedHeight = originalVal == 0.0 ? 0.0 : (originalVal / 100.0).clamp(0.15, 1.0) * 96;
+                    final String label = activeData.labels[index];
+                    final bool isHovered = _hoveredHumidBarIndex == index;
+
+                    return Expanded(
+                      child: GestureDetector(
+                        onTapDown: (_) {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            _hoveredHumidBarIndex = isHovered ? -1 : index;
+                          });
+                        },
+                        child: Container(
+                          color: Colors.transparent,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 150),
+                                opacity: isHovered ? 1.0 : 0.0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF3B82F6),
+                                    borderRadius: BorderRadius.circular(6),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                                        blurRadius: 8,
+                                      )
+                                    ],
+                                  ),
+                                  child: Text(
+                                    '${originalVal.toStringAsFixed(1)}%',
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(AppColors.surface),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 400),
+                                  curve: Curves.easeOutCubic,
+                                  height: normalizedHeight,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        isHovered 
+                                            ? const Color(0xFF3B82F6) 
+                                            : const Color(0xFF3B82F6).withValues(alpha: 0.85),
+                                        const Color(0xFF3B82F6).withValues(alpha: 0.02),
+                                      ],
+                                    ),
+                                    boxShadow: isHovered 
+                                        ? [
+                                            BoxShadow(
+                                              color: const Color(0xFF3B82F6).withValues(alpha: 0.25),
+                                              blurRadius: 10,
+                                              spreadRadius: 1,
+                                            )
+                                          ] 
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  color: isHovered 
+                                      ? const Color(0xFF3B82F6) 
+                                      : const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 16),
-
-          // Room 2: Dapur
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Dapur',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(AppColors.onSurfaceVariant),
-                ),
-              ),
-              Text(
-                '${displayDapurHumid.toInt()}% RH',
-                style: const TextStyle(
-                  fontFamily: 'Sora',
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(AppColors.onSurface),
+                    );
+                  }),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 6),
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: displayDapurHumid / 100.0),
-            duration: const Duration(seconds: 1),
-            curve: Curves.easeOutCubic,
-            builder: (context, val, _) {
-              return Container(
-                width: double.infinity,
-                height: 6,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: const Color(AppColors.surfaceContainer),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.06),
-                    width: 1.0,
-                  ),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: val,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(AppColors.surfaceVariant),
-                          Color(AppColors.tertiary),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ],
       ),

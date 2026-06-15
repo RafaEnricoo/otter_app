@@ -46,3 +46,16 @@ class AppRadius {
   static const xl = 12.0;
   static const full = 9999.0;
 }
+
+Color getTempColor(double celsius) {
+  if (celsius <= 20.0) {
+    return const Color(0xFF4FC3F7); // Cold - Light Blue
+  } else if (celsius <= 26.0) {
+    return const Color(0xFF81C784); // Optimal - Green
+  } else if (celsius <= 30.0) {
+    return const Color(0xFFFFB74D); // Warm - Orange
+  } else {
+    return const Color(0xFFFF4963); // Hot - Red
+  }
+}
+

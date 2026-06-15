@@ -51,7 +51,7 @@ class HomeScreen extends StatelessWidget {
         debugPrint('Active devices: $activeCount');
 
         return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Column(
             children: [
               SizedBox(height: isMobile ? 20 : AppSpacing.stackLg),
@@ -109,7 +109,7 @@ class HomeScreen extends StatelessWidget {
                                     label: 'Suhu Kamar',
                                     trendLabel: 'Optimal',
                                     trendColor: const Color(0xFF81C784),
-                                    accentColor: const Color(0xFFFF8A65),
+                                    accentColor: getTempColor(sensor.kamarSuhu),
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.gutter),
@@ -148,7 +148,7 @@ class HomeScreen extends StatelessWidget {
                                     label: 'Suhu Dapur',
                                     trendLabel: 'Hangat',
                                     trendColor: const Color(0xFFFFB74D),
-                                    accentColor: const Color(0xFFFFB74D),
+                                    accentColor: getTempColor(sensor.dapurSuhu),
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.gutter),

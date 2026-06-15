@@ -16,6 +16,9 @@ class DevicesScreen extends StatefulWidget {
 }
 
 class _DevicesScreenState extends State<DevicesScreen> {
+  int? _draggedBatasGelapLampu;
+  double? _draggedBatasPanasKamar;
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -107,6 +110,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       onSliderChanged: (val) {},
                       hasSlider: false,
                       isFullWidth: true,
+                      activeColor: const Color(0xFFFFD54F),
                     ),
 
                     // 2. Sensor Gerak Tamu Card
@@ -119,6 +123,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       onTap: () => _showMotionSimulationSheet(sensor.tamuGerak),
                       infoText: sensor.tamuGerak ? '🚨 Terdeteksi Gerakan' : 'Tidak Ada Gerakan',
                       isActive: sensor.tamuGerak,
+                      activeColor: Colors.orangeAccent,
                     ),
 
                     // 3. Siren Tamu System Card
@@ -130,6 +135,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       onToggle: (val) {
                         FirebaseService().updatePerangkat('buzzer_alrm', val);
                       },
+                      activeColor: const Color(0xFFFF4963),
                     ),
                   ],
                 ),
@@ -156,6 +162,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       onSliderChanged: (val) {},
                       hasSlider: false,
                       isFullWidth: true,
+                      activeColor: const Color(0xFFFFD54F),
                     ),
 
                     // 2. Kipas Kamar Card with Spinning Blades
@@ -182,14 +189,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         FirebaseService().updatePerangkat('kipas_kamar', val > 0);
                       },
                       isFullWidth: true,
+                      activeColor: const Color(0xFF81C784),
                     ),
 
-                    // 3. Temp & Humidity Sensor Card Bedroom
+                    // 3. Suhu Kamar Tidur Card
                     ValueListenableBuilder<bool>(
                       valueListenable: SystemSettingsService().tempScaleCelsius,
                       builder: (context, isCelsius, _) {
                         return _buildSensorCard(
-                          title: 'Iklim Kamar Tidur',
+                          title: 'Suhu Kamar Tidur',
                           value: '',
                           valueWidget: AnimatedTempText(
                             celsiusValue: sensor.kamarSuhu,
@@ -202,8 +210,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                               height: 1.0,
                             ),
                           ),
-                          unit: ' / ${sensor.kamarKelembapan.toInt()}%',
-                          badgeText: 'Sensor DHT11',
+                          unit: '',
+                          badgeText: 'DHT11 Temp',
                           icon: Icons.thermostat_rounded,
                           onTap: () => _showClimateSimulationSheet(
                             title: 'Kamar Tidur',
@@ -212,8 +220,28 @@ class _DevicesScreenState extends State<DevicesScreen> {
                             currentHumid: sensor.kamarKelembapan,
                           ),
                           infoText: otomatisasi.modeAutoKipas ? 'Otomatisasi Kipas Aktif' : 'Kontrol iklim manual',
+                          isActive: true,
+                          activeColor: getTempColor(sensor.kamarSuhu),
                         );
                       },
+                    ),
+
+                    // 4. Kelembapan Kamar Tidur Card
+                    _buildSensorCard(
+                      title: 'Kelembapan Kamar',
+                      value: '${sensor.kamarKelembapan.toInt()}%',
+                      unit: '',
+                      badgeText: 'DHT11 Humid',
+                      icon: Icons.water_drop_rounded,
+                      onTap: () => _showClimateSimulationSheet(
+                        title: 'Kamar Tidur',
+                        isBedroom: true,
+                        currentTemp: sensor.kamarSuhu,
+                        currentHumid: sensor.kamarKelembapan,
+                      ),
+                      infoText: 'Kelembapan optimal 40-60%',
+                      isActive: true,
+                      activeColor: const Color(0xFF4FC3F7),
                     ),
                   ],
                 ),
@@ -241,6 +269,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       hasSlider: false,
                       hasAutoMode: true,
                       isFullWidth: true,
+                      activeColor: const Color(0xFFFFD54F),
                     ),
 
                     // 2. Flame Sensor Card (Simulation trigger)
@@ -253,6 +282,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       onTap: () => _showSmokeSimulationSheet(sensor.dapurFlame > 0),
                       infoText: sensor.dapurFlame > 0 ? '🔥 Terdeteksi Nyala Api / Kebakaran!' : 'Area dapur aman',
                       isActive: sensor.dapurFlame > 0,
+                      activeColor: const Color(0xFFFF4963),
                     ),
 
                     // 3. Kitchen warning LED
@@ -267,12 +297,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       activeColor: Colors.redAccent,
                     ),
 
-                    // 5. Kitchen Climate Sensor
+                    // 5. Suhu Dapur Card
                     ValueListenableBuilder<bool>(
                       valueListenable: SystemSettingsService().tempScaleCelsius,
                       builder: (context, isCelsius, _) {
                         return _buildSensorCard(
-                          title: 'Iklim Dapur',
+                          title: 'Suhu Dapur',
                           value: '',
                           valueWidget: AnimatedTempText(
                             celsiusValue: sensor.dapurSuhu,
@@ -285,8 +315,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                               height: 1.0,
                             ),
                           ),
-                          unit: ' / ${sensor.dapurKelembapan.toInt()}%',
-                          badgeText: 'Sensor DHT11',
+                          unit: '',
+                          badgeText: 'DHT11 Temp',
                           icon: Icons.thermostat_rounded,
                           onTap: () => _showClimateSimulationSheet(
                             title: 'Dapur',
@@ -295,8 +325,28 @@ class _DevicesScreenState extends State<DevicesScreen> {
                             currentHumid: sensor.dapurKelembapan,
                           ),
                           infoText: 'Sensor dalam ruangan dapur',
+                          isActive: true,
+                          activeColor: getTempColor(sensor.dapurSuhu),
                         );
                       },
+                    ),
+
+                    // 6. Kelembapan Dapur Card
+                    _buildSensorCard(
+                      title: 'Kelembapan Dapur',
+                      value: '${sensor.dapurKelembapan.toInt()}%',
+                      unit: '',
+                      badgeText: 'DHT11 Humid',
+                      icon: Icons.water_drop_rounded,
+                      onTap: () => _showClimateSimulationSheet(
+                        title: 'Dapur',
+                        isBedroom: false,
+                        currentTemp: sensor.dapurSuhu,
+                        currentHumid: sensor.dapurKelembapan,
+                      ),
+                      infoText: 'Kelembapan optimal 40-60%',
+                      isActive: true,
+                      activeColor: const Color(0xFF4FC3F7),
                     ),
                   ],
                 ),
@@ -324,6 +374,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       hasSlider: false,
                       hasAutoMode: true,
                       isFullWidth: true,
+                      activeColor: const Color(0xFFFFD54F),
                     ),
                   ],
                 ),
@@ -358,6 +409,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       icon: Icons.wb_sunny_rounded,
                       onTap: () => _showLdrSimulationSheet(sensor.cahayaAtap),
                       infoText: otomatisasi.modeAutoLampu ? 'Menyelaraskan lampu...' : 'Mode manual',
+                      activeColor: const Color(0xFFFFB300),
                     ),
                   ],
                 ),
@@ -516,17 +568,25 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 children: [
                   const Text('Ambang Batas Gelap (LDR):', style: TextStyle(fontSize: 12, color: Colors.white70)),
                   const Spacer(),
-                  Text('${otomatisasi.batasGelapLampu}%', style: TextStyle(fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer))),
+                  Text('${_draggedBatasGelapLampu ?? otomatisasi.batasGelapLampu}%', style: TextStyle(fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer))),
                 ],
               ),
               Slider(
-                value: otomatisasi.batasGelapLampu.toDouble(),
+                value: (_draggedBatasGelapLampu ?? otomatisasi.batasGelapLampu).toDouble(),
                 min: 0,
                 max: 100,
                 activeColor: Color(AppColors.secondaryContainer),
                 inactiveColor: const Color(0xFF1E2020),
                 onChanged: (val) {
+                  setState(() {
+                    _draggedBatasGelapLampu = val.toInt();
+                  });
+                },
+                onChangeEnd: (val) {
                   FirebaseService().updateOtomatisasi('batas_gelap_lampu', val.toInt());
+                  setState(() {
+                    _draggedBatasGelapLampu = null;
+                  });
                 },
               ),
 
@@ -574,17 +634,25 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 children: [
                   const Text('Ambang Batas Panas Kamar:', style: TextStyle(fontSize: 12, color: Colors.white70)),
                   const Spacer(),
-                  Text('${otomatisasi.batasPanasKamar.toStringAsFixed(1)}°C', style: TextStyle(fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer))),
+                  Text('${(_draggedBatasPanasKamar ?? otomatisasi.batasPanasKamar).toStringAsFixed(1)}°C', style: TextStyle(fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer))),
                 ],
               ),
               Slider(
-                value: otomatisasi.batasPanasKamar,
+                value: _draggedBatasPanasKamar ?? otomatisasi.batasPanasKamar,
                 min: 15.0,
                 max: 35.0,
                 activeColor: Color(AppColors.secondaryContainer),
                 inactiveColor: const Color(0xFF1E2020),
                 onChanged: (val) {
+                  setState(() {
+                    _draggedBatasPanasKamar = val;
+                  });
+                },
+                onChangeEnd: (val) {
                   FirebaseService().updateOtomatisasi('batas_panas_kamar', val);
+                  setState(() {
+                    _draggedBatasPanasKamar = null;
+                  });
                 },
               ),
             ],
@@ -649,6 +717,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     inactiveColor: const Color(0xFF1E2020),
                     onChanged: (val) {
                       setSheetState(() => currentVal = val.toInt());
+                    },
+                    onChangeEnd: (val) {
                       FirebaseService().updateSensor('cahaya_atap', val.toInt());
                     },
                   ),
@@ -679,6 +749,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
               title: 'Simulasi $title',
               description: 'Atur parameter suhu dan kelembapan untuk mensimulasikan perubahan iklim ruangan.',
               icon: Icons.thermostat_rounded,
+              iconColor: getTempColor(currentTemp),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -710,6 +781,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     inactiveColor: const Color(0xFF1E2020),
                     onChanged: (val) {
                       setSheetState(() => currentTemp = val);
+                    },
+                    onChangeEnd: (val) {
                       FirebaseService().updateSensor(isBedroom ? 'kamar_suhu' : 'dapur_suhu', val);
                     },
                   ),
@@ -729,6 +802,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     inactiveColor: const Color(0xFF1E2020),
                     onChanged: (val) {
                       setSheetState(() => currentHumid = val);
+                    },
+                    onChangeEnd: (val) {
                       FirebaseService().updateSensor(isBedroom ? 'kamar_kelembapan' : 'dapur_kelembapan', val);
                     },
                   ),
@@ -866,13 +941,16 @@ class _DevicesScreenState extends State<DevicesScreen> {
     bool hasSlider = true,
     bool hasAutoMode = true,
     bool isFullWidth = false,
+    Color? activeColor,
   }) {
     final bool canControlManually = !isAuto;
+    final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return _CardWidthWrapper(
       isFullWidth: isFullWidth,
       child: _DeviceGlassCard(
         isActive: isOn,
+        activeColor: actualActiveColor,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -883,12 +961,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 _buildGlowingIcon(
                   icon: icon,
                   isActive: isOn,
-                  glowColor: Color(AppColors.secondaryContainer),
+                  glowColor: actualActiveColor,
                 ),
                 if (hasAutoMode)
                   ModeSelector(
                     isAuto: isAuto,
                     onChanged: onModeChanged,
+                    activeColor: actualActiveColor,
                   ),
               ],
             ),
@@ -918,6 +997,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       child: CustomToggleSwitch(
                         value: isOn,
                         onChanged: canControlManually ? onToggle : (val) {},
+                        activeColor: actualActiveColor,
                       ),
                     ),
                   ],
@@ -932,7 +1012,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: isOn
-                        ? Color(AppColors.secondaryContainer)
+                        ? actualActiveColor
                         : Color(AppColors.tertiary).withValues(alpha: 0.7),
                   ),
                 ),
@@ -944,7 +1024,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       value: isOn ? brightness : 0.0,
                       min: 0.0,
                       max: 100.0,
-                      activeColor: Color(AppColors.secondaryContainer),
+                      activeColor: actualActiveColor,
                       inactiveColor: const Color(0xFF1E2020),
                       onChanged: canControlManually && isOn ? onSliderChanged : null,
                     ),
@@ -969,9 +1049,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required VoidCallback onTap,
     required String infoText,
     bool isActive = false,
+    Color? activeColor,
   }) {
+    final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
+
     return _DeviceGlassCard(
       isActive: isActive,
+      activeColor: actualActiveColor,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -982,11 +1066,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
             children: [
               Icon(
                 icon,
-                color: isActive ? Colors.redAccent : Color(AppColors.secondaryContainer),
+                color: isActive ? actualActiveColor : Color(AppColors.secondaryContainer),
                 size: 32,
                 shadows: [
                   Shadow(
-                    color: (isActive ? Colors.redAccent : Color(AppColors.secondaryContainer)).withValues(alpha: 0.4),
+                    color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.4),
                     blurRadius: 10,
                   )
                 ],
@@ -995,9 +1079,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(9999),
-                  color: (isActive ? Colors.redAccent : Color(AppColors.secondaryContainer)).withValues(alpha: 0.08),
+                  color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.08),
                   border: Border.all(
-                    color: (isActive ? Colors.redAccent : Color(AppColors.secondaryContainer)).withValues(alpha: 0.2),
+                    color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -1007,7 +1091,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     fontFamily: 'Inter',
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isActive ? Colors.redAccent : Color(AppColors.secondaryContainer),
+                    color: isActive ? actualActiveColor : Color(AppColors.secondaryContainer),
                   ),
                 ),
               ),
@@ -1036,7 +1120,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       fontFamily: 'Sora',
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: isActive ? Colors.redAccent : const Color(AppColors.onSurface),
+                      color: isActive ? actualActiveColor : const Color(AppColors.onSurface),
                       height: 1.0,
                     ),
                   ),
@@ -1062,7 +1146,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   fontFamily: 'Inter',
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: isActive ? Colors.redAccent.withValues(alpha: 0.8) : Color(AppColors.tertiary).withValues(alpha: 0.55),
+                  color: isActive ? actualActiveColor.withValues(alpha: 0.8) : Color(AppColors.tertiary).withValues(alpha: 0.55),
                 ),
               ),
             ],
@@ -1082,13 +1166,16 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required ValueChanged<bool> onToggle,
     required ValueChanged<double> onSpeedChanged,
     bool isFullWidth = false,
+    Color? activeColor,
   }) {
     final bool canControlManually = !isAuto;
+    final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return _CardWidthWrapper(
       isFullWidth: isFullWidth,
       child: _DeviceGlassCard(
         isActive: isOn,
+        activeColor: actualActiveColor,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1099,10 +1186,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 _SpinningFanBlade(
                   isSpinning: isOn,
                   speed: speed,
+                  activeColor: actualActiveColor,
                 ),
                 ModeSelector(
                   isAuto: isAuto,
                   onChanged: onModeChanged,
+                  activeColor: actualActiveColor,
                 ),
               ],
             ),
@@ -1132,6 +1221,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       child: CustomToggleSwitch(
                         value: isOn,
                         onChanged: canControlManually ? onToggle : (val) {},
+                        activeColor: actualActiveColor,
                       ),
                     ),
                   ],
@@ -1146,7 +1236,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: isOn
-                        ? Color(AppColors.secondaryContainer)
+                        ? actualActiveColor
                         : Color(AppColors.tertiary).withValues(alpha: 0.7),
                   ),
                 ),
@@ -1158,7 +1248,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     min: 0.0,
                     max: 3.0,
                     divisions: 3,
-                    activeColor: Color(AppColors.secondaryContainer),
+                    activeColor: actualActiveColor,
                     inactiveColor: const Color(0xFF1E2020),
                     onChanged: canControlManually && isOn ? onSpeedChanged : null,
                   ),
@@ -1181,9 +1271,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required String footerText,
     required bool isActive,
     required VoidCallback onTap,
+    Color? activeColor,
   }) {
+    final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
+
     return _DeviceGlassCard(
       isActive: isActive,
+      activeColor: actualActiveColor,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1195,18 +1289,18 @@ class _DevicesScreenState extends State<DevicesScreen> {
               _buildGlowingIcon(
                 icon: icon,
                 isActive: isActive,
-                glowColor: Color(AppColors.secondaryContainer),
+                glowColor: actualActiveColor,
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(9999),
                   color: isActive
-                      ? Color(AppColors.secondaryContainer).withValues(alpha: 0.1)
+                      ? actualActiveColor.withValues(alpha: 0.1)
                       : Color(AppColors.surfaceContainerHigh),
                   border: Border.all(
                     color: isActive
-                        ? Color(AppColors.secondaryContainer).withValues(alpha: 0.3)
+                        ? actualActiveColor.withValues(alpha: 0.3)
                         : Colors.white.withValues(alpha: 0.08),
                     width: 1,
                   ),
@@ -1217,7 +1311,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     fontFamily: 'Inter',
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: isActive ? Color(AppColors.secondaryContainer) : Color(AppColors.tertiary),
+                    color: isActive ? actualActiveColor : Color(AppColors.tertiary),
                   ),
                 ),
               ),
@@ -1243,7 +1337,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     footerIcon,
                     size: 14,
                     color: isActive
-                        ? Color(AppColors.secondaryContainer)
+                        ? actualActiveColor
                         : Color(AppColors.tertiary).withValues(alpha: 0.6),
                   ),
                   const SizedBox(width: 4),
@@ -1254,7 +1348,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: isActive
-                          ? Color(AppColors.secondaryContainer)
+                          ? actualActiveColor
                           : Color(AppColors.tertiary).withValues(alpha: 0.6),
                     ),
                   ),
@@ -1280,6 +1374,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
     return _DeviceGlassCard(
       isActive: isOn,
+      activeColor: actualActiveColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1295,6 +1390,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
               CustomToggleSwitch(
                 value: isOn,
                 onChanged: onToggle,
+                activeColor: actualActiveColor,
               ),
             ],
           ),
@@ -1319,7 +1415,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: isOn
-                      ? activeColor
+                      ? actualActiveColor
                       : Color(AppColors.tertiary).withValues(alpha: 0.6),
                 ),
               ),
@@ -1361,10 +1457,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
 class _SpinningFanBlade extends StatefulWidget {
   final bool isSpinning;
   final double speed;
+  final Color? activeColor;
 
   const _SpinningFanBlade({
     required this.isSpinning,
     required this.speed,
+    this.activeColor,
   });
 
   @override
@@ -1418,7 +1516,7 @@ class _SpinningFanBladeState extends State<_SpinningFanBlade>
 
   @override
   Widget build(BuildContext context) {
-    final glowColor = Color(AppColors.secondaryContainer);
+    final glowColor = widget.activeColor ?? Color(AppColors.secondaryContainer);
     final themeColor = widget.isSpinning ? glowColor : Color(AppColors.tertiary);
 
     return RotationTransition(
@@ -1519,15 +1617,18 @@ class _DeviceGlassCard extends StatelessWidget {
   final Widget child;
   final bool isActive;
   final VoidCallback? onTap;
+  final Color? activeColor;
 
   const _DeviceGlassCard({
     required this.child,
     this.isActive = false,
     this.onTap,
+    this.activeColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final glowColor = activeColor ?? Color(AppColors.secondaryContainer);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1540,14 +1641,14 @@ class _DeviceGlassCard extends StatelessWidget {
           color: Colors.white.withValues(alpha: 0.04),
           border: Border.all(
             color: isActive
-                ? Color(AppColors.secondaryContainer).withValues(alpha: 0.35)
+                ? glowColor.withValues(alpha: 0.35)
                 : Colors.white.withValues(alpha: 0.12),
             width: 1.0,
           ),
           boxShadow: [
             if (isActive)
               BoxShadow(
-                color: Color(AppColors.secondaryContainer).withValues(alpha: 0.2),
+                color: glowColor.withValues(alpha: 0.2),
                 blurRadius: 20,
                 spreadRadius: 0,
               ),
@@ -1582,16 +1683,18 @@ class _CardWidthWrapper extends StatelessWidget {
 class ModeSelector extends StatelessWidget {
   final bool isAuto;
   final ValueChanged<bool> onChanged;
+  final Color? activeColor;
 
   const ModeSelector({
     super.key,
     required this.isAuto,
     required this.onChanged,
+    this.activeColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = Color(AppColors.secondaryContainer);
+    final actColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return GestureDetector(
       onTap: () {
@@ -1621,11 +1724,11 @@ class ModeSelector extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(9999),
                   color: isAuto
-                      ? activeColor.withValues(alpha: 0.15)
+                      ? actColor.withValues(alpha: 0.15)
                       : Colors.white.withValues(alpha: 0.08),
                   border: Border.all(
                     color: isAuto
-                        ? activeColor.withValues(alpha: 0.3)
+                        ? actColor.withValues(alpha: 0.3)
                         : Colors.white.withValues(alpha: 0.1),
                     width: 1,
                   ),
@@ -1643,7 +1746,7 @@ class ModeSelector extends StatelessWidget {
                       fontFamily: 'Inter',
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      color: isAuto ? activeColor : Color(AppColors.tertiary).withValues(alpha: 0.4),
+                      color: isAuto ? actColor : Color(AppColors.tertiary).withValues(alpha: 0.4),
                     ),
                   ),
                 ),
@@ -1676,16 +1779,18 @@ class ModeSelector extends StatelessWidget {
 class CustomToggleSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
+  final Color? activeColor;
 
   const CustomToggleSwitch({
     super.key,
     required this.value,
     required this.onChanged,
+    this.activeColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = Color(AppColors.secondaryContainer);
+    final actColor = activeColor ?? Color(AppColors.secondaryContainer);
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -1699,9 +1804,9 @@ class CustomToggleSwitch extends StatelessWidget {
         padding: const EdgeInsets.all(2.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(9999),
-          color: value ? activeColor.withValues(alpha: 0.2) : const Color(0xFF1E2020),
+          color: value ? actColor.withValues(alpha: 0.2) : const Color(0xFF1E2020),
           border: Border.all(
-            color: value ? activeColor.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.08),
+            color: value ? actColor.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.08),
             width: 1,
           ),
         ),
@@ -1716,11 +1821,11 @@ class CustomToggleSwitch extends StatelessWidget {
                 height: 16,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: value ? activeColor : Color(AppColors.tertiary),
+                  color: value ? actColor : Color(AppColors.tertiary),
                   boxShadow: value
                       ? [
                           BoxShadow(
-                            color: activeColor.withValues(alpha: 0.8),
+                            color: actColor.withValues(alpha: 0.8),
                             blurRadius: 8,
                           )
                         ]
@@ -1740,12 +1845,14 @@ class _SimulationModalWrapper extends StatelessWidget {
   final String description;
   final IconData icon;
   final Widget child;
+  final Color? iconColor;
 
   const _SimulationModalWrapper({
     required this.title,
     required this.description,
     required this.icon,
     required this.child,
+    this.iconColor,
   });
 
   @override
@@ -1786,11 +1893,11 @@ class _SimulationModalWrapper extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: Color(AppColors.secondaryContainer),
+                color: iconColor ?? Color(AppColors.secondaryContainer),
                 size: 28,
                 shadows: [
                   Shadow(
-                    color: Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
+                    color: (iconColor ?? Color(AppColors.secondaryContainer)).withValues(alpha: 0.4),
                     blurRadius: 10,
                   )
                 ],

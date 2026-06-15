@@ -97,19 +97,15 @@ class ClimateHistoryService {
     }
     monitor24hLabels.value = _getListString('monitor24hLabels') ?? default24hLabels;
 
-    // 3. Monitor 7D (Daily)
+    // 3. Monitor 7D (Daily - Fixed week starting from Senin to Minggu)
+    final weekdays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    
+    // Seed initial mock data aligned with Senin-Minggu
     monitor7dKamarTemp.value = _getListDouble('monitor7dKamarTemp') ?? [26.5, 27.0, 28.2, 27.8, 28.8, 29.5, 28.1];
     monitor7dKamarHumid.value = _getListDouble('monitor7dKamarHumid') ?? [54.0, 56.0, 55.0, 57.0, 56.0, 55.0, 54.0];
     monitor7dDapurTemp.value = _getListDouble('monitor7dDapurTemp') ?? [28.0, 28.5, 29.3, 29.0, 30.1, 30.5, 29.2];
     monitor7dDapurHumid.value = _getListDouble('monitor7dDapurHumid') ?? [61.0, 63.0, 60.0, 62.0, 64.0, 61.0, 62.0];
-
-    final weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-    List<String> default7dLabels = [];
-    for (int i = 6; i >= 0; i--) {
-      final day = now.subtract(Duration(days: i));
-      default7dLabels.add(weekdays[day.weekday - 1]);
-    }
-    monitor7dLabels.value = _getListString('monitor7dLabels') ?? default7dLabels;
+    monitor7dLabels.value = _getListString('monitor7dLabels') ?? weekdays;
 
     // 4. Monitor 30D (Every 5 days)
     monitor30dKamarTemp.value = _getListDouble('monitor30dKamarTemp') ?? [27.2, 28.0, 28.5, 27.9, 27.1, 26.8];
@@ -225,27 +221,48 @@ class ClimateHistoryService {
     final kHumid = state.sensor.kamarKelembapan;
     final dHumid = state.sensor.dapurKelembapan;
 
-    final List<double> kTempList = List.from(monitor7dKamarTemp.value)..removeAt(0)..add(kTemp);
-    final List<double> kHumidList = List.from(monitor7dKamarHumid.value)..removeAt(0)..add(kHumid);
-    final List<double> dTempList = List.from(monitor7dDapurTemp.value)..removeAt(0)..add(dTemp);
-    final List<double> dHumidList = List.from(monitor7dDapurHumid.value)..removeAt(0)..add(dHumid);
-
     final now = DateTime.now();
-    final weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-    final newLabel = weekdays[now.weekday - 1];
-    final List<String> labelList = List.from(monitor7dLabels.value)..removeAt(0)..add(newLabel);
+    final int weekdayIndex = now.weekday - 1; // 0 for Monday (Senin) to 6 for Sunday (Minggu)
+
+    final List<double> kTempList = List.from(monitor7dKamarTemp.value);
+    final List<double> kHumidList = List.from(monitor7dKamarHumid.value);
+    final List<double> dTempList = List.from(monitor7dDapurTemp.value);
+    final List<double> dHumidList = List.from(monitor7dDapurHumid.value);
+
+    // If list is not initialized to length 7, initialize it
+    while (kTempList.length < 7) kTempList.add(25.0);
+    while (kHumidList.length < 7) kHumidList.add(50.0);
+    while (dTempList.length < 7) dTempList.add(25.0);
+    while (dHumidList.length < 7) dHumidList.add(50.0);
+
+    // If it's Monday, we start a new week, so we can clear/reset other days in the list
+    if (weekdayIndex == 0) {
+      for (int i = 1; i < 7; i++) {
+        kTempList[i] = 0.0;
+        kHumidList[i] = 0.0;
+        dTempList[i] = 0.0;
+        dHumidList[i] = 0.0;
+      }
+    }
+
+    kTempList[weekdayIndex] = kTemp;
+    kHumidList[weekdayIndex] = kHumid;
+    dTempList[weekdayIndex] = dTemp;
+    dHumidList[weekdayIndex] = dHumid;
 
     monitor7dKamarTemp.value = kTempList;
     monitor7dKamarHumid.value = kHumidList;
     monitor7dDapurTemp.value = dTempList;
     monitor7dDapurHumid.value = dHumidList;
-    monitor7dLabels.value = labelList;
+
+    final weekdays = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    monitor7dLabels.value = weekdays;
 
     _saveListDouble('monitor7dKamarTemp', kTempList);
     _saveListDouble('monitor7dKamarHumid', kHumidList);
     _saveListDouble('monitor7dDapurTemp', dTempList);
     _saveListDouble('monitor7dDapurHumid', dHumidList);
-    _saveListString('monitor7dLabels', labelList);
+    _saveListString('monitor7dLabels', weekdays);
   }
 
   void _append30dRecord() {

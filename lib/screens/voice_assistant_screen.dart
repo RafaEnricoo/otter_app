@@ -258,6 +258,10 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     final cmd = command.toLowerCase().trim();
     if (cmd.isEmpty) return false;
 
+    // Check if it is a general auto or manual mode change command
+    final isAutoOrManualCmd = (cmd.contains('auto') || cmd.contains('otomatis') || cmd.contains('manual')) &&
+        (cmd.contains('lampu') || cmd.contains('kipas'));
+
     // Aksi aktif/nyala
     final hasActive = cmd.contains('hidup') ||
         cmd.contains('nyala') ||
@@ -272,7 +276,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
         cmd.contains('kunci') ||
         cmd.contains('nonaktif');
 
-    if (!hasActive && !hasInactive) return false;
+    if (!hasActive && !hasInactive && !isAutoOrManualCmd) return false;
 
     // Check device types
     final hasLampu = cmd.contains('lampu');
@@ -281,7 +285,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     final hasPintu = cmd.contains('pintu') || cmd.contains('gerbang') || cmd.contains('kunci');
 
     if (hasLampu) {
-      final hasAuto = cmd.contains('auto') || cmd.contains('otomatis');
+      final hasAuto = cmd.contains('auto') || cmd.contains('otomatis') || cmd.contains('manual');
       final hasMandi = cmd.contains('mandi');
       final hasTamu = cmd.contains('tamu') || cmd.contains('ruang tamu');
       final hasDapur = cmd.contains('dapur');
@@ -348,7 +352,35 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     final currentState = FirebaseService().stateNotifier.value;
 
     // IoT Control Logic based on voice commands
-    if (cmd.contains('hidup') ||
+    // 1. Direct Auto/Otomatis/Manual Mode command without needing active/inactive trigger keywords
+    if ((cmd.contains('auto') || cmd.contains('otomatis') || cmd.contains('manual')) &&
+        (cmd.contains('lampu') || cmd.contains('kipas'))) {
+      // Determine target state (auto = true, manual = false)
+      bool targetAutoState = true;
+      if (cmd.contains('manual') ||
+          cmd.contains('mati') ||
+          cmd.contains('off') ||
+          cmd.contains('nonaktif') ||
+          cmd.contains('non-aktif')) {
+        targetAutoState = false;
+      }
+      
+      if (cmd.contains('lampu')) {
+        final bool alreadyInState = ((currentState?.otomatisasi.modeAutoLampu ?? false) == targetAutoState);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu', targetAutoState);
+        responseText = targetAutoState
+            ? (alreadyInState ? 'Mode auto lampu sudah aktif' : 'Mode auto lampu diaktifkan')
+            : (alreadyInState ? 'Mode manual lampu sudah aktif' : 'Mode auto lampu dinonaktifkan, beralih ke manual');
+        recognized = true;
+      } else if (cmd.contains('kipas')) {
+        final bool alreadyInState = ((currentState?.otomatisasi.modeAutoKipas ?? false) == targetAutoState);
+        await FirebaseService().updateOtomatisasi('mode_auto_kipas', targetAutoState);
+        responseText = targetAutoState
+            ? (alreadyInState ? 'Mode auto kipas sudah aktif' : 'Mode auto kipas diaktifkan')
+            : (alreadyInState ? 'Mode manual kipas sudah aktif' : 'Mode auto kipas dinonaktifkan, beralih ke manual');
+        recognized = true;
+      }
+    } else if (cmd.contains('hidup') ||
         cmd.contains('nyala') ||
         cmd.contains('on') ||
         cmd.contains('buka') ||
