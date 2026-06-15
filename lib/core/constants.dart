@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/system_settings_service.dart';
 
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+
 class AppColors {
   // Main Colors
   static const primary = 0xFFBEC5E5;

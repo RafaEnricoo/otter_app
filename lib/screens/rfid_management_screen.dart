@@ -34,6 +34,93 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
     super.dispose();
   }
 
+  void _showSuccessDialog(String title, String message, {IconData icon = Icons.check_circle_rounded, Color? iconColor}) {
+    final activeColor = iconColor ?? _activeAccent;
+    HapticFeedback.lightImpact();
+    showDialog(
+      context: this.context,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E2020),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: activeColor.withValues(alpha: 0.15), width: 1.5),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: activeColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: activeColor.withValues(alpha: 0.3), width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  icon,
+                  color: activeColor,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Sora',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFFC6C6CE),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: activeColor,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(120, 44),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Selesai',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(dialogContext).pop();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _registerCard() async {
     if (_formKey.currentState!.validate()) {
       HapticFeedback.heavyImpact();
@@ -45,73 +132,66 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
       _uidController.clear();
       _nameController.clear();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Kartu RFID milik $name berhasil didaftarkan!'),
-            backgroundColor: const Color(0xFF1E2020),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      _showSuccessDialog(
+        'Pendaftaran Sukses',
+        'Kartu RFID milik $name telah berhasil didaftarkan ke sistem.',
+      );
     }
   }
 
   void _deleteCard(String uid, String name) {
     HapticFeedback.mediumImpact();
     showDialog(
-      context: context,
+      context: this.context,
       barrierColor: Colors.black.withValues(alpha: 0.65),
-      builder: (BuildContext context) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: AlertDialog(
-            backgroundColor: const Color(0xFF1E2020),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            title: Row(
-              children: const [
-                Icon(Icons.warning_amber_rounded, color: Color(0xFFFF4963), size: 24),
-                SizedBox(width: 8),
-                Text('Hapus Kartu RFID?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-              ],
-            ),
-            content: Text(
-              'Apakah Anda yakin ingin menghapus akses kartu RFID milik $name ($uid)? Kartu ini tidak akan dapat membuka pintu lagi.',
-              style: const TextStyle(color: Color(0xFFC6C6CE), height: 1.3),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFFFB4AB),
-                  backgroundColor: const Color(0xFF93000A).withValues(alpha: 0.3),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text('Hapus Akses', style: TextStyle(fontWeight: FontWeight.w600)),
-                onPressed: () async {
-                  HapticFeedback.heavyImpact();
-                  final nameVal = name;
-                  Navigator.of(context).pop();
-                  await Future.delayed(const Duration(milliseconds: 350));
-                  await _firebaseService.removeRfidCard(uid);
-                  if (mounted) {
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      SnackBar(content: Text('Akses kartu $nameVal telah dihapus.')),
-                    );
-                  }
-                },
-              ),
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E2020),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.warning_amber_rounded, color: Color(0xFFFF4963), size: 24),
+              SizedBox(width: 8),
+              Text('Hapus Kartu RFID?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
             ],
           ),
+          content: Text(
+            'Apakah Anda yakin ingin menghapus akses kartu RFID milik $name ($uid)? Kartu ini tidak akan dapat membuka pintu lagi.',
+            style: const TextStyle(color: Color(0xFFC6C6CE), height: 1.3),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFFFB4AB),
+                backgroundColor: const Color(0xFF93000A).withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Hapus Akses', style: TextStyle(fontWeight: FontWeight.w600)),
+              onPressed: () async {
+                HapticFeedback.heavyImpact();
+                final nameVal = name;
+                Navigator.of(dialogContext).pop();
+                await Future.delayed(const Duration(milliseconds: 350));
+                await _firebaseService.removeRfidCard(uid);
+                _showSuccessDialog(
+                  'Akses Dihapus',
+                  'Akses kartu RFID milik $nameVal telah berhasil dihapus dari sistem.',
+                  icon: Icons.delete_forever_rounded,
+                  iconColor: const Color(0xFFFF4963),
+                );
+              },
+            ),
+          ],
         );
       },
     );
@@ -309,98 +389,24 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
   }
 
   void _showApproveDialog(String uid) {
-    final nameController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
     HapticFeedback.mediumImpact();
-    
     showDialog(
-      context: context,
+      context: this.context,
       barrierColor: Colors.black.withValues(alpha: 0.65),
-      builder: (BuildContext context) {
-        return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: AlertDialog(
-            backgroundColor: const Color(0xFF1E2020),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            title: Row(
-              children: [
-                Icon(Icons.verified_user_outlined, color: _activeAccent, size: 24),
-                const SizedBox(width: 8),
-                const Text('Setujui Kartu RFID', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-              ],
-            ),
-            content: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Masukkan nama pemilik untuk kartu dengan UID: $uid',
-                    style: const TextStyle(color: Color(0xFFC6C6CE), fontSize: 13, height: 1.3),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'NAMA PEMILIK',
-                    style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: nameController,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    decoration: _buildInputDecoration('Nama pemilik kartu...', Icons.person_outline_rounded),
-                    autofocus: true,
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return 'Nama tidak boleh kosong';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  backgroundColor: _activeAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: const Text('Setujui & Aktifkan', style: TextStyle(fontWeight: FontWeight.w600)),
-                onPressed: () async {
-                  if (formKey.currentState!.validate()) {
-                    HapticFeedback.heavyImpact();
-                    final name = nameController.text.trim();
-                    Navigator.of(context).pop();
-                    await Future.delayed(const Duration(milliseconds: 350));
-                    await _firebaseService.approveRfidCard(uid, name);
-                    if (mounted) {
-                      ScaffoldMessenger.of(this.context).showSnackBar(
-                        SnackBar(
-                          content: Text('Kartu RFID $uid berhasil diaktifkan untuk $name!'),
-                          backgroundColor: const Color(0xFF1E2020),
-                        ),
-                      );
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
+      builder: (BuildContext dialogContext) {
+        return _ApproveRfidDialog(
+          uid: uid,
+          activeAccent: _activeAccent,
+          onApprove: (name) async {
+            await _firebaseService.approveRfidCard(uid, name);
+            _showSuccessDialog(
+              'Kartu Diaktifkan',
+              'Kartu RFID dengan UID $uid berhasil diaktifkan untuk $name.',
+            );
+          },
         );
       },
-    ).then((_) => nameController.dispose());
+    );
   }
 
   Widget _buildCardListSection() {
@@ -712,6 +718,144 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
         borderSide: BorderSide(color: Colors.redAccent, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+}
+
+class _ApproveRfidDialog extends StatefulWidget {
+  final String uid;
+  final Color activeAccent;
+  final Function(String) onApprove;
+
+  const _ApproveRfidDialog({
+    required this.uid,
+    required this.activeAccent,
+    required this.onApprove,
+  });
+
+  @override
+  State<_ApproveRfidDialog> createState() => _ApproveRfidDialogState();
+}
+
+class _ApproveRfidDialogState extends State<_ApproveRfidDialog> {
+  late final TextEditingController _nameController;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  InputDecoration _buildInputDecoration(String hint, IconData icon) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
+      prefixIcon: Icon(icon, size: 18),
+      prefixIconColor: MaterialStateColor.resolveWith((states) {
+        if (states.contains(MaterialState.focused)) {
+          return widget.activeAccent;
+        }
+        return Colors.white38;
+      }),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.04)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: widget.activeAccent.withValues(alpha: 0.5), width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5), width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1E2020),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      title: Row(
+        children: [
+          Icon(Icons.verified_user_outlined, color: widget.activeAccent, size: 24),
+          const SizedBox(width: 8),
+          const Text('Setujui Kartu RFID', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        ],
+      ),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Masukkan nama pemilik untuk kartu dengan UID: ${widget.uid}',
+              style: const TextStyle(color: Color(0xFFC6C6CE), fontSize: 13, height: 1.3),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'NAMA PEMILIK',
+              style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _nameController,
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: _buildInputDecoration('Nama pemilik kartu...', Icons.person_outline_rounded),
+              autofocus: true,
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Nama tidak boleh kosong';
+                }
+                return null;
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            Navigator.of(context).pop();
+          },
+        ),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.black,
+            backgroundColor: widget.activeAccent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          child: const Text('Setujui & Aktifkan', style: TextStyle(fontWeight: FontWeight.w600)),
+          onPressed: () async {
+            if (_formKey.currentState!.validate()) {
+              HapticFeedback.heavyImpact();
+              final name = _nameController.text.trim();
+              Navigator.of(context).pop();
+              await Future.delayed(const Duration(milliseconds: 350));
+              widget.onApprove(name);
+            }
+          },
+        ),
+      ],
     );
   }
 }

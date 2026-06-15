@@ -45,6 +45,7 @@ class MyApp extends StatelessWidget {
       valueListenable: SystemSettingsService().activeAccent,
       builder: (context, accentColor, _) {
         return MaterialApp(
+          scaffoldMessengerKey: scaffoldMessengerKey,
           debugShowCheckedModeBanner: false,
           title: 'Otter - Smart Home',
           theme: AppTheme.darkTheme,
