@@ -115,6 +115,101 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
     );
   }
 
+  void _editCard(String uid, String currentName) {
+    final editNameController = TextEditingController(text: currentName);
+    final editFormKey = GlobalKey<FormState>();
+
+    HapticFeedback.mediumImpact();
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (BuildContext context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF1E2020),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            title: Row(
+              children: [
+                Icon(Icons.edit_rounded, color: _activeAccent, size: 24),
+                const SizedBox(width: 8),
+                const Text('Edit Kartu RFID', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            content: Form(
+              key: editFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'KODE UID: $uid',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'NAMA PEMILIK BARU',
+                    style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: editNameController,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: _buildInputDecoration('Nama pemilik kartu...', Icons.person_outline_rounded),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Nama pemilik tidak boleh kosong';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('Batal', style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: _activeAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Simpan', style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () async {
+                  if (editFormKey.currentState!.validate()) {
+                    HapticFeedback.heavyImpact();
+                    final newName = editNameController.text.trim();
+                    await _firebaseService.addRfidCard(uid, newName);
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Nama pemilik kartu berhasil diubah menjadi $newName!')),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -439,6 +534,12 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                             _firebaseService.updateRfidCardStatus(key, newStatus);
                           },
                         ),
+                      ),
+
+                      // Edit Button
+                      IconButton(
+                        icon: Icon(Icons.edit_outlined, color: _activeAccent, size: 20),
+                        onPressed: () => _editCard(key, name),
                       ),
 
                       // Delete Button
