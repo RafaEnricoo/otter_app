@@ -25,6 +25,21 @@ class _NotificationTileState extends State<NotificationTile>
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   double _swipeProgress = 0.0;
+  late bool _localIsRead;
+
+  @override
+  void initState() {
+    super.initState();
+    _localIsRead = widget.notification.isRead;
+  }
+
+  @override
+  void didUpdateWidget(NotificationTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.notification.isRead != oldWidget.notification.isRead) {
+      _localIsRead = widget.notification.isRead;
+    }
+  }
 
   // Context-aware icon — matches notification title first, falls back to category
   IconData _getNotificationIcon(NotificationModel notif) {
@@ -189,14 +204,21 @@ class _NotificationTileState extends State<NotificationTile>
               ),
               child: GlassCard(
                 borderRadius: BorderRadius.circular(16.0),
-                isActive: !widget.notification.isRead,
+                isActive: !_localIsRead,
                 onTap: () {
                   HapticFeedback.lightImpact();
                   setState(() {
                     _isExpanded = !_isExpanded;
+                    if (!_localIsRead) {
+                      _localIsRead = true;
+                    }
                   });
                   if (!widget.notification.isRead) {
-                    widget.onMarkedRead();
+                    Future.delayed(const Duration(milliseconds: 350), () {
+                      if (mounted) {
+                        widget.onMarkedRead();
+                      }
+                    });
                   }
                 },
                 padding: EdgeInsets.zero,
@@ -278,10 +300,10 @@ class _NotificationTileState extends State<NotificationTile>
                                   widget.notification.title,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: widget.notification.isRead
+                                    fontWeight: _localIsRead
                                         ? FontWeight.w500
                                         : FontWeight.w700,
-                                    color: widget.notification.isRead
+                                    color: _localIsRead
                                         ? Colors.white.withValues(alpha: 0.85)
                                         : Colors.white,
                                   ),
