@@ -46,6 +46,10 @@ class _NotificationTileState extends State<NotificationTile>
     // ── RFID / Pintu ──
     if (t.contains('rfid') && t.contains('terkunci')) return Icons.lock_rounded;
     if (t.contains('rfid') && t.contains('terbuka')) return Icons.lock_open_rounded;
+    if (t.contains('rfid') && t.contains('didaftarkan')) return Icons.add_card_rounded;
+    if (t.contains('rfid') && t.contains('dihapus')) return Icons.credit_card_off_rounded;
+    if (t.contains('rfid') && t.contains('disetujui')) return Icons.contactless_rounded;
+    if (t.contains('rfid') && (t.contains('fisik') || t.contains('menunggu') || t.contains('pendaftaran'))) return Icons.hourglass_empty_rounded;
     if (t.contains('pintu')) return Icons.sensor_door_rounded;
 
     // ── Kebakaran / Api ──
