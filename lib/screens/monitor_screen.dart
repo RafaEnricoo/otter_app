@@ -284,16 +284,16 @@ class _MonitorScreenState extends State<MonitorScreen> {
                     
                     const SizedBox(height: 16),
 
-                    // ─── Quick Analytics Summary ───
-                    _buildQuickAnalyticsRow(sensor, perangkat),
-
-                    SizedBox(height: isMobile ? 20.0 : AppSpacing.stackMd),
-
                     // ─── Emergency Status/Warning Banner ───
                     if (sensor.dapurFlame > 0 || sensor.tamuGerak || perangkat.buzzerAlrm) ...[
                       const QuickStatusBanner(alwaysShow: false),
                       const SizedBox(height: 16),
                     ],
+
+                    // ─── Quick Analytics Summary ───
+                    _buildQuickAnalyticsRow(sensor, perangkat),
+
+                    SizedBox(height: isMobile ? 20.0 : AppSpacing.stackMd),
 
                     // ─── Responsive Bento Grid ───
                     LayoutBuilder(
