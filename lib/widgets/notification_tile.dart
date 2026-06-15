@@ -329,8 +329,8 @@ class _NotificationTileState extends State<NotificationTile>
                                       NotificationCategory.security)
                                     (() {
                                       final t = widget.notification.title.toLowerCase();
-                                      final isRfidPending = t.contains('rfid') && (t.contains('fisik') || t.contains('menunggu') || t.contains('pendaftaran'));
-                                      if (isRfidPending) {
+                                      final isRfidRelated = t.contains('rfid') || t.contains('pintu');
+                                      if (isRfidRelated) {
                                         return TextButton.icon(
                                           style: TextButton.styleFrom(
                                             foregroundColor: Color(AppColors.secondaryContainer),
