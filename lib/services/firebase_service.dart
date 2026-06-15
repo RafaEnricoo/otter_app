@@ -354,11 +354,27 @@ class FirebaseService {
     if (_isUsingFallback) {
       final otomatisasiMap = _localState!.otomatisasi.toMap();
       otomatisasiMap[key] = value;
+      if (key == 'mode_auto_lampu') {
+        otomatisasiMap['auto_lampu_kamar'] = value;
+        otomatisasiMap['auto_lampu_tamu'] = value;
+        otomatisasiMap['auto_lampu_kamar_mandi'] = value;
+        otomatisasiMap['auto_lampu_dapur'] = value;
+      }
       _localState = _localState!.copyWith(otomatisasi: SmarthomeOtomatisasi.fromMap(otomatisasiMap));
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } else {
-      await _dbRef.child('otomatisasi/$key').set(value);
+      if (key == 'mode_auto_lampu') {
+        await _dbRef.child('otomatisasi').update({
+          'mode_auto_lampu': value,
+          'auto_lampu_kamar': value,
+          'auto_lampu_tamu': value,
+          'auto_lampu_kamar_mandi': value,
+          'auto_lampu_dapur': value,
+        });
+      } else {
+        await _dbRef.child('otomatisasi/$key').set(value);
+      }
     }
   }
 
@@ -463,26 +479,24 @@ class FirebaseService {
     bool newLedMerahDapur = state.perangkat.ledMerahDapur;
     bool newBuzzerAlrm = state.perangkat.buzzerAlrm;
 
-    // 1. Auto Light Mode (mode_auto_lampu - Master Switch)
-    if (state.otomatisasi.modeAutoLampu) {
-      final isDark = state.sensor.cahayaAtap < state.otomatisasi.batasGelapLampu;
-      
-      if (state.otomatisasi.autoLampuTamu && newLampuTamu != isDark) {
-        newLampuTamu = isDark;
-        changed = true;
-      }
-      if (state.otomatisasi.autoLampuKamar && newLampuKamar != isDark) {
-        newLampuKamar = isDark;
-        changed = true;
-      }
-      if (state.otomatisasi.autoLampuDapur && newLampuDapur != isDark) {
-        newLampuDapur = isDark;
-        changed = true;
-      }
-      if (state.otomatisasi.autoLampuKamarMandi && newLampuKamarMandi != isDark) {
-        newLampuKamarMandi = isDark;
-        changed = true;
-      }
+    // 1. Auto Light Mode
+    final isDark = state.sensor.cahayaAtap < state.otomatisasi.batasGelapLampu;
+    
+    if (state.otomatisasi.autoLampuTamu && newLampuTamu != isDark) {
+      newLampuTamu = isDark;
+      changed = true;
+    }
+    if (state.otomatisasi.autoLampuKamar && newLampuKamar != isDark) {
+      newLampuKamar = isDark;
+      changed = true;
+    }
+    if (state.otomatisasi.autoLampuDapur && newLampuDapur != isDark) {
+      newLampuDapur = isDark;
+      changed = true;
+    }
+    if (state.otomatisasi.autoLampuKamarMandi && newLampuKamarMandi != isDark) {
+      newLampuKamarMandi = isDark;
+      changed = true;
     }
 
     // 2. Auto Fan Mode (mode_auto_kipas)
