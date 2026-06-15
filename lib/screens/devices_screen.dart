@@ -99,10 +99,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       title: 'Lampu Ruang Tamu',
                       isOn: perangkat.lampuTamu,
                       brightness: 100.0,
-                      isAuto: otomatisasi.modeAutoLampu,
+                      isAuto: otomatisasi.modeAutoLampuTamu,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                        FirebaseService().updateOtomatisasi('mode_auto_lampu_tamu', val);
                       },
                       onToggle: (val) {
                         FirebaseService().updatePerangkat('lampu_tamu', val);
@@ -151,10 +151,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       title: 'Lampu Kamar',
                       isOn: perangkat.lampuKamar,
                       brightness: 100.0,
-                      isAuto: otomatisasi.modeAutoLampu,
+                      isAuto: otomatisasi.modeAutoLampuKamar,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                        FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar', val);
                       },
                       onToggle: (val) {
                         FirebaseService().updatePerangkat('lampu_kamar', val);
@@ -257,10 +257,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       title: 'Lampu Dapur',
                       isOn: perangkat.lampuDapur,
                       brightness: 100.0,
-                      isAuto: otomatisasi.modeAutoLampu,
+                      isAuto: otomatisasi.modeAutoLampuDapur,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                        FirebaseService().updateOtomatisasi('mode_auto_lampu_dapur', val);
                       },
                       onToggle: (val) {
                         FirebaseService().updatePerangkat('lampu_dapur', val);
@@ -362,10 +362,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       title: 'Lampu Kamar Mandi',
                       isOn: perangkat.lampuKamarMandi,
                       brightness: 100.0,
-                      isAuto: otomatisasi.modeAutoLampu,
+                      isAuto: otomatisasi.modeAutoLampuKamarMandi,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                        FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar_mandi', val);
                       },
                       onToggle: (val) {
                         FirebaseService().updatePerangkat('lampu_kamar_mandi', val);
@@ -408,7 +408,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       badgeText: 'LDR Photoresistor',
                       icon: Icons.wb_sunny_rounded,
                       onTap: () => _showLdrSimulationSheet(sensor.cahayaAtap),
-                      infoText: otomatisasi.modeAutoLampu ? 'Menyelaraskan lampu...' : 'Mode manual',
+                      infoText: (otomatisasi.modeAutoLampuTamu || otomatisasi.modeAutoLampuKamar || otomatisasi.modeAutoLampuDapur || otomatisasi.modeAutoLampuKamarMandi) ? 'Menyelaraskan lampu...' : 'Mode manual',
                       activeColor: const Color(0xFFFFB300),
                     ),
                   ],
@@ -527,6 +527,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
           child: Column(
             children: [
               // Rule 1: Auto Light
+              // Rule 1: Auto Light Kamar
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -535,20 +536,20 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Mode Otomatis Lampu',
+                          'Otomatisasi Lampu Kamar',
                           style: TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Color(AppColors.onSurface),
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Aktifkan lampu saat LDR cahaya atap di bawah ambang batas',
+                          'Aktifkan lampu kamar otomatis saat di luar gelap',
                           style: TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 11,
+                            fontSize: 10,
                             color: Color(AppColors.onSurfaceVariant).withValues(alpha: 0.65),
                           ),
                         ),
@@ -556,9 +557,123 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ),
                   ),
                   CustomToggleSwitch(
-                    value: otomatisasi.modeAutoLampu,
+                    value: otomatisasi.modeAutoLampuKamar,
                     onChanged: (val) {
-                      FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                      FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar', val);
+                    },
+                  ),
+                ],
+              ),
+              const Divider(color: Colors.white10, height: 16),
+              // Rule 2: Auto Light Tamu
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Otomatisasi Lampu Ruang Tamu',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(AppColors.onSurface),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Aktifkan lampu tamu otomatis saat di luar gelap',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 10,
+                            color: Color(AppColors.onSurfaceVariant).withValues(alpha: 0.65),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CustomToggleSwitch(
+                    value: otomatisasi.modeAutoLampuTamu,
+                    onChanged: (val) {
+                      FirebaseService().updateOtomatisasi('mode_auto_lampu_tamu', val);
+                    },
+                  ),
+                ],
+              ),
+              const Divider(color: Colors.white10, height: 16),
+              // Rule 3: Auto Light Kamar Mandi
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Otomatisasi Lampu Kamar Mandi',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(AppColors.onSurface),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Aktifkan lampu mandi otomatis saat di luar gelap',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 10,
+                            color: Color(AppColors.onSurfaceVariant).withValues(alpha: 0.65),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CustomToggleSwitch(
+                    value: otomatisasi.modeAutoLampuKamarMandi,
+                    onChanged: (val) {
+                      FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar_mandi', val);
+                    },
+                  ),
+                ],
+              ),
+              const Divider(color: Colors.white10, height: 16),
+              // Rule 4: Auto Light Dapur
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Otomatisasi Lampu Dapur',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(AppColors.onSurface),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Aktifkan lampu dapur otomatis saat di luar gelap',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 10,
+                            color: Color(AppColors.onSurfaceVariant).withValues(alpha: 0.65),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CustomToggleSwitch(
+                    value: otomatisasi.modeAutoLampuDapur,
+                    onChanged: (val) {
+                      FirebaseService().updateOtomatisasi('mode_auto_lampu_dapur', val);
                     },
                   ),
                 ],

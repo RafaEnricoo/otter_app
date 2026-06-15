@@ -151,13 +151,19 @@ class SmarthomePerangkat {
 }
 
 class SmarthomeOtomatisasi {
-  final bool modeAutoLampu;
+  final bool modeAutoLampuKamar;
+  final bool modeAutoLampuTamu;
+  final bool modeAutoLampuKamarMandi;
+  final bool modeAutoLampuDapur;
   final bool modeAutoKipas;
   final int batasGelapLampu;
   final double batasPanasKamar;
 
   SmarthomeOtomatisasi({
-    required this.modeAutoLampu,
+    required this.modeAutoLampuKamar,
+    required this.modeAutoLampuTamu,
+    required this.modeAutoLampuKamarMandi,
+    required this.modeAutoLampuDapur,
     required this.modeAutoKipas,
     required this.batasGelapLampu,
     required this.batasPanasKamar,
@@ -165,7 +171,10 @@ class SmarthomeOtomatisasi {
 
   factory SmarthomeOtomatisasi.fromMap(Map<dynamic, dynamic> map) {
     return SmarthomeOtomatisasi(
-      modeAutoLampu: (map['mode_auto_lampu'] ?? false) as bool,
+      modeAutoLampuKamar: (map['mode_auto_lampu_kamar'] ?? false) as bool,
+      modeAutoLampuTamu: (map['mode_auto_lampu_tamu'] ?? false) as bool,
+      modeAutoLampuKamarMandi: (map['mode_auto_lampu_kamar_mandi'] ?? false) as bool,
+      modeAutoLampuDapur: (map['mode_auto_lampu_dapur'] ?? false) as bool,
       modeAutoKipas: (map['mode_auto_kipas'] ?? false) as bool,
       batasGelapLampu: (map['batas_gelap_lampu'] ?? 0) is double
           ? (map['batas_gelap_lampu'] as double).toInt()
@@ -178,7 +187,10 @@ class SmarthomeOtomatisasi {
 
   Map<String, dynamic> toMap() {
     return {
-      'mode_auto_lampu': modeAutoLampu,
+      'mode_auto_lampu_kamar': modeAutoLampuKamar,
+      'mode_auto_lampu_tamu': modeAutoLampuTamu,
+      'mode_auto_lampu_kamar_mandi': modeAutoLampuKamarMandi,
+      'mode_auto_lampu_dapur': modeAutoLampuDapur,
       'mode_auto_kipas': modeAutoKipas,
       'batas_gelap_lampu': batasGelapLampu,
       'batas_panas_kamar': batasPanasKamar,

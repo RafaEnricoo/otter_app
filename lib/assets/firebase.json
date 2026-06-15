@@ -21,7 +21,10 @@
       "kunci_pintu_rfid": true
     },
     "otomatisasi": {
-      "mode_auto_lampu": true,
+      "mode_auto_lampu_kamar": true,
+      "mode_auto_lampu_tamu": true,
+      "mode_auto_lampu_kamar_mandi": true,
+      "mode_auto_lampu_dapur": true,
       "mode_auto_kipas": true,
       "batas_gelap_lampu": 30,
       "batas_panas_kamar": 29.0

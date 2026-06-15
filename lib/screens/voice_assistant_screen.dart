@@ -366,8 +366,15 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       }
       
       if (cmd.contains('lampu')) {
-        final bool alreadyInState = ((currentState?.otomatisasi.modeAutoLampu ?? false) == targetAutoState);
-        await FirebaseService().updateOtomatisasi('mode_auto_lampu', targetAutoState);
+        final bool currentAuto = (currentState?.otomatisasi.modeAutoLampuKamar ?? false) ||
+                                 (currentState?.otomatisasi.modeAutoLampuTamu ?? false) ||
+                                 (currentState?.otomatisasi.modeAutoLampuKamarMandi ?? false) ||
+                                 (currentState?.otomatisasi.modeAutoLampuDapur ?? false);
+        final bool alreadyInState = (currentAuto == targetAutoState);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar', targetAutoState);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_tamu', targetAutoState);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar_mandi', targetAutoState);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_dapur', targetAutoState);
         responseText = targetAutoState
             ? (alreadyInState ? 'Mode auto lampu sudah aktif' : 'Mode auto lampu diaktifkan')
             : (alreadyInState ? 'Mode manual lampu sudah aktif' : 'Mode auto lampu dinonaktifkan, beralih ke manual');
@@ -387,8 +394,14 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
         cmd.contains('aktif')) {
       if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
           cmd.contains('lampu')) {
-        final bool alreadyOn = currentState?.otomatisasi.modeAutoLampu ?? false;
-        await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+        final bool alreadyOn = (currentState?.otomatisasi.modeAutoLampuKamar ?? false) ||
+                               (currentState?.otomatisasi.modeAutoLampuTamu ?? false) ||
+                               (currentState?.otomatisasi.modeAutoLampuKamarMandi ?? false) ||
+                               (currentState?.otomatisasi.modeAutoLampuDapur ?? false);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar', true);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_tamu', true);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar_mandi', true);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_dapur', true);
         responseText = alreadyOn
             ? 'Mode auto lampu sudah aktif'
             : 'Mode auto lampu diaktifkan';
@@ -468,9 +481,15 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
         cmd.contains('nonaktif')) {
       if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
           cmd.contains('lampu')) {
-        final bool alreadyOff =
-            !(currentState?.otomatisasi.modeAutoLampu ?? true);
-        await FirebaseService().updateOtomatisasi('mode_auto_lampu', false);
+        final bool anyActive = (currentState?.otomatisasi.modeAutoLampuKamar ?? false) ||
+                               (currentState?.otomatisasi.modeAutoLampuTamu ?? false) ||
+                               (currentState?.otomatisasi.modeAutoLampuKamarMandi ?? false) ||
+                               (currentState?.otomatisasi.modeAutoLampuDapur ?? false);
+        final bool alreadyOff = !anyActive;
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar', false);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_tamu', false);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_kamar_mandi', false);
+        await FirebaseService().updateOtomatisasi('mode_auto_lampu_dapur', false);
         responseText = alreadyOff
             ? 'Mode auto lampu sudah mati'
             : 'Mode auto lampu dimatikan';
