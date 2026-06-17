@@ -790,8 +790,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return _SimulationModalWrapper(
-              title: 'Simulasi $title',
-              description: 'Atur parameter suhu dan kelembapan untuk mensimulasikan perubahan iklim ruangan.',
+              title: 'Sensor DHT $title',
+              description: 'Atur parameter suhu dan kelembapan untuk mensimulasikan nilai pembacaan sensor DHT.',
               icon: Icons.thermostat_rounded,
               iconColor: getTempColor(currentTemp),
               child: Column(
