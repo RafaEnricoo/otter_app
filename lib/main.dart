@@ -115,12 +115,22 @@ class _MainLayoutState extends State<MainLayout> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _onStateChanged());
   }
 
+  void _lockApp() {
+    if (!mounted) return;
+    setState(() {
+      _isLocked = true;
+    });
+    try {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (e) {
+      print("Error popping routes on lock: $e");
+    }
+  }
+
   void _onLockTriggered() {
     if (SystemSettingsService().lockScreenTrigger.value) {
       SystemSettingsService().lockScreenTrigger.value = false;
-      setState(() {
-        _isLocked = true;
-      });
+      _lockApp();
     }
   }
 
@@ -145,9 +155,7 @@ class _MainLayoutState extends State<MainLayout> {
 
     final delayMinutes = SystemSettingsService().autoLockDelay.value;
     _autoLockTimer = Timer(Duration(milliseconds: (delayMinutes * 60 * 1000).toInt()), () {
-      setState(() {
-        _isLocked = true;
-      });
+      _lockApp();
     });
   }
 
