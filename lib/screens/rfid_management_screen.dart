@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/system_settings_service.dart';
 
 class RfidManagementScreen extends StatefulWidget {
@@ -13,7 +13,7 @@ class RfidManagementScreen extends StatefulWidget {
 }
 
 class _RfidManagementScreenState extends State<RfidManagementScreen> {
-  final _firebaseService = FirebaseService();
+  final _SmartHomeService = SmartHomeService();
   final _uidController = TextEditingController();
   final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -127,7 +127,7 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
       final uid = _uidController.text.trim().toUpperCase().replaceAll(' ', '');
       final name = _nameController.text.trim();
 
-      await _firebaseService.addRfidCard(uid, name);
+      await _SmartHomeService.addRfidCard(uid, name);
 
       _uidController.clear();
       _nameController.clear();
@@ -182,7 +182,7 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                 final nameVal = name;
                 Navigator.of(dialogContext).pop();
                 await Future.delayed(const Duration(milliseconds: 350));
-                await _firebaseService.removeRfidCard(uid);
+                await _SmartHomeService.removeRfidCard(uid);
                 _showSuccessDialog(
                   'Akses Dihapus',
                   'Akses kartu RFID milik $nameVal telah berhasil dihapus dari sistem.',
@@ -398,7 +398,7 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
           uid: uid,
           activeAccent: _activeAccent,
           onApprove: (name) async {
-            await _firebaseService.approveRfidCard(uid, name);
+            await _SmartHomeService.approveRfidCard(uid, name);
             _showSuccessDialog(
               'Kartu Diaktifkan',
               'Kartu RFID dengan UID $uid berhasil diaktifkan untuk $name.',
@@ -418,7 +418,7 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: StreamBuilder<Map<String, dynamic>>(
-        stream: _firebaseService.getRfidCardsStream(),
+        stream: _SmartHomeService.getRfidCardsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -536,6 +536,8 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                             children: [
                               Text(
                                 name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -545,6 +547,8 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 key,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontFamily: 'monospace',
@@ -624,6 +628,8 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                             children: [
                               Text(
                                 name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -633,6 +639,8 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 key,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontFamily: 'monospace',
@@ -654,7 +662,7 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                             onChanged: (val) {
                               HapticFeedback.lightImpact();
                               final newStatus = val ? 'aktif' : 'nonaktif';
-                              _firebaseService.updateRfidCardStatus(key, newStatus);
+                              _SmartHomeService.updateRfidCardStatus(key, newStatus);
                             },
                           ),
                         ),

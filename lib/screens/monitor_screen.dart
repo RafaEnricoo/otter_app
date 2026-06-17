@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../models/notification_model.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/notification_service.dart';
 import '../services/system_settings_service.dart';
 import '../services/climate_history_service.dart';
@@ -113,7 +113,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
       _localLuminance = percentage;
     });
 
-    FirebaseService().updateSensor('cahaya_atap', percentage.toInt());
+    SmartHomeService().updateSensor('cahaya_atap', percentage.toInt());
   }
 
   @override
@@ -122,7 +122,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
     final bool isMobile = screenWidth < 768;
 
     return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
+      valueListenable: SmartHomeService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
           return Center(
@@ -920,69 +920,76 @@ class _MonitorScreenState extends State<MonitorScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
-                          border: Border.all(
-                            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.water_drop_rounded,
-                          color: Color(0xFF3B82F6),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'KELEMBAPAN RUANGAN LIVE',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(AppColors.onSurfaceVariant),
-                              letterSpacing: 0.8,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                            border: Border.all(
+                              color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
                             ),
                           ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
+                          child: const Icon(
+                            Icons.water_drop_rounded,
+                            color: Color(0xFF3B82F6),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '${displayLiveHumid.toStringAsFixed(1)}% RH',
-                                style: const TextStyle(
-                                  fontFamily: 'Sora',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(AppColors.onSurface),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                activeData.deltaText,
+                              const Text(
+                                'KELEMBAPAN RUANGAN LIVE',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontFamily: 'Inter',
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: activeData.isDeltaPositive
-                                      ? const Color(0xFF3B82F6)
-                                      : const Color(AppColors.error),
+                                  color: Color(AppColors.onSurfaceVariant),
+                                  letterSpacing: 0.8,
                                 ),
+                              ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '${displayLiveHumid.toStringAsFixed(1)}% RH',
+                                    style: const TextStyle(
+                                      fontFamily: 'Sora',
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(AppColors.onSurface),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    activeData.deltaText,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: activeData.isDeltaPositive
+                                          ? const Color(0xFF3B82F6)
+                                          : const Color(AppColors.error),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     height: 28,
                     padding: const EdgeInsets.all(2.0),
@@ -1444,8 +1451,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
           _buildMiniAnalyticCard(
             title: 'DETEKTOR API',
             value: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? 'BAHAYA API!' : 'NORMAL',
-            subtitle: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? 'Deteksi di Dapur' : 'Aman dari Asap/Api',
-            icon: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? Icons.local_fire_department_rounded : Icons.smoke_free_rounded,
+            subtitle: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? 'Deteksi di Dapur' : 'Aman dari Api',
+            icon: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? Icons.local_fire_department_rounded : Icons.local_fire_department_outlined,
             iconColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963) : const Color(0xFF00E676),
             valueColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963) : const Color(0xFF00E676),
             glowColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963).withValues(alpha: 0.1) : null,

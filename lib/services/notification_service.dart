@@ -1,13 +1,14 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:http/http.dart' as http;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../core/constants.dart';
 import '../models/notification_model.dart';
-import 'firebase_service.dart';
+import 'smarthome_service.dart';
 import 'system_settings_service.dart';
 
 class NotificationService {
@@ -21,8 +22,8 @@ class NotificationService {
     debugPrint("Background FCM Message: ${message.messageId}");
   }
 
-  final _dbRef = FirebaseDatabase.instance.ref('otter_smarthome/notifikasi');
   bool _isInitialized = false;
+  Timer? _pollingTimer;
 
   // Local notifications plugin
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
@@ -38,7 +39,7 @@ class NotificationService {
 
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  bool get _isOnline => !FirebaseService().isUsingFallback;
+  bool get _isOnline => !SmartHomeService().isUsingFallback;
 
   void init() {
     if (_isInitialized) return;
@@ -46,51 +47,45 @@ class NotificationService {
     _initLocalNotifications();
     _initFirebaseMessaging();
 
-    // Listen to Firebase database changes in real-time
-    _dbRef.onValue.listen((event) {
-      if (event.snapshot.value != null) {
-        try {
-          final data = event.snapshot.value;
-          if (data is Map) {
-            final List<NotificationModel> list = [];
-            data.forEach((key, value) {
-              if (value is Map) {
-                final model = NotificationModel.fromMap(value);
-                // Filter out unimportant (empty title/message) and energy-related notifications
-                if (model.title.trim().isNotEmpty &&
-                    model.message.trim().isNotEmpty &&
-                    model.category != NotificationCategory.energy) {
-                  list.add(model);
-                }
-              }
-            });
-            // Sort notifications by timestamp descending (newest first)
-            list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    // Start periodic polling for notifications (every 2 seconds)
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!_isOnline) return;
 
-            // Check if there is a NEW notification added remotely
-            final currentList = notificationsNotifier.value;
-            if (currentList.isNotEmpty && list.isNotEmpty) {
-              final newest = list.first;
-              final alreadyExists = currentList.any((n) => n.id == newest.id);
-              if (!alreadyExists) {
-                // Trigger overlay and sound for the new remote notification!
-                newNotificationNotifier.value = newest;
-                _playNotificationFeedback(newest.priority);
-                _showNativeNotification(newest);
-              }
+      try {
+        final res = await http.get(Uri.parse('${AppConfig.apiBaseUrl}/notifications')).timeout(const Duration(seconds: 2));
+        if (res.statusCode == 200) {
+          final List<dynamic> rawList = jsonDecode(res.body);
+          final List<NotificationModel> list = [];
+
+          for (var item in rawList) {
+            final model = NotificationModel.fromMap(item as Map<String, dynamic>);
+            if (model.title.trim().isNotEmpty &&
+                model.message.trim().isNotEmpty &&
+                model.category != NotificationCategory.energy) {
+              list.add(model);
             }
-
-            notificationsNotifier.value = list;
           }
-        } catch (e) {
-          debugPrint("Gagal mengurai data notifikasi dari Firebase: $e");
+
+          // Sort notifications by timestamp descending (newest first)
+          list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+          // Check if there is a NEW notification added remotely
+          final currentList = notificationsNotifier.value;
+          if (currentList.isNotEmpty && list.isNotEmpty) {
+            final newest = list.first;
+            final alreadyExists = currentList.any((n) => n.id == newest.id);
+            if (!alreadyExists) {
+              newNotificationNotifier.value = newest;
+              _playNotificationFeedback(newest.priority);
+              _showNativeNotification(newest);
+            }
+          }
+
+          notificationsNotifier.value = list;
         }
-      } else {
-        notificationsNotifier.value = [];
+      } catch (e) {
+        debugPrint("Gagal polling data notifikasi dari server: $e");
       }
-    }, onError: (err) {
-      debugPrint("Firebase notifikasi error, berjalan dalam mode lokal: $err");
-      notificationsNotifier.value = [];
     });
 
     _isInitialized = true;
@@ -104,7 +99,7 @@ class NotificationService {
       notificationsNotifier.value.where((n) => !n.isRead).length;
 
   // Mark a specific notification as read
-  void markAsRead(String id) {
+  void markAsRead(String id) async {
     final updated = notificationsNotifier.value.map((n) {
       if (n.id == id) {
         return n.copyWith(isRead: true);
@@ -114,45 +109,54 @@ class NotificationService {
     notificationsNotifier.value = updated;
 
     if (_isOnline) {
-      _dbRef.child('$id/isRead').set(true);
+      try {
+        await http.put(Uri.parse('${AppConfig.apiBaseUrl}/notifications/$id/read'));
+      } catch (e) {
+        debugPrint("Gagal markAsRead ke server: $e");
+      }
     }
   }
 
   // Mark all notifications as read
-  void markAllAsRead() {
+  void markAllAsRead() async {
     final updated = notificationsNotifier.value.map((n) {
       return n.copyWith(isRead: true);
     }).toList();
     notificationsNotifier.value = updated;
 
     if (_isOnline) {
-      final updates = <String, dynamic>{};
-      for (var n in updated) {
-        updates['${n.id}/isRead'] = true;
-      }
-      if (updates.isNotEmpty) {
-        _dbRef.update(updates);
+      try {
+        await http.put(Uri.parse('${AppConfig.apiBaseUrl}/notifications/read-all'));
+      } catch (e) {
+        debugPrint("Gagal markAllAsRead ke server: $e");
       }
     }
   }
 
   // Delete a specific notification
-  void deleteNotification(String id) {
-    // Optimistic local update (crucial for Dismissible)
+  void deleteNotification(String id) async {
     final updated = notificationsNotifier.value.where((n) => n.id != id).toList();
     notificationsNotifier.value = updated;
 
     if (_isOnline) {
-      _dbRef.child(id).remove();
+      try {
+        await http.delete(Uri.parse('${AppConfig.apiBaseUrl}/notifications/$id'));
+      } catch (e) {
+        debugPrint("Gagal deleteNotification dari server: $e");
+      }
     }
   }
 
   // Clear all notifications
-  void clearAll() {
+  void clearAll() async {
     notificationsNotifier.value = [];
 
     if (_isOnline) {
-      _dbRef.remove();
+      try {
+        await http.delete(Uri.parse('${AppConfig.apiBaseUrl}/notifications'));
+      } catch (e) {
+        debugPrint("Gagal clearAll ke server: $e");
+      }
     }
   }
 
@@ -193,8 +197,7 @@ class NotificationService {
     required String message,
     required NotificationCategory category,
     required NotificationPriority priority,
-  }) {
-    // Filter out energy and empty notifications at the entry point
+  }) async {
     if (category == NotificationCategory.energy) return;
     if (title.trim().isEmpty || message.trim().isEmpty) return;
 
@@ -211,13 +214,20 @@ class NotificationService {
     final updated = List<NotificationModel>.from(notificationsNotifier.value)..insert(0, newNotif);
     notificationsNotifier.value = updated;
 
-    // Trigger overlay notifier
     newNotificationNotifier.value = newNotif;
     _playNotificationFeedback(priority);
     _showNativeNotification(newNotif);
 
     if (_isOnline) {
-      _dbRef.child(id).set(newNotif.toMap());
+      try {
+        await http.post(
+          Uri.parse('${AppConfig.apiBaseUrl}/notifications'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(newNotif.toMap()),
+        );
+      } catch (e) {
+        debugPrint("Gagal addNotification ke server: $e");
+      }
     }
   }
 
@@ -286,15 +296,12 @@ class NotificationService {
   Future<void> _initFirebaseMessaging() async {
     try {
       final messaging = FirebaseMessaging.instance;
-      
-      // Request notification permissions
       await messaging.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
 
-      // Subscribe to the global smarthome topic
       await messaging.subscribeToTopic('otter_home');
       debugPrint("FCM: Subscribed to topic 'otter_home'");
 
@@ -306,5 +313,9 @@ class NotificationService {
     } catch (e) {
       debugPrint("FCM Initialization error: $e");
     }
+  }
+
+  void dispose() {
+    _pollingTimer?.cancel();
   }
 }

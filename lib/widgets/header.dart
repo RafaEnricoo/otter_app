@@ -7,6 +7,8 @@ import '../services/system_settings_service.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 import '../services/profile_service.dart';
+import '../services/smarthome_service.dart';
+import '../models/device_model.dart';
 
 class Header extends StatelessWidget {
   final VoidCallback? onNotificationsPressed;
@@ -119,7 +121,7 @@ class Header extends StatelessWidget {
                       // ─── User Avatar (Opens Profile/Settings) ───
                       GestureDetector(
                         onTap: onSettingsPressed,
-                        child: const _UserAvatar(),
+                        child: _UserAvatar(accentColor: accentColor),
                       ),
                     ],
                   ),
@@ -232,6 +234,55 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
               color: Colors.white,
             ),
           ),
+        ),
+        const SizedBox(width: 8),
+        // Dynamic Online/Offline status badge
+        ValueListenableBuilder<SmarthomeState?>(
+          valueListenable: SmartHomeService().stateNotifier,
+          builder: (context, state, _) {
+            final isFallback = SmartHomeService().isUsingFallback;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isFallback ? Colors.red.withOpacity(0.12) : Colors.green.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isFallback ? Colors.red.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isFallback ? Colors.red : Colors.green,
+                      boxShadow: [
+                        BoxShadow(
+                          color: isFallback ? Colors.red.withOpacity(0.6) : Colors.green.withOpacity(0.6),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    isFallback ? 'OFFLINE' : 'ONLINE',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      color: isFallback ? Colors.redAccent : Colors.greenAccent,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ],
     );
@@ -516,7 +567,8 @@ class _NotificationButtonState extends State<_NotificationButton>
 // User Avatar with status ring
 // ─────────────────────────────────────────────────────────
 class _UserAvatar extends StatefulWidget {
-  const _UserAvatar();
+  final Color accentColor;
+  const _UserAvatar({required this.accentColor});
 
   @override
   State<_UserAvatar> createState() => _UserAvatarState();
@@ -553,19 +605,18 @@ class _UserAvatarState extends State<_UserAvatar> {
                         end: Alignment.bottomRight,
                         colors: _isHovered
                             ? [
-                                Color(AppColors.secondaryContainer),
-                                Color(AppColors.primary),
+                                widget.accentColor,
+                                widget.accentColor.withValues(alpha: 0.7),
                               ]
                             : [
-                                Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
-                                Color(AppColors.primary).withValues(alpha: 0.2),
+                                widget.accentColor.withValues(alpha: 0.4),
+                                widget.accentColor.withValues(alpha: 0.2),
                               ],
                       ),
                       boxShadow: _isHovered
                           ? [
                               BoxShadow(
-                                color:
-                                    Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
+                                color: widget.accentColor.withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 spreadRadius: 0,
                               ),
@@ -587,7 +638,7 @@ class _UserAvatarState extends State<_UserAvatar> {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(AppColors.secondaryContainer),
+                                    color: widget.accentColor,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -618,7 +669,7 @@ class _UserAvatarState extends State<_UserAvatar> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
-                                                color: Color(AppColors.secondaryContainer),
+                                                color: widget.accentColor,
                                                 letterSpacing: 0.5,
                                               ),
                                             ),

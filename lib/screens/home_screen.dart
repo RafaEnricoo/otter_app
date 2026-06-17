@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../models/notification_model.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/notification_service.dart';
 import '../services/system_settings_service.dart';
 import '../services/climate_history_service.dart';
@@ -22,7 +22,7 @@ class HomeScreen extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
+      valueListenable: SmartHomeService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
           return Center(
@@ -125,87 +125,101 @@ class HomeScreen extends StatelessWidget {
                           return Icons.trending_up_rounded;
                         }
 
-                        return Column(
-                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _SensorCard(
-                                    icon: Icons.device_thermostat_rounded,
-                                    trend: getTempIcon(sensor.kamarSuhu),
-                                    value: '',
-                                    valueWidget: AnimatedTempText(
-                                      celsiusValue: sensor.kamarSuhu,
-                                      isCelsius: isCelsius,
-                                      style: const TextStyle(
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(AppColors.onSurface),
-                                        letterSpacing: -1.0,
-                                        height: 1.0,
-                                      ),
-                                    ),
-                                    label: 'Suhu Kamar',
-                                    trendLabel: getTempLabel(sensor.kamarSuhu),
-                                    trendColor: getTempColorStatus(sensor.kamarSuhu),
-                                    accentColor: getTempColor(sensor.kamarSuhu),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.gutter),
-                                Expanded(
-                                  child: _SensorCard(
-                                    icon: Icons.water_drop_rounded,
-                                    trend: getHumidityIcon(sensor.kamarKelembapan),
-                                    value: '${sensor.kamarKelembapan.toInt()}%',
-                                    label: 'Kelembapan Kamar',
-                                    trendLabel: getHumidityLabel(sensor.kamarKelembapan),
-                                    trendColor: getHumidityColorStatus(sensor.kamarKelembapan),
-                                    accentColor: const Color(0xFF4FC3F7),
-                                  ),
-                                ),
-                              ],
+                        final kamarSuhuCard = _SensorCard(
+                          icon: Icons.device_thermostat_rounded,
+                          trend: getTempIcon(sensor.kamarSuhu),
+                          value: '',
+                          valueWidget: AnimatedTempText(
+                            celsiusValue: sensor.kamarSuhu,
+                            isCelsius: isCelsius,
+                            style: const TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w800,
+                              color: Color(AppColors.onSurface),
+                              letterSpacing: -1.0,
+                              height: 1.0,
                             ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _SensorCard(
-                                    icon: Icons.device_thermostat_rounded,
-                                    trend: getTempIcon(sensor.dapurSuhu),
-                                    value: '',
-                                    valueWidget: AnimatedTempText(
-                                      celsiusValue: sensor.dapurSuhu,
-                                      isCelsius: isCelsius,
-                                      style: const TextStyle(
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(AppColors.onSurface),
-                                        letterSpacing: -1.0,
-                                        height: 1.0,
-                                      ),
-                                    ),
-                                    label: 'Suhu Dapur',
-                                    trendLabel: getTempLabel(sensor.dapurSuhu),
-                                    trendColor: getTempColorStatus(sensor.dapurSuhu),
-                                    accentColor: getTempColor(sensor.dapurSuhu),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.gutter),
-                                Expanded(
-                                  child: _SensorCard(
-                                    icon: Icons.water_drop_rounded,
-                                    trend: getHumidityIcon(sensor.dapurKelembapan),
-                                    value: '${sensor.dapurKelembapan.toInt()}%',
-                                    label: 'Kelembapan Dapur',
-                                    trendLabel: getHumidityLabel(sensor.dapurKelembapan),
-                                    trendColor: getHumidityColorStatus(sensor.dapurKelembapan),
-                                    accentColor: const Color(0xFF9FA8DA),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                          ),
+                          label: 'Suhu Kamar',
+                          trendLabel: getTempLabel(sensor.kamarSuhu),
+                          trendColor: getTempColorStatus(sensor.kamarSuhu),
+                          accentColor: getTempColor(sensor.kamarSuhu),
                         );
+
+                        final kamarKelembapanCard = _SensorCard(
+                          icon: Icons.water_drop_rounded,
+                          trend: getHumidityIcon(sensor.kamarKelembapan),
+                          value: '${sensor.kamarKelembapan.toInt()}%',
+                          label: 'Kelembapan Kamar',
+                          trendLabel: getHumidityLabel(sensor.kamarKelembapan),
+                          trendColor: getHumidityColorStatus(sensor.kamarKelembapan),
+                          accentColor: const Color(0xFF4FC3F7),
+                        );
+
+                        final dapurSuhuCard = _SensorCard(
+                          icon: Icons.device_thermostat_rounded,
+                          trend: getTempIcon(sensor.dapurSuhu),
+                          value: '',
+                          valueWidget: AnimatedTempText(
+                            celsiusValue: sensor.dapurSuhu,
+                            isCelsius: isCelsius,
+                            style: const TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w800,
+                              color: Color(AppColors.onSurface),
+                              letterSpacing: -1.0,
+                              height: 1.0,
+                            ),
+                          ),
+                          label: 'Suhu Dapur',
+                          trendLabel: getTempLabel(sensor.dapurSuhu),
+                          trendColor: getTempColorStatus(sensor.dapurSuhu),
+                          accentColor: getTempColor(sensor.dapurSuhu),
+                        );
+
+                        final dapurKelembapanCard = _SensorCard(
+                          icon: Icons.water_drop_rounded,
+                          trend: getHumidityIcon(sensor.dapurKelembapan),
+                          value: '${sensor.dapurKelembapan.toInt()}%',
+                          label: 'Kelembapan Dapur',
+                          trendLabel: getHumidityLabel(sensor.dapurKelembapan),
+                          trendColor: getHumidityColorStatus(sensor.dapurKelembapan),
+                          accentColor: const Color(0xFF9FA8DA),
+                        );
+
+                        if (!isMobile) {
+                          return Row(
+                            children: [
+                              Expanded(child: kamarSuhuCard),
+                              const SizedBox(width: AppSpacing.gutter),
+                              Expanded(child: kamarKelembapanCard),
+                              const SizedBox(width: AppSpacing.gutter),
+                              Expanded(child: dapurSuhuCard),
+                              const SizedBox(width: AppSpacing.gutter),
+                              Expanded(child: dapurKelembapanCard),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(child: kamarSuhuCard),
+                                  const SizedBox(width: AppSpacing.gutter),
+                                  Expanded(child: kamarKelembapanCard),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(child: dapurSuhuCard),
+                                  const SizedBox(width: AppSpacing.gutter),
+                                  Expanded(child: dapurKelembapanCard),
+                                ],
+                              ),
+                            ],
+                          );
+                        }
                       },
                     ),
 
@@ -239,7 +253,7 @@ class HomeScreen extends StatelessWidget {
                             accentColor: const Color(0xFFFFD54F),
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
-                              FirebaseService().updatePerangkat('lampu_tamu', !perangkat.lampuTamu);
+                              SmartHomeService().updatePerangkat('lampu_tamu', !perangkat.lampuTamu);
                             },
                           ),
                           const SizedBox(width: 12),
@@ -252,7 +266,7 @@ class HomeScreen extends StatelessWidget {
                             badgeText: perangkat.kunciPintuRfid ? 'Aman' : 'Terbuka',
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
-                              FirebaseService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
+                              SmartHomeService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
                             },
                           ),
                           const SizedBox(width: 12),
@@ -266,7 +280,7 @@ class HomeScreen extends StatelessWidget {
                             accentColor: const Color(0xFF81C784),
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
-                              FirebaseService().updatePerangkat('kipas_kamar', !perangkat.kipasKamar);
+                              SmartHomeService().updatePerangkat('kipas_kamar', !perangkat.kipasKamar);
                             },
                           ),
                           const SizedBox(width: 12),
@@ -278,7 +292,7 @@ class HomeScreen extends StatelessWidget {
                             accentColor: const Color(0xFFFFB74D),
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
-                              FirebaseService().updatePerangkat('lampu_dapur', !perangkat.lampuDapur);
+                              SmartHomeService().updatePerangkat('lampu_dapur', !perangkat.lampuDapur);
                             },
                           ),
                         ],
@@ -717,8 +731,11 @@ class _SensorCardState extends State<_SensorCard>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVerySmall = screenWidth < 360;
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(isVerySmall ? 12 : 18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         color: Colors.white.withValues(alpha: 0.04),
@@ -735,53 +752,60 @@ class _SensorCardState extends State<_SensorCard>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: isVerySmall ? 32 : 40,
+                height: isVerySmall ? 32 : 40,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                   color: widget.accentColor.withValues(alpha: 0.12),
                 ),
                 child: Center(
                   child: Icon(
                     widget.icon,
                     color: widget.accentColor,
-                    size: 20,
+                    size: isVerySmall ? 16 : 20,
                   ),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: widget.trendColor.withValues(alpha: 0.1),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(widget.trend, color: widget.trendColor, size: 12),
-                    const SizedBox(width: 3),
-                    Text(
-                      widget.trendLabel,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: widget.trendColor,
+              const SizedBox(width: 4),
+              Flexible(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isVerySmall ? 6 : 8,
+                    vertical: isVerySmall ? 3 : 4,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: widget.trendColor.withValues(alpha: 0.1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(widget.trend, color: widget.trendColor, size: isVerySmall ? 10 : 12),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          widget.trendLabel,
+                          style: TextStyle(
+                            fontSize: isVerySmall ? 9 : 10,
+                            fontWeight: FontWeight.w600,
+                            color: widget.trendColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: isVerySmall ? 12 : 18),
           // Value
           widget.valueWidget ?? Text(
             widget.value,
             style: TextStyle(
-              fontSize: 30,
+              fontSize: isVerySmall ? 24 : 30,
               fontWeight: FontWeight.w800,
               color: Color(AppColors.onSurface),
               letterSpacing: -1.0,
@@ -793,7 +817,7 @@ class _SensorCardState extends State<_SensorCard>
           Text(
             widget.label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: isVerySmall ? 11 : 12,
               fontWeight: FontWeight.w500,
               color: Color(AppColors.onSurfaceVariant),
             ),
@@ -1049,14 +1073,18 @@ class _DeviceCardState extends State<_DeviceCard> {
                           ),
                         ),
                       ] else
-                        Text(
-                          widget.subtitle,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: widget.isActive
-                                ? widget.accentColor.withValues(alpha: 0.8)
-                                : Color(AppColors.onSurfaceVariant),
+                        Flexible(
+                          child: Text(
+                            widget.subtitle,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: widget.isActive
+                                  ? widget.accentColor.withValues(alpha: 0.8)
+                                  : Color(AppColors.onSurfaceVariant),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                     ],

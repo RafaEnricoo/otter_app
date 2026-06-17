@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 
 class QuickStatusBanner extends StatelessWidget {
   final bool alwaysShow;
@@ -14,7 +14,7 @@ class QuickStatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
+      valueListenable: SmartHomeService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) return const SizedBox.shrink();
 

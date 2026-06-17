@@ -2,17 +2,17 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:firebase_database/firebase_database.dart';
+import 'package:http/http.dart' as http;
+import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../models/notification_model.dart';
 import 'notification_service.dart';
 
-class FirebaseService {
-  static final FirebaseService _instance = FirebaseService._internal();
-  factory FirebaseService() => _instance;
-  FirebaseService._internal();
+class SmartHomeService {
+  static final SmartHomeService _instance = SmartHomeService._internal();
+  factory SmartHomeService() => _instance;
+  SmartHomeService._internal();
 
-  final _dbRef = FirebaseDatabase.instance.ref('otter_smarthome');
   final ValueNotifier<SmarthomeState?> stateNotifier = ValueNotifier<SmarthomeState?>(null);
   
   bool _isInitialized = false;
@@ -22,79 +22,65 @@ class FirebaseService {
   bool get isUsingFallback => _isUsingFallback;
   
   SmarthomeState? _localState;
-  StreamSubscription? _subscription;
+  Timer? _pollingTimer;
   int _lastSmokeValue = 0;
   bool _lastPirValue = false;
   Timer? _flameBlinkerTimer;
   Timer? _settingsNotificationTimer;
   Map<String, dynamic> _localRfidCards = {};
   final _rfidStreamController = StreamController<Map<String, dynamic>>.broadcast();
+  Timer? _rfidPollingTimer;
   final Set<String> _notifiedPendingUids = {};
 
   Future<void> init() async {
     if (_isInitialized) return;
     
     try {
-      // Test Firebase database connection
-      final snapshot = await _dbRef.get().timeout(const Duration(seconds: 4));
+      // Test REST API connection
+      final response = await http.get(Uri.parse('${AppConfig.apiBaseUrl}/status')).timeout(const Duration(seconds: 4));
       
-      if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
         _localState = SmarthomeState.fromMap(data);
         stateNotifier.value = _localState;
+        _isUsingFallback = false;
       } else {
-        // Database is empty, seed it with firebase.json
-        await _seedDatabase();
+        await _setupLocalFallback();
       }
 
-      // Start listening to live changes
-      _subscription = _dbRef.onValue.listen((event) {
-        if (event.snapshot.value != null) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>;
-          
-          final perangkatData = data['perangkat'] as Map?;
-          final newLockState = perangkatData?['kunci_pintu_rfid'] as bool?;
-          final oldLockState = _localState?.perangkat.kunciPintuRfid;
+      // Start periodic status polling (every 2 seconds)
+      _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+        if (_isUsingFallback) return;
+        try {
+          final res = await http.get(Uri.parse('${AppConfig.apiBaseUrl}/status')).timeout(const Duration(seconds: 2));
+          if (res.statusCode == 200) {
+            final Map<String, dynamic> data = jsonDecode(res.body);
+            
+            final oldLockState = _localState?.perangkat.kunciPintuRfid;
+            final newLockState = data['perangkat']?['kunci_pintu_rfid'] as bool?;
 
-          _localState = SmarthomeState.fromMap(data);
-          stateNotifier.value = _localState;
+            _localState = SmarthomeState.fromMap(data);
+            stateNotifier.value = _localState;
 
-          if (oldLockState != null && newLockState != null && oldLockState != newLockState) {
-            NotificationService().addNotification(
-              title: newLockState == true ? 'RFID Pintu Terkunci' : 'RFID Pintu Terbuka',
-              message: 'Pintu utama berhasil ${newLockState == true ? 'dikunci secara aman' : 'dibuka menggunakan akses RFID/Biometrik'}.',
-              category: NotificationCategory.security,
-              priority: newLockState == true ? NotificationPriority.info : NotificationPriority.warning,
-            );
+            if (oldLockState != null && newLockState != null && oldLockState != newLockState) {
+              NotificationService().addNotification(
+                title: newLockState == true ? 'RFID Pintu Terkunci' : 'RFID Pintu Terbuka',
+                message: 'Pintu utama berhasil ${newLockState == true ? 'dikunci secara aman' : 'dibuka menggunakan akses RFID/Biometrik'}.',
+                category: NotificationCategory.security,
+                priority: newLockState == true ? NotificationPriority.info : NotificationPriority.warning,
+              );
+            }
+
+            _runAutomationRulesIfNeeded();
           }
-
-          _runAutomationRulesIfNeeded();
-          _checkPendingRfidNotifications(data);
+        } catch (e) {
+          print("Status polling error: $e");
         }
-      }, onError: (err) {
-        print("Firebase stream error, falling back to local simulation: $err");
-        _setupLocalFallback();
       });
 
       _isInitialized = true;
-      _isUsingFallback = false;
     } catch (e) {
-      print("Firebase initialization failed, using local JSON fallback: $e");
-      await _setupLocalFallback();
-    }
-  }
-
-  Future<void> _seedDatabase() async {
-    try {
-      final jsonString = await rootBundle.loadString('lib/assets/firebase.json');
-      final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
-      final rawData = jsonMap['otter_smarthome'] as Map<String, dynamic>;
-      
-      await _dbRef.set(rawData);
-      _localState = SmarthomeState.fromMap(rawData);
-      stateNotifier.value = _localState;
-    } catch (e) {
-      print("Seeding database failed: $e");
+      print("API Server connection failed, using local JSON fallback: $e");
       await _setupLocalFallback();
     }
   }
@@ -110,9 +96,16 @@ class FirebaseService {
         stateNotifier.value = _localState;
         _runAutomationRulesIfNeeded();
       } else {
-        await _dbRef.set(rawData);
-        _localState = SmarthomeState.fromMap(rawData);
-        stateNotifier.value = _localState;
+        await http.put(
+          Uri.parse('${AppConfig.apiBaseUrl}/perangkat'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(rawData['perangkat']),
+        );
+        await http.put(
+          Uri.parse('${AppConfig.apiBaseUrl}/otomatisasi'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(rawData['otomatisasi']),
+        );
       }
     } catch (e) {
       print("Reset database failed: $e");
@@ -134,7 +127,6 @@ class FirebaseService {
       _runAutomationRulesIfNeeded();
     } catch (e) {
       print("Local JSON load failed, using hardcoded state: $e");
-      // Hardcoded fallback matching firebase.json
       _localState = SmarthomeState(
         sensor: SmarthomeSensor(
           cahayaAtap: 80,
@@ -182,7 +174,7 @@ class FirebaseService {
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } else {
-      await _dbRef.child('sensor/$key').set(value);
+      print("Sensors are updated via MQTT: $key -> $value");
     }
   }
 
@@ -192,7 +184,6 @@ class FirebaseService {
     final currentVal = _localState!.perangkat.toMap()[key];
     if (currentVal == value) return; // No change, don't log duplication
 
-    // Log the change event to Notification Service
     String? title;
     String? message;
     NotificationCategory category = NotificationCategory.system;
@@ -224,12 +215,10 @@ class FirebaseService {
       category = NotificationCategory.security;
       priority = value == true ? NotificationPriority.critical : NotificationPriority.info;
     } else if (key == 'kunci_pintu_rfid') {
-      if (_isUsingFallback) {
-        title = value == true ? 'RFID Pintu Terkunci' : 'RFID Pintu Terbuka';
-        message = 'Pintu utama berhasil ${value == true ? 'dikunci secara aman' : 'dibuka menggunakan akses RFID/Biometrik'}.';
-        category = NotificationCategory.security;
-        priority = value == true ? NotificationPriority.info : NotificationPriority.warning;
-      }
+      title = value == true ? 'RFID Pintu Terkunci' : 'RFID Pintu Terbuka';
+      message = 'Pintu utama berhasil ${value == true ? 'dikunci secara aman' : 'dibuka menggunakan akses RFID/Biometrik'}.';
+      category = NotificationCategory.security;
+      priority = value == true ? NotificationPriority.info : NotificationPriority.warning;
     } else if (key == 'kecepatan_kipas') {
       title = 'Kecepatan Kipas Diubah';
       message = 'Kecepatan kipas kamar tidur disetel ke tingkat ${value == 255 ? '3 (Maksimal)' : value == 170 ? '2 (Sedang)' : '1 (Rendah)'}.';
@@ -271,23 +260,36 @@ class FirebaseService {
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } else {
-      final Map<String, dynamic> updates = {
-        'perangkat/$key': value,
-      };
-      if (autoLampuKeyToDisable != null) {
-        updates['otomatisasi/$autoLampuKeyToDisable'] = false;
+      final updatedPerangkat = _localState!.perangkat.toMap();
+      updatedPerangkat[key] = value;
+
+      try {
+        await http.put(
+          Uri.parse('${AppConfig.apiBaseUrl}/perangkat'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(updatedPerangkat),
+        );
+
+        if (autoLampuKeyToDisable != null || disableAutoKipas) {
+          final updatedOto = _localState!.otomatisasi.toMap();
+          if (autoLampuKeyToDisable != null) updatedOto[autoLampuKeyToDisable] = false;
+          if (disableAutoKipas) updatedOto['mode_auto_kipas'] = false;
+
+          await http.put(
+            Uri.parse('${AppConfig.apiBaseUrl}/otomatisasi'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(updatedOto),
+          );
+        }
+      } catch (e) {
+        print("Gagal update perangkat di server: $e");
       }
-      if (disableAutoKipas) {
-        updates['otomatisasi/mode_auto_kipas'] = false;
-      }
-      await _dbRef.update(updates);
     }
   }
 
   Future<void> disarmAllAlarms() async {
     if (_localState == null) return;
 
-    // Cancel blinker timer
     _flameBlinkerTimer?.cancel();
     _flameBlinkerTimer = null;
 
@@ -313,13 +315,19 @@ class FirebaseService {
       );
       stateNotifier.value = _localState;
     } else {
-      final Map<String, dynamic> updates = {
-        'perangkat/buzzer_alrm': false,
-        'perangkat/led_merah_dapur': false,
-        'sensor/tamu_gerak': false,
-        'sensor/dapur_flame': 0,
-      };
-      await _dbRef.update(updates);
+      try {
+        final updatedPerangkat = _localState!.perangkat.toMap();
+        updatedPerangkat['buzzer_alrm'] = false;
+        updatedPerangkat['led_merah_dapur'] = false;
+
+        await http.put(
+          Uri.parse('${AppConfig.apiBaseUrl}/perangkat'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(updatedPerangkat),
+        );
+      } catch (e) {
+        print("Gagal disarm perangkat di server: $e");
+      }
     }
   }
 
@@ -329,7 +337,6 @@ class FirebaseService {
     final currentVal = _localState!.otomatisasi.toMap()[key];
     if (currentVal == value) return; // No change, don't log duplication
 
-    // Log update otomatisasi
     String? title;
     String? message;
     if (key == 'mode_auto_lampu') {
@@ -377,7 +384,18 @@ class FirebaseService {
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } else {
-      await _dbRef.child('otomatisasi/$key').set(value);
+      final updatedOto = _localState!.otomatisasi.toMap();
+      updatedOto[key] = value;
+
+      try {
+        await http.put(
+          Uri.parse('${AppConfig.apiBaseUrl}/otomatisasi'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(updatedOto),
+        );
+      } catch (e) {
+        print("Gagal update otomatisasi di server: $e");
+      }
     }
   }
 
@@ -389,11 +407,26 @@ class FirebaseService {
       });
       return _rfidStreamController.stream;
     } else {
-      return _dbRef.child('rfid_terdaftar').onValue.map((event) {
-        if (event.snapshot.value == null) return {};
-        final Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
-        return Map<String, dynamic>.from(data);
+      _rfidPollingTimer?.cancel();
+      _rfidPollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+        try {
+          final res = await http.get(Uri.parse('${AppConfig.apiBaseUrl}/rfid')).timeout(const Duration(seconds: 2));
+          if (res.statusCode == 200) {
+            final List<dynamic> list = jsonDecode(res.body);
+            final Map<String, dynamic> rfidMap = {};
+            for (var card in list) {
+              rfidMap[card['uid']] = {
+                'nama_pemilik': card['nama_pemilik'],
+                'status': card['status'],
+              };
+            }
+            _rfidStreamController.add(rfidMap);
+          }
+        } catch (e) {
+          print("Rfid stream polling error: $e");
+        }
       });
+      return _rfidStreamController.stream;
     }
   }
 
@@ -408,10 +441,18 @@ class FirebaseService {
       };
       _rfidStreamController.add(_localRfidCards);
     } else {
-      await _dbRef.child('rfid_terdaftar/$uidClean').set({
-        'nama_pemilik': namaPemilik.trim(),
-        'status': 'aktif',
-      });
+      try {
+        await http.post(
+          Uri.parse('${AppConfig.apiBaseUrl}/rfid'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'uid': uidClean,
+            'nama_pemilik': namaPemilik.trim(),
+          }),
+        );
+      } catch (e) {
+        print("Gagal add RFID card ke server: $e");
+      }
     }
     
     NotificationService().addNotification(
@@ -434,12 +475,11 @@ class FirebaseService {
         _rfidStreamController.add(_localRfidCards);
       }
     } else {
-      final snapshot = await _dbRef.child('rfid_terdaftar/$uidClean').get();
-      if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
-        namaPemilik = data['nama_pemilik'] ?? 'Kartu RFID';
+      try {
+        await http.delete(Uri.parse('${AppConfig.apiBaseUrl}/rfid/$uidClean'));
+      } catch (e) {
+        print("Gagal hapus RFID card dari server: $e");
       }
-      await _dbRef.child('rfid_terdaftar/$uidClean').remove();
     }
 
     NotificationService().addNotification(
@@ -460,7 +500,15 @@ class FirebaseService {
         _rfidStreamController.add(_localRfidCards);
       }
     } else {
-      await _dbRef.child('rfid_terdaftar/$uidClean/status').set(status);
+      try {
+        await http.put(
+          Uri.parse('${AppConfig.apiBaseUrl}/rfid/$uidClean/status'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'status': status}),
+        );
+      } catch (e) {
+        print("Gagal update status RFID di server: $e");
+      }
     }
   }
 
@@ -476,10 +524,15 @@ class FirebaseService {
         _rfidStreamController.add(_localRfidCards);
       }
     } else {
-      await _dbRef.child('rfid_terdaftar/$uidClean').update({
-        'nama_pemilik': cleanName,
-        'status': 'aktif',
-      });
+      try {
+        await http.put(
+          Uri.parse('${AppConfig.apiBaseUrl}/rfid/$uidClean/approve'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'nama_pemilik': cleanName}),
+        );
+      } catch (e) {
+        print("Gagal approve RFID di server: $e");
+      }
     }
 
     NotificationService().addNotification(
@@ -490,7 +543,6 @@ class FirebaseService {
     );
   }
 
-  // Automation logic
   void _runAutomationRulesIfNeeded() {
     if (_localState == null) return;
     
@@ -508,7 +560,6 @@ class FirebaseService {
     bool newLedMerahDapur = state.perangkat.ledMerahDapur;
     bool newBuzzerAlrm = state.perangkat.buzzerAlrm;
 
-    // 1. Auto Light Mode (mode_auto_lampu - Master Switch)
     if (state.otomatisasi.modeAutoLampu) {
       final isDark = state.sensor.cahayaAtap < state.otomatisasi.batasGelapLampu;
       
@@ -530,18 +581,16 @@ class FirebaseService {
       }
     }
 
-    // 2. Auto Fan Mode (mode_auto_kipas)
     if (state.otomatisasi.modeAutoKipas) {
       if (state.sensor.kamarSuhu >= state.otomatisasi.batasPanasKamar) {
         newKipasKamar = true;
-        // Scale fan speed based on how hot it is
         final diff = state.sensor.kamarSuhu - state.otomatisasi.batasPanasKamar;
         if (diff > 4.0) {
-          newKecepatanKipas = 255; // high
+          newKecepatanKipas = 255;
         } else if (diff > 2.0) {
-          newKecepatanKipas = 170; // medium
+          newKecepatanKipas = 170;
         } else {
-          newKecepatanKipas = 85; // low
+          newKecepatanKipas = 85;
         }
       } else {
         newKipasKamar = false;
@@ -552,8 +601,6 @@ class FirebaseService {
       }
     }
 
-    // 3. Flame/Fire Alarm (dapur_flame)
-    // If fire is detected, turn on Kitchen Buzzer, send notification, and blink Red LED!
     if (state.sensor.dapurFlame > 0) {
       if (_lastSmokeValue == 0) {
         NotificationService().addNotification(
@@ -567,7 +614,6 @@ class FirebaseService {
         newBuzzerAlrm = true;
         changed = true;
       }
-      // Start blinking timer for the kitchen red LED if not already active
       if (_flameBlinkerTimer == null || !_flameBlinkerTimer!.isActive) {
         _flameBlinkerTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
           if (_localState != null && _localState!.sensor.dapurFlame > 0) {
@@ -580,7 +626,6 @@ class FirebaseService {
         });
       }
     } else {
-      // Clear warning LED only if flame has just transitioned from detected to cleared
       if (state.sensor.dapurFlame == 0 && _lastSmokeValue > 0) {
         newLedMerahDapur = false;
         changed = true;
@@ -590,8 +635,6 @@ class FirebaseService {
     }
     _lastSmokeValue = state.sensor.dapurFlame;
 
-    // 4. PIR Sensor Motion Alarm (tamu_gerak)
-    // If motion is detected, trigger notification and buzzer alarm
     if (state.sensor.tamuGerak) {
       if (!_lastPirValue) {
         NotificationService().addNotification(
@@ -621,51 +664,18 @@ class FirebaseService {
       stateNotifier.value = _localState;
 
       if (!_isUsingFallback) {
-        // Write the updated automatic states back to Firebase
-        _dbRef.child('perangkat').update({
-          'lampu_tamu': newLampuTamu,
-          'lampu_kamar': newLampuKamar,
-          'lampu_dapur': newLampuDapur,
-          'lampu_kamar_mandi': newLampuKamarMandi,
-          'kipas_kamar': newKipasKamar,
-          'kecepatan_kipas': newKecepatanKipas,
-          'buzzer_alrm': newBuzzerAlrm,
-          'led_merah_dapur': newLedMerahDapur,
-        });
+        http.put(
+          Uri.parse('${AppConfig.apiBaseUrl}/perangkat'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(updatedPerangkat),
+        );
       }
     }
   }
 
-  void _checkPendingRfidNotifications(Map<dynamic, dynamic> data) {
-    final rfidMap = data['rfid_terdaftar'] as Map?;
-    if (rfidMap == null) return;
-
-    rfidMap.forEach((key, value) {
-      final cardData = value as Map?;
-      if (cardData == null) return;
-
-      final uid = key.toString();
-      final status = cardData['status']?.toString() ?? '';
-
-      if (status == 'menunggu') {
-        if (!_notifiedPendingUids.contains(uid)) {
-          _notifiedPendingUids.add(uid);
-          
-          NotificationService().addNotification(
-            title: 'Pendaftaran RFID Fisik',
-            message: 'Kartu RFID baru ($uid) mendeteksi akses ketukan dan menunggu persetujuan Anda.',
-            category: NotificationCategory.security,
-            priority: NotificationPriority.warning,
-          );
-        }
-      } else {
-        _notifiedPendingUids.remove(uid);
-      }
-    });
-  }
-
   void dispose() {
-    _subscription?.cancel();
+    _pollingTimer?.cancel();
+    _rfidPollingTimer?.cancel();
     _flameBlinkerTimer?.cancel();
   }
 }

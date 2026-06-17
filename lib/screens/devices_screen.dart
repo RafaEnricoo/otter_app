@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/system_settings_service.dart';
 import '../widgets/quick_status_banner.dart';
 import '../widgets/animated_temp_text.dart';
@@ -19,13 +19,32 @@ class _DevicesScreenState extends State<DevicesScreen> {
   int? _draggedBatasGelapLampu;
   double? _draggedBatasPanasKamar;
 
+  String _getTempInfo(double value) {
+    if (value <= 22.0) return 'Kondisi Dingin';
+    if (value <= 27.0) return 'Kondisi Optimal';
+    if (value <= 30.0) return 'Kondisi Hangat';
+    return 'Kondisi Panas';
+  }
+
+  String _getHumidityInfo(double value) {
+    if (value < 40) return 'Kondisi Kering';
+    if (value <= 60) return 'Kondisi Optimal';
+    return 'Kondisi Lembap';
+  }
+
+  Color _getHumidityColor(double value) {
+    if (value < 40) return const Color(0xFFFFB74D); // Orange
+    if (value <= 60) return const Color(0xFF81C784); // Green
+    return const Color(0xFF4FC3F7); // Blue
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 768;
 
     return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
+      valueListenable: SmartHomeService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
           return Center(
@@ -102,10 +121,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isAuto: otomatisasi.autoLampuTamu,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_tamu', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_tamu', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('lampu_tamu', val);
+                        SmartHomeService().updatePerangkat('lampu_tamu', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
@@ -133,7 +152,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isOn: perangkat.buzzerAlrm,
                       icon: Icons.campaign_rounded,
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('buzzer_alrm', val);
+                        SmartHomeService().updatePerangkat('buzzer_alrm', val);
                       },
                       activeColor: const Color(0xFFFF4963),
                     ),
@@ -154,10 +173,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isAuto: otomatisasi.autoLampuKamar,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_kamar', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_kamar', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('lampu_kamar', val);
+                        SmartHomeService().updatePerangkat('lampu_kamar', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
@@ -172,12 +191,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       speed: fanSpeedLevel,
                       isAuto: otomatisasi.modeAutoKipas,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('mode_auto_kipas', val);
+                        SmartHomeService().updateOtomatisasi('mode_auto_kipas', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('kipas_kamar', val);
+                        SmartHomeService().updatePerangkat('kipas_kamar', val);
                         if (val && fanSpeedLevel == 0) {
-                          FirebaseService().updatePerangkat('kecepatan_kipas', 255);
+                          SmartHomeService().updatePerangkat('kecepatan_kipas', 255);
                         }
                       },
                       onSpeedChanged: (val) {
@@ -185,8 +204,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         if (val == 1.0) mappedSpeed = 85;
                         if (val == 2.0) mappedSpeed = 170;
                         if (val == 3.0) mappedSpeed = 255;
-                        FirebaseService().updatePerangkat('kecepatan_kipas', mappedSpeed);
-                        FirebaseService().updatePerangkat('kipas_kamar', val > 0);
+                        SmartHomeService().updatePerangkat('kecepatan_kipas', mappedSpeed);
+                        SmartHomeService().updatePerangkat('kipas_kamar', val > 0);
                       },
                       isFullWidth: true,
                       activeColor: const Color(0xFF81C784),
@@ -219,7 +238,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                             currentTemp: sensor.kamarSuhu,
                             currentHumid: sensor.kamarKelembapan,
                           ),
-                          infoText: otomatisasi.modeAutoKipas ? 'Otomatisasi Kipas Aktif' : 'Kontrol iklim manual',
+                          infoText: _getTempInfo(sensor.kamarSuhu),
                           isActive: true,
                           activeColor: getTempColor(sensor.kamarSuhu),
                         );
@@ -239,9 +258,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         currentTemp: sensor.kamarSuhu,
                         currentHumid: sensor.kamarKelembapan,
                       ),
-                      infoText: 'Kelembapan optimal 40-60%',
+                      infoText: _getHumidityInfo(sensor.kamarKelembapan),
                       isActive: true,
-                      activeColor: const Color(0xFF4FC3F7),
+                      activeColor: _getHumidityColor(sensor.kamarKelembapan),
                     ),
                   ],
                 ),
@@ -260,10 +279,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isAuto: otomatisasi.autoLampuDapur,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_dapur', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_dapur', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('lampu_dapur', val);
+                        SmartHomeService().updatePerangkat('lampu_dapur', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
@@ -292,7 +311,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isOn: perangkat.ledMerahDapur,
                       icon: Icons.circle_notifications_rounded,
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('led_merah_dapur', val);
+                        SmartHomeService().updatePerangkat('led_merah_dapur', val);
                       },
                       activeColor: Colors.redAccent,
                     ),
@@ -324,7 +343,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                             currentTemp: sensor.dapurSuhu,
                             currentHumid: sensor.dapurKelembapan,
                           ),
-                          infoText: 'Sensor dalam ruangan dapur',
+                          infoText: _getTempInfo(sensor.dapurSuhu),
                           isActive: true,
                           activeColor: getTempColor(sensor.dapurSuhu),
                         );
@@ -344,9 +363,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         currentTemp: sensor.dapurSuhu,
                         currentHumid: sensor.dapurKelembapan,
                       ),
-                      infoText: 'Kelembapan optimal 40-60%',
+                      infoText: _getHumidityInfo(sensor.dapurKelembapan),
                       isActive: true,
-                      activeColor: const Color(0xFF4FC3F7),
+                      activeColor: _getHumidityColor(sensor.dapurKelembapan),
                     ),
                   ],
                 ),
@@ -365,10 +384,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isAuto: otomatisasi.autoLampuKamarMandi,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('lampu_kamar_mandi', val);
+                        SmartHomeService().updatePerangkat('lampu_kamar_mandi', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
@@ -396,7 +415,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isActive: perangkat.kunciPintuRfid,
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        FirebaseService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
+                        SmartHomeService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
                       },
                     ),
 
@@ -558,7 +577,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   CustomToggleSwitch(
                     value: otomatisasi.modeAutoLampu,
                     onChanged: (val) {
-                      FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                      SmartHomeService().updateOtomatisasi('mode_auto_lampu', val);
                     },
                   ),
                 ],
@@ -570,19 +589,19 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   child: Column(
                     children: [
                       _buildSubAutoToggleRow('Auto Lampu Ruang Tamu', otomatisasi.autoLampuTamu, (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_tamu', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_tamu', val);
                       }),
                       const SizedBox(height: 8),
                       _buildSubAutoToggleRow('Auto Lampu Kamar Tidur', otomatisasi.autoLampuKamar, (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_kamar', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_kamar', val);
                       }),
                       const SizedBox(height: 8),
                       _buildSubAutoToggleRow('Auto Lampu Dapur', otomatisasi.autoLampuDapur, (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_dapur', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_dapur', val);
                       }),
                       const SizedBox(height: 8),
                       _buildSubAutoToggleRow('Auto Lampu Kamar Mandi', otomatisasi.autoLampuKamarMandi, (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', val);
                       }),
                     ],
                   ),
@@ -608,7 +627,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   });
                 },
                 onChangeEnd: (val) {
-                  FirebaseService().updateOtomatisasi('batas_gelap_lampu', val.toInt());
+                  SmartHomeService().updateOtomatisasi('batas_gelap_lampu', val.toInt());
                   setState(() {
                     _draggedBatasGelapLampu = null;
                   });
@@ -649,7 +668,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   CustomToggleSwitch(
                     value: otomatisasi.modeAutoKipas,
                     onChanged: (val) {
-                      FirebaseService().updateOtomatisasi('mode_auto_kipas', val);
+                      SmartHomeService().updateOtomatisasi('mode_auto_kipas', val);
                     },
                   ),
                 ],
@@ -663,7 +682,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 ],
               ),
               Slider(
-                value: _draggedBatasPanasKamar ?? otomatisasi.batasPanasKamar,
+                value: (_draggedBatasPanasKamar ?? otomatisasi.batasPanasKamar).clamp(15.0, 35.0),
                 min: 15.0,
                 max: 35.0,
                 activeColor: Color(AppColors.secondaryContainer),
@@ -674,7 +693,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   });
                 },
                 onChangeEnd: (val) {
-                  FirebaseService().updateOtomatisasi('batas_panas_kamar', val);
+                  SmartHomeService().updateOtomatisasi('batas_panas_kamar', val);
                   setState(() {
                     _draggedBatasPanasKamar = null;
                   });
@@ -744,7 +763,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       setSheetState(() => currentVal = val.toInt());
                     },
                     onChangeEnd: (val) {
-                      FirebaseService().updateSensor('cahaya_atap', val.toInt());
+                      SmartHomeService().updateSensor('cahaya_atap', val.toInt());
                     },
                   ),
                 ],
@@ -771,8 +790,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return _SimulationModalWrapper(
-              title: 'Simulasi $title',
-              description: 'Atur parameter suhu dan kelembapan untuk mensimulasikan perubahan iklim ruangan.',
+              title: 'Sensor DHT $title',
+              description: 'Atur parameter suhu dan kelembapan untuk mensimulasikan nilai pembacaan sensor DHT.',
               icon: Icons.thermostat_rounded,
               iconColor: getTempColor(currentTemp),
               child: Column(
@@ -781,25 +800,37 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Suhu Udara', style: TextStyle(color: Colors.white70)),
-                      ValueListenableBuilder<bool>(
-                        valueListenable: SystemSettingsService().tempScaleCelsius,
-                        builder: (context, isCelsius, _) {
-                          return AnimatedTempText(
-                            celsiusValue: currentTemp,
-                            isCelsius: isCelsius,
+                      Text('Suhu $title', style: const TextStyle(color: Colors.white70)),
+                      Row(
+                        children: [
+                          Text(
+                            '(${_getTempInfo(currentTemp)}) ',
                             style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(AppColors.secondaryContainer),
+                              fontSize: 12,
+                              color: getTempColor(currentTemp),
+                              fontWeight: FontWeight.w500,
                             ),
-                          );
-                        },
+                          ),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: SystemSettingsService().tempScaleCelsius,
+                            builder: (context, isCelsius, _) {
+                              return AnimatedTempText(
+                                celsiusValue: currentTemp,
+                                isCelsius: isCelsius,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(AppColors.secondaryContainer),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
                   Slider(
-                    value: currentTemp,
+                    value: currentTemp.clamp(15.0, 35.0),
                     min: 15.0,
                     max: 35.0,
                     activeColor: Color(AppColors.secondaryContainer),
@@ -808,19 +839,38 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       setSheetState(() => currentTemp = val);
                     },
                     onChangeEnd: (val) {
-                      FirebaseService().updateSensor(isBedroom ? 'kamar_suhu' : 'dapur_suhu', val);
+                      SmartHomeService().updateSensor(isBedroom ? 'kamar_suhu' : 'dapur_suhu', val);
                     },
                   ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Kelembapan Udara', style: TextStyle(color: Colors.white70)),
-                      Text('${currentHumid.toInt()}%', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer))),
+                      Text('Kelembapan $title', style: const TextStyle(color: Colors.white70)),
+                      Row(
+                        children: [
+                          Text(
+                            '(${_getHumidityInfo(currentHumid)}) ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _getHumidityColor(currentHumid),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            '${currentHumid.toInt()}%',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.secondaryContainer),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   Slider(
-                    value: currentHumid,
+                    value: currentHumid.clamp(0.0, 100.0),
                     min: 0.0,
                     max: 100.0,
                     activeColor: Color(AppColors.secondaryContainer),
@@ -829,7 +879,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       setSheetState(() => currentHumid = val);
                     },
                     onChangeEnd: (val) {
-                      FirebaseService().updateSensor(isBedroom ? 'kamar_kelembapan' : 'dapur_kelembapan', val);
+                      SmartHomeService().updateSensor(isBedroom ? 'kamar_kelembapan' : 'dapur_kelembapan', val);
                     },
                   ),
                 ],
@@ -886,7 +936,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     value: hasFlame,
                     onChanged: (val) {
                       setSheetState(() => hasFlame = val);
-                      FirebaseService().updateSensor('dapur_flame', val ? 1 : 0);
+                      SmartHomeService().updateSensor('dapur_flame', val ? 1 : 0);
                     },
                   ),
                 ],
@@ -939,7 +989,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     value: hasMotion,
                     onChanged: (val) {
                       setSheetState(() => hasMotion = val);
-                      FirebaseService().updateSensor('tamu_gerak', val);
+                      SmartHomeService().updateSensor('tamu_gerak', val);
                     },
                   ),
                 ],
@@ -968,6 +1018,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     bool isFullWidth = false,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final bool canControlManually = !isAuto;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
@@ -996,7 +1048,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 10 : 24),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1006,13 +1058,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     Expanded(
                       child: Text(
                         title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 15,
+                          fontSize: isVerySmall ? 13 : 15,
                           fontWeight: FontWeight.w600,
-                          color: Color(AppColors.onSurface),
+                          color: const Color(AppColors.onSurface),
                         ),
                       ),
                     ),
@@ -1032,9 +1084,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   isAuto
                       ? 'Otomatis (Sinkron Sensor)'
                       : isOn ? 'Aktif' : 'Mati',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 12,
+                    fontSize: isVerySmall ? 11 : 12,
                     fontWeight: FontWeight.w600,
                     color: isOn
                         ? actualActiveColor
@@ -1042,7 +1096,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ),
                 ),
                 if (hasSlider) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: isVerySmall ? 6 : 12),
                   SizedBox(
                     height: 20,
                     child: Slider(
@@ -1076,6 +1130,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     bool isActive = false,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return _DeviceGlassCard(
@@ -1092,7 +1148,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
               Icon(
                 icon,
                 color: isActive ? actualActiveColor : Color(AppColors.secondaryContainer),
-                size: 32,
+                size: isVerySmall ? 24 : 32,
                 shadows: [
                   Shadow(
                     color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.4),
@@ -1100,53 +1156,64 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   )
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(9999),
-                  color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.08),
-                  border: Border.all(
-                    color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.2),
-                    width: 1,
+              const SizedBox(width: 4),
+              Flexible(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 6 : 8, vertical: isVerySmall ? 3 : 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(9999),
+                    color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Text(
-                  badgeText,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isActive ? actualActiveColor : Color(AppColors.secondaryContainer),
+                  child: Text(
+                    badgeText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: isVerySmall ? 9 : 10,
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? actualActiveColor : Color(AppColors.secondaryContainer),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isVerySmall ? 10 : 24),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 14,
+                  fontSize: isVerySmall ? 12 : 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(AppColors.onSurface),
+                  color: const Color(AppColors.onSurface),
                 ),
               ),
               const SizedBox(height: 4),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  valueWidget ?? Text(
-                    value,
-                    style: TextStyle(
-                      fontFamily: 'Sora',
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isActive ? actualActiveColor : const Color(AppColors.onSurface),
-                      height: 1.0,
+                  Flexible(
+                    child: valueWidget ?? Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: isVerySmall ? 18 : 24,
+                        fontWeight: FontWeight.bold,
+                        color: isActive ? actualActiveColor : const Color(AppColors.onSurface),
+                        height: 1.0,
+                      ),
                     ),
                   ),
                   if (unit.isNotEmpty)
@@ -1156,7 +1223,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         unit,
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 13,
+                          fontSize: isVerySmall ? 11 : 13,
                           fontWeight: FontWeight.w600,
                           color: Color(AppColors.tertiary).withValues(alpha: 0.7),
                         ),
@@ -1167,9 +1234,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
               const SizedBox(height: 6),
               Text(
                 infoText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 11,
+                  fontSize: isVerySmall ? 9 : 11,
                   fontWeight: FontWeight.bold,
                   color: isActive ? actualActiveColor.withValues(alpha: 0.8) : Color(AppColors.tertiary).withValues(alpha: 0.55),
                 ),
@@ -1193,6 +1262,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     bool isFullWidth = false,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final bool canControlManually = !isAuto;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
@@ -1220,7 +1291,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 10 : 24),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1230,13 +1301,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     Expanded(
                       child: Text(
                         title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 15,
+                          fontSize: isVerySmall ? 13 : 15,
                           fontWeight: FontWeight.w600,
-                          color: Color(AppColors.onSurface),
+                          color: const Color(AppColors.onSurface),
                         ),
                       ),
                     ),
@@ -1256,16 +1327,18 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   isAuto
                       ? 'Otomatis (Sinkron Suhu)'
                       : isOn ? 'Kecepatan ${speed.toInt()}' : 'Mati',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 12,
+                    fontSize: isVerySmall ? 11 : 12,
                     fontWeight: FontWeight.w600,
                     color: isOn
                         ? actualActiveColor
                         : Color(AppColors.tertiary).withValues(alpha: 0.7),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: isVerySmall ? 6 : 12),
                 SizedBox(
                   height: 20,
                   child: Slider(
@@ -1298,6 +1371,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required VoidCallback onTap,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return _DeviceGlassCard(
@@ -1316,43 +1391,50 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 isActive: isActive,
                 glowColor: actualActiveColor,
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(9999),
-                  color: isActive
-                      ? actualActiveColor.withValues(alpha: 0.1)
-                      : Color(AppColors.surfaceContainerHigh),
-                  border: Border.all(
+              const SizedBox(width: 4),
+              Flexible(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 6 : 10, vertical: isVerySmall ? 3 : 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(9999),
                     color: isActive
-                        ? actualActiveColor.withValues(alpha: 0.3)
-                        : Colors.white.withValues(alpha: 0.08),
-                    width: 1,
+                        ? actualActiveColor.withValues(alpha: 0.1)
+                        : Color(AppColors.surfaceContainerHigh),
+                    border: Border.all(
+                      color: isActive
+                          ? actualActiveColor.withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Text(
-                  badgeText,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: isActive ? actualActiveColor : Color(AppColors.tertiary),
+                  child: Text(
+                    badgeText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: isVerySmall ? 9 : 11,
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? actualActiveColor : Color(AppColors.tertiary),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 36),
+          SizedBox(height: isVerySmall ? 18 : 36),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 15,
+                  fontSize: isVerySmall ? 13 : 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(AppColors.onSurface),
+                  color: const Color(AppColors.onSurface),
                 ),
               ),
               const SizedBox(height: 6),
@@ -1360,21 +1442,25 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 children: [
                   Icon(
                     footerIcon,
-                    size: 14,
+                    size: isVerySmall ? 11 : 14,
                     color: isActive
                         ? actualActiveColor
                         : Color(AppColors.tertiary).withValues(alpha: 0.6),
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    footerText,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isActive
-                          ? actualActiveColor
-                          : Color(AppColors.tertiary).withValues(alpha: 0.6),
+                  Flexible(
+                    child: Text(
+                      footerText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: isVerySmall ? 10 : 12,
+                        fontWeight: FontWeight.w600,
+                        color: isActive
+                            ? actualActiveColor
+                            : Color(AppColors.tertiary).withValues(alpha: 0.6),
+                      ),
                     ),
                   ),
                 ],
@@ -1395,6 +1481,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required ValueChanged<bool> onToggle,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return _DeviceGlassCard(
@@ -1419,25 +1507,29 @@ class _DevicesScreenState extends State<DevicesScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 36),
+          SizedBox(height: isVerySmall ? 18 : 36),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 15,
+                  fontSize: isVerySmall ? 13 : 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(AppColors.onSurface),
+                  color: const Color(AppColors.onSurface),
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 statusText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 12,
+                  fontSize: isVerySmall ? 10 : 12,
                   fontWeight: FontWeight.w600,
                   color: isOn
                       ? actualActiveColor
@@ -1672,14 +1764,18 @@ class _DeviceGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVerySmall = screenWidth < 360;
     final glowColor = activeColor ?? Color(AppColors.secondaryContainer);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        height: 180,
-        padding: const EdgeInsets.all(16),
+        constraints: BoxConstraints(
+          minHeight: isVerySmall ? 150 : 180,
+        ),
+        padding: EdgeInsets.all(isVerySmall ? 10 : 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: Colors.white.withValues(alpha: 0.04),
