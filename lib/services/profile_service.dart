@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../core/constants.dart';
-import 'smarthome_service.dart';
 
 class ProfileService {
   static final ProfileService _instance = ProfileService._internal();
@@ -19,8 +18,6 @@ class ProfileService {
   final ValueNotifier<String> role = ValueNotifier<String>('Administrator Rumah Pintar');
   final ValueNotifier<String> avatarUrl = ValueNotifier<String>('');
   final ValueNotifier<Uint8List?> avatarBytes = ValueNotifier<Uint8List?>(null);
-
-  bool get _isOnline => !SmartHomeService().isUsingFallback;
 
   void _updateAvatarBytes(String url) {
     if (url.startsWith('data:image') && url.contains('base64,')) {
@@ -43,32 +40,35 @@ class ProfileService {
     if (_isInitialized) return;
     _prefs = await SharedPreferences.getInstance();
 
-    // 1. Coba ambil dari Database PostgreSQL Server
-    bool loadedFromBackend = false;
+    // 1. Ambil data lokal terlebih dahulu dari SharedPreferences (offline cache)
+    username.value = _prefs.getString('profile_username') ?? 'admin';
+    password.value = _prefs.getString('profile_password') ?? '1234';
+    displayName.value = _prefs.getString('profile_display_name') ?? 'Mimah Dudim';
+    role.value = _prefs.getString('profile_role') ?? 'Administrator Rumah Pintar';
+    avatarUrl.value = _prefs.getString('profile_avatar_url') ?? '';
+    _updateAvatarBytes(avatarUrl.value);
+
+    // 2. Ambil data aktual secara dinamis dari database PostgreSQL server Golang
     try {
-      final response = await http.get(Uri.parse('${AppConfig.apiBaseUrl}/profile')).timeout(const Duration(seconds: 3));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        username.value = data['username']?.toString() ?? 'admin';
-        password.value = data['password']?.toString() ?? '1234';
-        displayName.value = data['display_name']?.toString() ?? 'Mimah Dudim';
-        role.value = data['role']?.toString() ?? 'Administrator Rumah Pintar';
-        avatarUrl.value = data['avatar_url']?.toString() ?? '';
+      final res = await http.get(Uri.parse('${AppConfig.apiBaseUrl}/profile')).timeout(const Duration(seconds: 3));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        username.value = data['username'] ?? username.value;
+        password.value = data['password'] ?? password.value;
+        displayName.value = data['display_name'] ?? displayName.value;
+        role.value = data['role'] ?? role.value;
+        avatarUrl.value = data['avatar_url'] ?? avatarUrl.value;
         _updateAvatarBytes(avatarUrl.value);
-        loadedFromBackend = true;
+
+        // Perbarui cache lokal
+        await _prefs.setString('profile_username', username.value);
+        await _prefs.setString('profile_password', password.value);
+        await _prefs.setString('profile_display_name', displayName.value);
+        await _prefs.setString('profile_role', role.value);
+        await _prefs.setString('profile_avatar_url', avatarUrl.value);
       }
     } catch (e) {
-      print("Gagal memuat profil dari server database, beralih ke lokal: $e");
-    }
-
-    // 2. Jika offline/gagal, gunakan fallback lokal SharedPreferences
-    if (!loadedFromBackend) {
-      username.value = _prefs.getString('profile_username') ?? 'admin';
-      password.value = _prefs.getString('profile_password') ?? '1234';
-      displayName.value = _prefs.getString('profile_display_name') ?? 'Mimah Dudim';
-      role.value = _prefs.getString('profile_role') ?? 'Administrator Rumah Pintar';
-      avatarUrl.value = _prefs.getString('profile_avatar_url') ?? '';
-      _updateAvatarBytes(avatarUrl.value);
+      debugPrint("Gagal mengambil profil dari database server, memakai data lokal: $e");
     }
 
     _isInitialized = true;
@@ -92,30 +92,28 @@ class ProfileService {
       _updateAvatarBytes(newAvatarUrl);
     }
 
-    // 1. Simpan ke lokal SharedPreferences (selalu simpan sebagai cadangan)
+    // Simpan ke cache lokal SharedPreferences
     await _prefs.setString('profile_username', newUsername);
     await _prefs.setString('profile_password', newPassword);
     await _prefs.setString('profile_display_name', newDisplayName);
     await _prefs.setString('profile_role', newRole);
     await _prefs.setString('profile_avatar_url', newAvatarUrl);
 
-    // 2. Kirim update ke database PostgreSQL
-    if (_isOnline) {
-      try {
-        await http.put(
-          Uri.parse('${AppConfig.apiBaseUrl}/profile'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'username': newUsername,
-            'password': newPassword,
-            'display_name': newDisplayName,
-            'role': newRole,
-            'avatar_url': newAvatarUrl,
-          }),
-        );
-      } catch (e) {
-        print("Gagal sinkronisasi update profil ke server: $e");
-      }
+    // Kirim sinkronisasi update ke database PostgreSQL
+    try {
+      await http.put(
+        Uri.parse('${AppConfig.apiBaseUrl}/profile'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': newUsername,
+          'password': newPassword,
+          'display_name': newDisplayName,
+          'role': newRole,
+          'avatar_url': newAvatarUrl,
+        }),
+      );
+    } catch (e) {
+      debugPrint("Gagal mengirim pembaruan profil ke database: $e");
     }
   }
 
