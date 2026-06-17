@@ -682,7 +682,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 ],
               ),
               Slider(
-                value: _draggedBatasPanasKamar ?? otomatisasi.batasPanasKamar,
+                value: (_draggedBatasPanasKamar ?? otomatisasi.batasPanasKamar).clamp(15.0, 35.0),
                 min: 15.0,
                 max: 35.0,
                 activeColor: Color(AppColors.secondaryContainer),
@@ -818,7 +818,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ],
                   ),
                   Slider(
-                    value: currentTemp,
+                    value: currentTemp.clamp(15.0, 35.0),
                     min: 15.0,
                     max: 35.0,
                     activeColor: Color(AppColors.secondaryContainer),
@@ -839,7 +839,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     ],
                   ),
                   Slider(
-                    value: currentHumid,
+                    value: currentHumid.clamp(0.0, 100.0),
                     min: 0.0,
                     max: 100.0,
                     activeColor: Color(AppColors.secondaryContainer),
