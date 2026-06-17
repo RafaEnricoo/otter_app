@@ -144,43 +144,48 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
 
           // ─── Main Content ───
           SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Custom Header
-                _buildHeader(context),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 650),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Custom Header
+                    _buildHeader(context),
 
-                // Bento list
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                    children: [
-                      // Card 1: User Profile Glass Card
-                      _buildProfileCard(),
-                      const SizedBox(height: 16),
+                    // Bento list
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                        children: [
+                          // Card 1: User Profile Glass Card
+                          _buildProfileCard(),
+                          const SizedBox(height: 16),
 
-                      // Card 2: Customization Bento Grid Row
-                      _buildAppearanceCard(),
-                      const SizedBox(height: 16),
+                          // Card 2: Customization Bento Grid Row
+                          _buildAppearanceCard(),
+                          const SizedBox(height: 16),
 
-                      // Card 3: Smart automation
-                      _buildAutomationCard(),
-                      const SizedBox(height: 16),
+                          // Card 3: Smart automation
+                          _buildAutomationCard(),
+                          const SizedBox(height: 16),
 
-                      // Card 4: Notification Toggles
-                      _buildNotificationsCard(),
-                      const SizedBox(height: 16),
+                          // Card 4: Notification Toggles
+                          _buildNotificationsCard(),
+                          const SizedBox(height: 16),
 
-                      // Card 5: RFID Management
-                      _buildRfidManagementCard(),
-                      const SizedBox(height: 16),
+                          // Card 5: RFID Management
+                          _buildRfidManagementCard(),
+                          const SizedBox(height: 16),
 
-                      // Card 6: System actions
-                      _buildSystemCard(),
-                    ],
-                  ),
+                          // Card 6: System actions
+                          _buildSystemCard(),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -393,10 +398,10 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
           ),
           const SizedBox(height: 10),
 
-          // Color selector chips in a Wrap to support multiple lines gracefully
           Wrap(
             spacing: 12,
             runSpacing: 12,
+            alignment: WrapAlignment.start,
             children: _accentColors.map((color) {
               final isSelected = _activeAccent == color;
 

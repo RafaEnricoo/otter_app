@@ -701,29 +701,36 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Auto-Lock',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Color(AppColors.onSurface),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Auto-Lock',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(AppColors.onSurface),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Kunci pintu setelah 8 detik',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 10,
-                        color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Kunci pintu setelah 8 detik',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 
                 GestureDetector(
                   onTap: () {
@@ -832,16 +839,18 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Log Kejadian Keamanan',
-                style: TextStyle(
-                  fontFamily: 'Sora',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(AppColors.onSurface),
+              const Expanded(
+                child: Text(
+                  'Log Kejadian Keamanan',
+                  style: TextStyle(
+                    fontFamily: 'Sora',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(AppColors.onSurface),
+                  ),
                 ),
               ),
-              
+              const SizedBox(width: 8),
               PopupMenuButton<String>(
                 icon: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -923,14 +932,15 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                           : Colors.white.withValues(alpha: 0.04),
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 3.5,
-                        height: 72,
-                        color: borderSideColor,
-                      ),
-                      const SizedBox(width: 14),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          width: 3.5,
+                          color: borderSideColor,
+                        ),
+                        const SizedBox(width: 14),
                       
                       Icon(
                         log.icon,
@@ -994,7 +1004,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                       const SizedBox(width: 10),
                     ],
                   ),
-                );
+                ),
+              );
               },
             ),
           ),

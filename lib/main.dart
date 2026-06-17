@@ -52,10 +52,16 @@ class MyApp extends StatelessWidget {
           home: MainLayout(),
           builder: (context, child) {
             if (child == null) return const SizedBox.shrink();
-            return Listener(
-              onPointerDown: (_) => MainLayout.onUserInteraction?.call(),
-              onPointerMove: (_) => MainLayout.onUserInteraction?.call(),
-              child: child,
+            final mediaQueryData = MediaQuery.of(context);
+            return MediaQuery(
+              data: mediaQueryData.copyWith(
+                textScaleFactor: mediaQueryData.textScaleFactor * 0.9,
+              ),
+              child: Listener(
+                onPointerDown: (_) => MainLayout.onUserInteraction?.call(),
+                onPointerMove: (_) => MainLayout.onUserInteraction?.call(),
+                child: child,
+              ),
             );
           },
         );

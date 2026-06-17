@@ -19,6 +19,25 @@ class _DevicesScreenState extends State<DevicesScreen> {
   int? _draggedBatasGelapLampu;
   double? _draggedBatasPanasKamar;
 
+  String _getTempInfo(double value) {
+    if (value <= 22.0) return 'Kondisi Dingin';
+    if (value <= 27.0) return 'Kondisi Optimal';
+    if (value <= 30.0) return 'Kondisi Hangat';
+    return 'Kondisi Panas';
+  }
+
+  String _getHumidityInfo(double value) {
+    if (value < 40) return 'Kondisi Kering';
+    if (value <= 60) return 'Kondisi Optimal';
+    return 'Kondisi Lembap';
+  }
+
+  Color _getHumidityColor(double value) {
+    if (value < 40) return const Color(0xFFFFB74D); // Orange
+    if (value <= 60) return const Color(0xFF81C784); // Green
+    return const Color(0xFF4FC3F7); // Blue
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -219,7 +238,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                             currentTemp: sensor.kamarSuhu,
                             currentHumid: sensor.kamarKelembapan,
                           ),
-                          infoText: otomatisasi.modeAutoKipas ? 'Otomatisasi Kipas Aktif' : 'Kontrol iklim manual',
+                          infoText: _getTempInfo(sensor.kamarSuhu),
                           isActive: true,
                           activeColor: getTempColor(sensor.kamarSuhu),
                         );
@@ -239,9 +258,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         currentTemp: sensor.kamarSuhu,
                         currentHumid: sensor.kamarKelembapan,
                       ),
-                      infoText: 'Kelembapan optimal 40-60%',
+                      infoText: _getHumidityInfo(sensor.kamarKelembapan),
                       isActive: true,
-                      activeColor: const Color(0xFF4FC3F7),
+                      activeColor: _getHumidityColor(sensor.kamarKelembapan),
                     ),
                   ],
                 ),
@@ -324,7 +343,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                             currentTemp: sensor.dapurSuhu,
                             currentHumid: sensor.dapurKelembapan,
                           ),
-                          infoText: 'Sensor dalam ruangan dapur',
+                          infoText: _getTempInfo(sensor.dapurSuhu),
                           isActive: true,
                           activeColor: getTempColor(sensor.dapurSuhu),
                         );
@@ -344,9 +363,9 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         currentTemp: sensor.dapurSuhu,
                         currentHumid: sensor.dapurKelembapan,
                       ),
-                      infoText: 'Kelembapan optimal 40-60%',
+                      infoText: _getHumidityInfo(sensor.dapurKelembapan),
                       isActive: true,
-                      activeColor: const Color(0xFF4FC3F7),
+                      activeColor: _getHumidityColor(sensor.dapurKelembapan),
                     ),
                   ],
                 ),
@@ -968,6 +987,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     bool isFullWidth = false,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final bool canControlManually = !isAuto;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
@@ -996,7 +1017,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 10 : 24),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1006,13 +1027,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     Expanded(
                       child: Text(
                         title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 15,
+                          fontSize: isVerySmall ? 13 : 15,
                           fontWeight: FontWeight.w600,
-                          color: Color(AppColors.onSurface),
+                          color: const Color(AppColors.onSurface),
                         ),
                       ),
                     ),
@@ -1032,9 +1053,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   isAuto
                       ? 'Otomatis (Sinkron Sensor)'
                       : isOn ? 'Aktif' : 'Mati',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 12,
+                    fontSize: isVerySmall ? 11 : 12,
                     fontWeight: FontWeight.w600,
                     color: isOn
                         ? actualActiveColor
@@ -1042,7 +1065,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ),
                 ),
                 if (hasSlider) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: isVerySmall ? 6 : 12),
                   SizedBox(
                     height: 20,
                     child: Slider(
@@ -1076,6 +1099,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     bool isActive = false,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return _DeviceGlassCard(
@@ -1092,7 +1117,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
               Icon(
                 icon,
                 color: isActive ? actualActiveColor : Color(AppColors.secondaryContainer),
-                size: 32,
+                size: isVerySmall ? 24 : 32,
                 shadows: [
                   Shadow(
                     color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.4),
@@ -1100,53 +1125,64 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   )
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(9999),
-                  color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.08),
-                  border: Border.all(
-                    color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.2),
-                    width: 1,
+              const SizedBox(width: 4),
+              Flexible(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 6 : 8, vertical: isVerySmall ? 3 : 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(9999),
+                    color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: (isActive ? actualActiveColor : Color(AppColors.secondaryContainer)).withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Text(
-                  badgeText,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isActive ? actualActiveColor : Color(AppColors.secondaryContainer),
+                  child: Text(
+                    badgeText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: isVerySmall ? 9 : 10,
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? actualActiveColor : Color(AppColors.secondaryContainer),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isVerySmall ? 10 : 24),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 14,
+                  fontSize: isVerySmall ? 12 : 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(AppColors.onSurface),
+                  color: const Color(AppColors.onSurface),
                 ),
               ),
               const SizedBox(height: 4),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  valueWidget ?? Text(
-                    value,
-                    style: TextStyle(
-                      fontFamily: 'Sora',
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: isActive ? actualActiveColor : const Color(AppColors.onSurface),
-                      height: 1.0,
+                  Flexible(
+                    child: valueWidget ?? Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Sora',
+                        fontSize: isVerySmall ? 18 : 24,
+                        fontWeight: FontWeight.bold,
+                        color: isActive ? actualActiveColor : const Color(AppColors.onSurface),
+                        height: 1.0,
+                      ),
                     ),
                   ),
                   if (unit.isNotEmpty)
@@ -1156,7 +1192,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         unit,
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 13,
+                          fontSize: isVerySmall ? 11 : 13,
                           fontWeight: FontWeight.w600,
                           color: Color(AppColors.tertiary).withValues(alpha: 0.7),
                         ),
@@ -1167,9 +1203,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
               const SizedBox(height: 6),
               Text(
                 infoText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 11,
+                  fontSize: isVerySmall ? 9 : 11,
                   fontWeight: FontWeight.bold,
                   color: isActive ? actualActiveColor.withValues(alpha: 0.8) : Color(AppColors.tertiary).withValues(alpha: 0.55),
                 ),
@@ -1193,6 +1231,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     bool isFullWidth = false,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final bool canControlManually = !isAuto;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
@@ -1220,7 +1260,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 10 : 24),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1230,13 +1270,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     Expanded(
                       child: Text(
                         title,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 15,
+                          fontSize: isVerySmall ? 13 : 15,
                           fontWeight: FontWeight.w600,
-                          color: Color(AppColors.onSurface),
+                          color: const Color(AppColors.onSurface),
                         ),
                       ),
                     ),
@@ -1256,16 +1296,18 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   isAuto
                       ? 'Otomatis (Sinkron Suhu)'
                       : isOn ? 'Kecepatan ${speed.toInt()}' : 'Mati',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 12,
+                    fontSize: isVerySmall ? 11 : 12,
                     fontWeight: FontWeight.w600,
                     color: isOn
                         ? actualActiveColor
                         : Color(AppColors.tertiary).withValues(alpha: 0.7),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: isVerySmall ? 6 : 12),
                 SizedBox(
                   height: 20,
                   child: Slider(
@@ -1298,6 +1340,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required VoidCallback onTap,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return _DeviceGlassCard(
@@ -1316,43 +1360,50 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 isActive: isActive,
                 glowColor: actualActiveColor,
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(9999),
-                  color: isActive
-                      ? actualActiveColor.withValues(alpha: 0.1)
-                      : Color(AppColors.surfaceContainerHigh),
-                  border: Border.all(
+              const SizedBox(width: 4),
+              Flexible(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 6 : 10, vertical: isVerySmall ? 3 : 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(9999),
                     color: isActive
-                        ? actualActiveColor.withValues(alpha: 0.3)
-                        : Colors.white.withValues(alpha: 0.08),
-                    width: 1,
+                        ? actualActiveColor.withValues(alpha: 0.1)
+                        : Color(AppColors.surfaceContainerHigh),
+                    border: Border.all(
+                      color: isActive
+                          ? actualActiveColor.withValues(alpha: 0.3)
+                          : Colors.white.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: Text(
-                  badgeText,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: isActive ? actualActiveColor : Color(AppColors.tertiary),
+                  child: Text(
+                    badgeText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: isVerySmall ? 9 : 11,
+                      fontWeight: FontWeight.w700,
+                      color: isActive ? actualActiveColor : Color(AppColors.tertiary),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 36),
+          SizedBox(height: isVerySmall ? 18 : 36),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 15,
+                  fontSize: isVerySmall ? 13 : 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(AppColors.onSurface),
+                  color: const Color(AppColors.onSurface),
                 ),
               ),
               const SizedBox(height: 6),
@@ -1360,21 +1411,25 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 children: [
                   Icon(
                     footerIcon,
-                    size: 14,
+                    size: isVerySmall ? 11 : 14,
                     color: isActive
                         ? actualActiveColor
                         : Color(AppColors.tertiary).withValues(alpha: 0.6),
                   ),
                   const SizedBox(width: 4),
-                  Text(
-                    footerText,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isActive
-                          ? actualActiveColor
-                          : Color(AppColors.tertiary).withValues(alpha: 0.6),
+                  Flexible(
+                    child: Text(
+                      footerText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: isVerySmall ? 10 : 12,
+                        fontWeight: FontWeight.w600,
+                        color: isActive
+                            ? actualActiveColor
+                            : Color(AppColors.tertiary).withValues(alpha: 0.6),
+                      ),
                     ),
                   ),
                 ],
@@ -1395,6 +1450,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
     required ValueChanged<bool> onToggle,
     Color? activeColor,
   }) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isVerySmall = screenWidth < 360;
     final Color actualActiveColor = activeColor ?? Color(AppColors.secondaryContainer);
 
     return _DeviceGlassCard(
@@ -1419,25 +1476,29 @@ class _DevicesScreenState extends State<DevicesScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 36),
+          SizedBox(height: isVerySmall ? 18 : 36),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 15,
+                  fontSize: isVerySmall ? 13 : 15,
                   fontWeight: FontWeight.w600,
-                  color: Color(AppColors.onSurface),
+                  color: const Color(AppColors.onSurface),
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 statusText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 12,
+                  fontSize: isVerySmall ? 10 : 12,
                   fontWeight: FontWeight.w600,
                   color: isOn
                       ? actualActiveColor
@@ -1672,14 +1733,18 @@ class _DeviceGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVerySmall = screenWidth < 360;
     final glowColor = activeColor ?? Color(AppColors.secondaryContainer);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        height: 180,
-        padding: const EdgeInsets.all(16),
+        constraints: BoxConstraints(
+          minHeight: isVerySmall ? 150 : 180,
+        ),
+        padding: EdgeInsets.all(isVerySmall ? 10 : 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: Colors.white.withValues(alpha: 0.04),

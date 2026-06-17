@@ -536,6 +536,8 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                             children: [
                               Text(
                                 name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -545,6 +547,8 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 key,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontFamily: 'monospace',
@@ -624,6 +628,8 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                             children: [
                               Text(
                                 name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
@@ -633,6 +639,8 @@ class _RfidManagementScreenState extends State<RfidManagementScreen> {
                               const SizedBox(height: 2),
                               Text(
                                 key,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontFamily: 'monospace',

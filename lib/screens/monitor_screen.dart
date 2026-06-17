@@ -920,69 +920,76 @@ class _MonitorScreenState extends State<MonitorScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
-                          border: Border.all(
-                            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.water_drop_rounded,
-                          color: Color(0xFF3B82F6),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'KELEMBAPAN RUANGAN LIVE',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(AppColors.onSurfaceVariant),
-                              letterSpacing: 0.8,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                            border: Border.all(
+                              color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
                             ),
                           ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
+                          child: const Icon(
+                            Icons.water_drop_rounded,
+                            color: Color(0xFF3B82F6),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '${displayLiveHumid.toStringAsFixed(1)}% RH',
-                                style: const TextStyle(
-                                  fontFamily: 'Sora',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(AppColors.onSurface),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                activeData.deltaText,
+                              const Text(
+                                'KELEMBAPAN RUANGAN LIVE',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontFamily: 'Inter',
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: activeData.isDeltaPositive
-                                      ? const Color(0xFF3B82F6)
-                                      : const Color(AppColors.error),
+                                  color: Color(AppColors.onSurfaceVariant),
+                                  letterSpacing: 0.8,
                                 ),
+                              ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '${displayLiveHumid.toStringAsFixed(1)}% RH',
+                                    style: const TextStyle(
+                                      fontFamily: 'Sora',
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(AppColors.onSurface),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    activeData.deltaText,
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: activeData.isDeltaPositive
+                                          ? const Color(0xFF3B82F6)
+                                          : const Color(AppColors.error),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     height: 28,
                     padding: const EdgeInsets.all(2.0),

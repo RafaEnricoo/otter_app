@@ -277,13 +277,17 @@ class _NotificationTileState extends State<NotificationTile>
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      _getCategoryLabel(widget.notification.category),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white.withValues(alpha: 0.55),
-                                        letterSpacing: 0.8,
+                                    Expanded(
+                                      child: Text(
+                                        _getCategoryLabel(widget.notification.category),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white.withValues(alpha: 0.55),
+                                          letterSpacing: 0.8,
+                                        ),
                                       ),
                                     ),
                                     Text(
@@ -374,37 +378,7 @@ class _NotificationTileState extends State<NotificationTile>
                                           },
                                         );
                                       }
-                                      return TextButton.icon(
-                                        style: TextButton.styleFrom(
-                                          foregroundColor:
-                                              Color(AppColors.secondaryContainer),
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 14, vertical: 8),
-                                          backgroundColor:
-                                              Colors.white.withValues(alpha: 0.04),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                            side: BorderSide(
-                                                color: Color(
-                                                        AppColors.secondaryContainer)
-                                                    .withValues(alpha: 0.15)),
-                                          ),
-                                        ),
-                                        icon: const Icon(Icons.videocam_rounded,
-                                            size: 16),
-                                        label: const Text('View Stream',
-                                            style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600)),
-                                        onPressed: () {
-                                          HapticFeedback.selectionClick();
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                                content: Text(
-                                                    'Opening live backyard security camera stream...')),
-                                          );
-                                        },
-                                      );
+                                      return const SizedBox.shrink();
                                     })(),
                                   if (widget.notification.category ==
                                       NotificationCategory.climate)
