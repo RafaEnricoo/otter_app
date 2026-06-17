@@ -1451,8 +1451,8 @@ class _MonitorScreenState extends State<MonitorScreen> {
           _buildMiniAnalyticCard(
             title: 'DETEKTOR API',
             value: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? 'BAHAYA API!' : 'NORMAL',
-            subtitle: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? 'Deteksi di Dapur' : 'Aman dari Asap/Api',
-            icon: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? Icons.local_fire_department_rounded : Icons.smoke_free_rounded,
+            subtitle: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? 'Deteksi di Dapur' : 'Aman dari Api',
+            icon: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? Icons.local_fire_department_rounded : Icons.local_fire_department_outlined,
             iconColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963) : const Color(0xFF00E676),
             valueColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963) : const Color(0xFF00E676),
             glowColor: (sensor.dapurFlame > 0 || perangkat.ledMerahDapur) ? const Color(0xFFFF4963).withValues(alpha: 0.1) : null,
