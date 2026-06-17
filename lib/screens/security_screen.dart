@@ -328,6 +328,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                                       children: [
                                         _buildBuzzerAlarmCard(isAlarmActive),
                                         const SizedBox(height: AppSpacing.gutter),
+                                        _buildSecurityModeCard(state.otomatisasi),
+                                        const SizedBox(height: AppSpacing.gutter),
                                         _buildRFIDControlCard(perangkat.kunciPintuRfid, isUnlocked),
                                       ],
                                     ),
@@ -344,6 +346,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                               return Column(
                                 children: [
                                   _buildBuzzerAlarmCard(isAlarmActive),
+                                  const SizedBox(height: AppSpacing.gutter),
+                                  _buildSecurityModeCard(state.otomatisasi),
                                   const SizedBox(height: AppSpacing.gutter),
                                   _buildRFIDControlCard(perangkat.kunciPintuRfid, isUnlocked),
                                   const SizedBox(height: AppSpacing.gutter),
@@ -431,7 +435,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     Icon(Icons.wifi_rounded, size: 14, color: Color(AppColors.secondaryContainer)),
                     SizedBox(width: 6),
                     Text(
-                      'Firebase Terhubung',
+                      'Server Terhubung',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11,
@@ -610,6 +614,135 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecurityModeCard(SmarthomeOtomatisasi otomatisasi) {
+    final bool isSecured = otomatisasi.modeKeamananAktif;
+    return _SecurityGlassCard(
+      glowColor: isSecured ? Color(AppColors.secondaryContainer).withValues(alpha: 0.1) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSecured
+                          ? Color(AppColors.secondaryContainer).withValues(alpha: 0.1)
+                          : Colors.white.withValues(alpha: 0.04),
+                      border: Border.all(
+                        color: isSecured
+                            ? Color(AppColors.secondaryContainer).withValues(alpha: 0.25)
+                            : Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Icon(
+                      isSecured ? Icons.shield_rounded : Icons.shield_outlined,
+                      color: isSecured ? Color(AppColors.secondaryContainer) : const Color(AppColors.tertiary),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'MODE KEAMANAN (RUMAH KOSONG)',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(AppColors.onSurfaceVariant),
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isSecured ? 'SIAGA (Rumah Kosong)' : 'NONAKTIF (Ada Orang)',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isSecured ? Color(AppColors.secondaryContainer) : const Color(AppColors.onSurface),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  SmartHomeService().updateOtomatisasi('mode_keamanan_aktif', !isSecured);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  width: 44,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(99),
+                    color: isSecured 
+                        ? Color(AppColors.secondaryContainer).withValues(alpha: 0.2) 
+                        : Colors.white.withValues(alpha: 0.06),
+                    border: Border.all(
+                      color: isSecured 
+                          ? Color(AppColors.secondaryContainer).withValues(alpha: 0.5) 
+                          : Colors.white.withValues(alpha: 0.12),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      AnimatedAlign(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        alignment: isSecured ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSecured ? Color(AppColors.secondaryContainer) : const Color(AppColors.tertiary),
+                            boxShadow: isSecured 
+                                ? [
+                                    BoxShadow(
+                                      color: Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
+                                      blurRadius: 6,
+                                    )
+                                  ] 
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            isSecured
+                ? 'Sistem siaga tempur. Pergerakan sekecil apapun terdeteksi oleh PIR sensor akan langsung memicu sirine alarm!'
+                : 'Sensor gerak (PIR) diabaikan. Aman bagi aktivitas penghuni rumah tanpa memicu alarm anomali.',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 11,
+              height: 1.4,
+              color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
+            ),
           ),
         ],
       ),
