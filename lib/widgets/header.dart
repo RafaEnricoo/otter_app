@@ -7,6 +7,8 @@ import '../services/system_settings_service.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 import '../services/profile_service.dart';
+import '../services/smarthome_service.dart';
+import '../models/device_model.dart';
 
 class Header extends StatelessWidget {
   final VoidCallback? onNotificationsPressed;
