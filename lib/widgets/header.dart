@@ -233,6 +233,55 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
             ),
           ),
         ),
+        const SizedBox(width: 8),
+        // Dynamic Online/Offline status badge
+        ValueListenableBuilder<SmarthomeState?>(
+          valueListenable: SmartHomeService().stateNotifier,
+          builder: (context, state, _) {
+            final isFallback = SmartHomeService().isUsingFallback;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isFallback ? Colors.red.withOpacity(0.12) : Colors.green.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isFallback ? Colors.red.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isFallback ? Colors.red : Colors.green,
+                      boxShadow: [
+                        BoxShadow(
+                          color: isFallback ? Colors.red.withOpacity(0.6) : Colors.green.withOpacity(0.6),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    isFallback ? 'OFFLINE' : 'ONLINE',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      color: isFallback ? Colors.redAccent : Colors.greenAccent,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ],
     );
   }
