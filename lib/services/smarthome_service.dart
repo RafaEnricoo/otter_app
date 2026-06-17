@@ -333,6 +333,16 @@ class SmartHomeService {
       stateNotifier.value = _localState;
     } else {
       try {
+        // Reset sensor simulasi di server agar tidak men-trigger alarm lagi
+        await http.post(
+          Uri.parse('${AppConfig.apiBaseUrl}/sensor'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'dapur_flame': 0,
+            'tamu_gerak': false,
+          }),
+        );
+
         final updatedPerangkat = _localState!.perangkat.toMap();
         updatedPerangkat['buzzer_alrm'] = false;
         updatedPerangkat['led_merah_dapur'] = false;
