@@ -140,9 +140,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       badgeText: 'Sensor PIR',
                       icon: sensor.tamuGerak ? Icons.run_circle_rounded : Icons.motion_photos_off_rounded,
                       onTap: () => _showMotionSimulationSheet(sensor.tamuGerak),
-                      infoText: sensor.tamuGerak ? '🚨 Terdeteksi Gerakan' : 'Tidak Ada Gerakan',
+                      infoText: sensor.tamuGerak 
+                          ? (otomatisasi.modeKeamananAktif ? '🚨 Anomali Terdeteksi!' : '🚶 Ada Aktivitas Orang') 
+                          : 'Tidak Ada Gerakan',
                       isActive: sensor.tamuGerak,
-                      activeColor: Colors.orangeAccent,
+                      activeColor: otomatisasi.modeKeamananAktif 
+                          ? const Color(0xFFFF4963) // Merah Darurat jika Keamanan Aktif
+                          : const Color(0xFF00E676), // Hijau Nyaman jika Keamanan Nonaktif (Ada Orang)
                     ),
 
                     // 3. Siren Tamu System Card
@@ -408,11 +412,14 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     _buildActionCard(
                       title: 'Kunci Pintu RFID',
                       statusText: perangkat.kunciPintuRfid ? 'Terkunci (Aman)' : 'Terbuka',
-                      badgeText: perangkat.kunciPintuRfid ? 'Aman' : 'Akses Terbuka',
-                      icon: Icons.meeting_room_rounded,
+                      badgeText: perangkat.kunciPintuRfid ? 'Terkunci' : 'Terbuka',
+                      icon: perangkat.kunciPintuRfid ? Icons.door_front_door_rounded : Icons.meeting_room_rounded,
                       footerIcon: perangkat.kunciPintuRfid ? Icons.lock_rounded : Icons.lock_open_rounded,
                       footerText: perangkat.kunciPintuRfid ? 'RFID Mengunci' : 'RFID Terbuka',
-                      isActive: perangkat.kunciPintuRfid,
+                      isActive: true, // Biarkan selalu menyala agar border/glow-nya aktif
+                      activeColor: perangkat.kunciPintuRfid 
+                          ? Color(AppColors.secondaryContainer) // Hijau/Cyan saat Terkunci
+                          : const Color(0xFFFFA726),            // Orange/Amber saat Terbuka
                       onTap: () {
                         HapticFeedback.lightImpact();
                         SmartHomeService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);

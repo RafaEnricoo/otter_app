@@ -248,7 +248,7 @@ class HomeScreen extends StatelessWidget {
                           _DeviceCard(
                             icon: Icons.lightbulb_rounded,
                             title: 'Ruang Tamu',
-                            subtitle: perangkat.lampuTamu ? 'Lampu • Menyala' : 'Lampu • Mati',
+                            subtitle: 'Lampu Pintar',
                             isActive: perangkat.lampuTamu,
                             accentColor: const Color(0xFFFFD54F),
                             width: isMobile ? screenWidth * 0.42 : 180,
@@ -260,10 +260,9 @@ class HomeScreen extends StatelessWidget {
                           _DeviceCard(
                             icon: Icons.door_front_door_rounded,
                             title: 'Pintu Utama',
-                            subtitle: perangkat.kunciPintuRfid ? 'Terkunci' : 'Terbuka',
+                            subtitle: 'Kunci RFID',
                             isActive: perangkat.kunciPintuRfid,
                             accentColor: Color(AppColors.secondaryContainer),
-                            badgeText: perangkat.kunciPintuRfid ? 'Aman' : 'Terbuka',
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
                               SmartHomeService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
@@ -273,9 +272,7 @@ class HomeScreen extends StatelessWidget {
                           _DeviceCard(
                             icon: Icons.air_rounded,
                             title: 'AC / Kipas Kamar',
-                            subtitle: perangkat.kipasKamar 
-                                ? 'Menyala • Kecepatan ${perangkat.kecepatanKipas == 255 ? 3 : perangkat.kecepatanKipas == 170 ? 2 : 1}' 
-                                : 'Mati',
+                            subtitle: 'Pendingin Ruang',
                             isActive: perangkat.kipasKamar,
                             accentColor: const Color(0xFF81C784),
                             width: isMobile ? screenWidth * 0.42 : 180,
@@ -287,7 +284,7 @@ class HomeScreen extends StatelessWidget {
                           _DeviceCard(
                             icon: Icons.kitchen_rounded,
                             title: 'Lampu Dapur',
-                            subtitle: perangkat.lampuDapur ? 'Menyala' : 'Mati',
+                            subtitle: 'Lampu Pintar',
                             isActive: perangkat.lampuDapur,
                             accentColor: const Color(0xFFFFB74D),
                             width: isMobile ? screenWidth * 0.42 : 180,
@@ -931,7 +928,6 @@ class _DeviceCard extends StatefulWidget {
   final String subtitle;
   final bool isActive;
   final Color accentColor;
-  final String? badgeText;
   final double width;
   final VoidCallback? onTap;
 
@@ -941,7 +937,6 @@ class _DeviceCard extends StatefulWidget {
     required this.subtitle,
     required this.isActive,
     required this.accentColor,
-    this.badgeText,
     required this.width,
     this.onTap,
   });
@@ -955,6 +950,15 @@ class _DeviceCardState extends State<_DeviceCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Dynamic styling for Pintu Utama: 
+    // - Terkunci (isActive = true) -> green-cyan (widget.accentColor)
+    // - Terbuka (isActive = false) -> orange-amber (Color(0xFFFFA726))
+    final bool isDoor = widget.title == 'Pintu Utama';
+    final bool effectiveActive = isDoor ? true : widget.isActive;
+    final Color effectiveColor = isDoor 
+        ? (widget.isActive ? widget.accentColor : const Color(0xFFFFA726))
+        : widget.accentColor;
+
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) {
@@ -971,19 +975,19 @@ class _DeviceCardState extends State<_DeviceCard> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            color: widget.isActive
-                ? widget.accentColor.withValues(alpha: 0.06)
+            color: effectiveActive
+                ? effectiveColor.withValues(alpha: 0.06)
                 : Colors.white.withValues(alpha: 0.04),
             border: Border.all(
-              color: widget.isActive
-                  ? widget.accentColor.withValues(alpha: 0.2)
-                  : Colors.white.withValues(alpha: 0.08),
+              color: effectiveActive
+                  ? effectiveColor.withValues(alpha: 0.35) // Menggunakan opacity 0.35 agar konsisten dengan _buildActionCard
+                  : Colors.white.withValues(alpha: 0.12),
               width: 1,
             ),
-            boxShadow: widget.isActive
+            boxShadow: effectiveActive
                 ? [
                     BoxShadow(
-                      color: widget.accentColor.withValues(alpha: 0.08),
+                      color: effectiveColor.withValues(alpha: 0.2), // Menggunakan blur 20, spread 0, opacity 0.2 agar konsisten
                       blurRadius: 20,
                       spreadRadius: 0,
                     ),
@@ -1003,35 +1007,49 @@ class _DeviceCardState extends State<_DeviceCard> {
                     height: 44,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      color: widget.isActive
-                          ? widget.accentColor.withValues(alpha: 0.15)
+                      color: effectiveActive
+                          ? effectiveColor.withValues(alpha: 0.15)
                           : Colors.white.withValues(alpha: 0.06),
                     ),
                     child: Center(
                       child: Icon(
-                        widget.icon,
-                        color: widget.isActive
-                            ? widget.accentColor
+                        isDoor
+                            ? (widget.isActive ? Icons.door_front_door_rounded : Icons.meeting_room_rounded)
+                            : widget.icon,
+                        color: effectiveActive
+                            ? effectiveColor
                             : Color(AppColors.onSurfaceVariant),
                         size: 22,
                       ),
                     ),
                   ),
-                  if (widget.isActive)
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.accentColor,
-                        boxShadow: [
-                          BoxShadow(
-                            color: widget.accentColor.withValues(alpha: 0.6),
-                            blurRadius: 8,
-                          ),
-                        ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(9999),
+                      color: effectiveActive
+                          ? effectiveColor.withValues(alpha: 0.15)
+                          : Colors.white.withValues(alpha: 0.04),
+                      border: Border.all(
+                        color: effectiveActive
+                            ? effectiveColor.withValues(alpha: 0.3)
+                            : Colors.white.withValues(alpha: 0.08),
+                        width: 1,
                       ),
                     ),
+                    child: Text(
+                      isDoor
+                          ? (widget.isActive ? 'TERKUNCI' : 'TERBUKA')
+                          : (widget.isActive ? 'MENYALA' : 'MATI'),
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: effectiveActive ? effectiveColor : Color(AppColors.tertiary).withValues(alpha: 0.6),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               // Info
@@ -1052,41 +1070,20 @@ class _DeviceCardState extends State<_DeviceCard> {
                   const SizedBox(height: 3),
                   Row(
                     children: [
-                      if (widget.badgeText != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                      Flexible(
+                        child: Text(
+                          widget.subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: effectiveActive
+                                ? effectiveColor.withValues(alpha: 0.8)
+                                : Color(AppColors.onSurfaceVariant),
                           ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(6),
-                            color: widget.accentColor.withValues(alpha: 0.15),
-                          ),
-                          child: Text(
-                            widget.badgeText!,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: widget.accentColor,
-                              letterSpacing: 0.4,
-                            ),
-                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ] else
-                        Flexible(
-                          child: Text(
-                            widget.subtitle,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: widget.isActive
-                                  ? widget.accentColor.withValues(alpha: 0.8)
-                                  : Color(AppColors.onSurfaceVariant),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                      ),
                     ],
                   ),
                 ],

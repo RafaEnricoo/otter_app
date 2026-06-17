@@ -21,6 +21,8 @@ class QuickStatusBanner extends StatelessWidget {
         final sensor = state.sensor;
         final perangkat = state.perangkat;
 
+        final bool modeKeamananAktif = state.otomatisasi.modeKeamananAktif;
+
         final bool hasGas = sensor.dapurFlame > 0;
         final bool hasMotion = sensor.tamuGerak;
         final bool hasSiren = perangkat.buzzerAlrm;
@@ -39,7 +41,7 @@ class QuickStatusBanner extends StatelessWidget {
           );
         }
 
-        if (hasMotion) {
+        if (hasMotion && modeKeamananAktif) {
           activeBanners.add(
             _buildBannerItem(
               title: 'DARURAT: Anomali Terdeteksi!',
