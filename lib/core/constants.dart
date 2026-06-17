@@ -65,6 +65,6 @@ Color getTempColor(double celsius) {
 class AppConfig {
   // Base URL pointing to the Go fiber backend.
   // When running on device, replace localhost with the ngrok/Tailscale URL or your PC's local IP (e.g., 192.168.1.X)
-  static const String apiBaseUrl = 'http://10.0.2.2:3000/api'; // Changed port to 3000 to match backend .env
+  static const String apiBaseUrl = 'http://100.113.90.8:3000/api'; // Pointing to Hamim's Tailscale IP for Scenario 2
 }
 
