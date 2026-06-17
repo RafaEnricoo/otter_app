@@ -11,7 +11,7 @@ class ProfileService {
   bool _isInitialized = false;
 
   final ValueNotifier<String> username = ValueNotifier<String>('admin');
-  final ValueNotifier<String> password = ValueNotifier<String>('admin123');
+  final ValueNotifier<String> password = ValueNotifier<String>('1234');
   final ValueNotifier<String> displayName = ValueNotifier<String>('Mimah Dudim');
   final ValueNotifier<String> role = ValueNotifier<String>('Administrator Rumah Pintar');
   final ValueNotifier<String> avatarUrl = ValueNotifier<String>('');
@@ -39,7 +39,7 @@ class ProfileService {
     _prefs = await SharedPreferences.getInstance();
 
     username.value = _prefs.getString('profile_username') ?? 'admin';
-    password.value = _prefs.getString('profile_password') ?? 'admin123';
+    password.value = _prefs.getString('profile_password') ?? '1234';
     displayName.value = _prefs.getString('profile_display_name') ?? 'Mimah Dudim';
     role.value = _prefs.getString('profile_role') ?? 'Administrator Rumah Pintar';
     avatarUrl.value = _prefs.getString('profile_avatar_url') ?? '';
