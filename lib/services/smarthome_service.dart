@@ -1,4 +1,4 @@
-import 'dart:async';
+  import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -157,6 +157,7 @@ class SmartHomeService {
           modeAutoKipas: true,
           batasGelapLampu: 30,
           batasPanasKamar: 29.0,
+          modeKeamananAktif: false,
         ),
       );
       stateNotifier.value = _localState;
@@ -277,25 +278,37 @@ class SmartHomeService {
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } else {
-      final updatedPerangkat = _localState!.perangkat.toMap();
-      updatedPerangkat[key] = value;
+      // Optimistic update: Update local state immediately so UI toggles instantly
+      final perangkatMap = _localState!.perangkat.toMap();
+      perangkatMap[key] = value;
+      
+      SmarthomeOtomatisasi newOto = _localState!.otomatisasi;
+      if (autoLampuKeyToDisable != null || disableAutoKipas) {
+        final otoMap = _localState!.otomatisasi.toMap();
+        if (autoLampuKeyToDisable != null) otoMap[autoLampuKeyToDisable] = false;
+        if (disableAutoKipas) otoMap['mode_auto_kipas'] = false;
+        newOto = SmarthomeOtomatisasi.fromMap(otoMap);
+      }
+
+      _localState = _localState!.copyWith(
+        perangkat: SmarthomePerangkat.fromMap(perangkatMap),
+        otomatisasi: newOto,
+      );
+      stateNotifier.value = _localState;
+      _runAutomationRulesIfNeeded();
 
       try {
         await http.put(
           Uri.parse('${AppConfig.apiBaseUrl}/perangkat'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(updatedPerangkat),
+          body: jsonEncode(perangkatMap),
         );
 
         if (autoLampuKeyToDisable != null || disableAutoKipas) {
-          final updatedOto = _localState!.otomatisasi.toMap();
-          if (autoLampuKeyToDisable != null) updatedOto[autoLampuKeyToDisable] = false;
-          if (disableAutoKipas) updatedOto['mode_auto_kipas'] = false;
-
           await http.put(
             Uri.parse('${AppConfig.apiBaseUrl}/otomatisasi'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(updatedOto),
+            body: jsonEncode(newOto.toMap()),
           );
         }
       } catch (e) {
@@ -333,6 +346,16 @@ class SmartHomeService {
       stateNotifier.value = _localState;
     } else {
       try {
+        // Reset sensor simulasi di server agar tidak men-trigger alarm lagi
+        await http.post(
+          Uri.parse('${AppConfig.apiBaseUrl}/sensor'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'dapur_flame': 0,
+            'tamu_gerak': false,
+          }),
+        );
+
         final updatedPerangkat = _localState!.perangkat.toMap();
         updatedPerangkat['buzzer_alrm'] = false;
         updatedPerangkat['led_merah_dapur'] = false;
@@ -401,14 +424,18 @@ class SmartHomeService {
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } else {
-      final updatedOto = _localState!.otomatisasi.toMap();
-      updatedOto[key] = value;
+      // Optimistic update: Update local state immediately so UI toggles instantly
+      final otomatisasiMap = _localState!.otomatisasi.toMap();
+      otomatisasiMap[key] = value;
+      _localState = _localState!.copyWith(otomatisasi: SmarthomeOtomatisasi.fromMap(otomatisasiMap));
+      stateNotifier.value = _localState;
+      _runAutomationRulesIfNeeded();
 
       try {
         await http.put(
           Uri.parse('${AppConfig.apiBaseUrl}/otomatisasi'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(updatedOto),
+          body: jsonEncode(otomatisasiMap),
         );
       } catch (e) {
         print("Gagal update otomatisasi di server: $e");
@@ -652,7 +679,7 @@ class SmartHomeService {
     }
     _lastSmokeValue = state.sensor.dapurFlame;
 
-    if (state.sensor.tamuGerak) {
+    if (state.sensor.tamuGerak && state.otomatisasi.modeKeamananAktif) {
       if (!_lastPirValue) {
         NotificationService().addNotification(
           title: 'Anomali Terdeteksi',

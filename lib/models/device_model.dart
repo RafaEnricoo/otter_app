@@ -159,6 +159,7 @@ class SmarthomeOtomatisasi {
   final bool modeAutoKipas;
   final int batasGelapLampu;
   final double batasPanasKamar;
+  final bool modeKeamananAktif;
 
   SmarthomeOtomatisasi({
     required this.modeAutoLampu,
@@ -169,6 +170,7 @@ class SmarthomeOtomatisasi {
     required this.modeAutoKipas,
     required this.batasGelapLampu,
     required this.batasPanasKamar,
+    required this.modeKeamananAktif,
   });
 
   factory SmarthomeOtomatisasi.fromMap(Map<dynamic, dynamic> map) {
@@ -185,6 +187,7 @@ class SmarthomeOtomatisasi {
       batasPanasKamar: (map['batas_panas_kamar'] ?? 0.0) is int
           ? (map['batas_panas_kamar'] as int).toDouble()
           : (map['batas_panas_kamar'] ?? 0.0) as double,
+      modeKeamananAktif: (map['mode_keamanan_aktif'] ?? false) as bool,
     );
   }
 
@@ -198,6 +201,7 @@ class SmarthomeOtomatisasi {
       'mode_auto_kipas': modeAutoKipas,
       'batas_gelap_lampu': batasGelapLampu,
       'batas_panas_kamar': batasPanasKamar,
+      'mode_keamanan_aktif': modeKeamananAktif,
     };
   }
 }

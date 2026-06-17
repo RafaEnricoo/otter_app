@@ -58,6 +58,7 @@ class NotificationModel {
       'timestamp': timestamp.toIso8601String(),
       'category': category.name,
       'priority': priority.name,
+      'is_read': isRead,
       'isRead': isRead,
     };
   }
@@ -78,7 +79,7 @@ class NotificationModel {
         (e) => e.name == map['priority'],
         orElse: () => NotificationPriority.info,
       ),
-      isRead: (map['isRead'] ?? false) as bool,
+      isRead: (map['is_read'] ?? map['isRead'] ?? false) as bool,
     );
   }
 }
