@@ -800,20 +800,32 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Suhu Udara', style: TextStyle(color: Colors.white70)),
-                      ValueListenableBuilder<bool>(
-                        valueListenable: SystemSettingsService().tempScaleCelsius,
-                        builder: (context, isCelsius, _) {
-                          return AnimatedTempText(
-                            celsiusValue: currentTemp,
-                            isCelsius: isCelsius,
+                      Text('Suhu $title', style: const TextStyle(color: Colors.white70)),
+                      Row(
+                        children: [
+                          Text(
+                            '(${_getTempInfo(currentTemp)}) ',
                             style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(AppColors.secondaryContainer),
+                              fontSize: 12,
+                              color: getTempColor(currentTemp),
+                              fontWeight: FontWeight.w500,
                             ),
-                          );
-                        },
+                          ),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: SystemSettingsService().tempScaleCelsius,
+                            builder: (context, isCelsius, _) {
+                              return AnimatedTempText(
+                                celsiusValue: currentTemp,
+                                isCelsius: isCelsius,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(AppColors.secondaryContainer),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -834,8 +846,27 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Kelembapan Udara', style: TextStyle(color: Colors.white70)),
-                      Text('${currentHumid.toInt()}%', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(AppColors.secondaryContainer))),
+                      Text('Kelembapan $title', style: const TextStyle(color: Colors.white70)),
+                      Row(
+                        children: [
+                          Text(
+                            '(${_getHumidityInfo(currentHumid)}) ',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _getHumidityColor(currentHumid),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            '${currentHumid.toInt()}%',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.secondaryContainer),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   Slider(
