@@ -64,7 +64,7 @@ Color getTempColor(double celsius) {
 
 class AppConfig {
   // Base URL pointing to the Go fiber backend.
-  // When running on device, replace localhost with the ngrok URL or your PC's local IP (e.g., 192.168.1.X)
-  static const String apiBaseUrl = 'http://10.0.2.2:8080/api'; // 10.0.2.2 is local host for Android Emulator, fallback to localhost if needed.
+  // When running on device, replace localhost with the ngrok/Tailscale URL or your PC's local IP (e.g., 192.168.1.X)
+  static const String apiBaseUrl = 'http://10.0.2.2:3000/api'; // Changed port to 3000 to match backend .env
 }
 
