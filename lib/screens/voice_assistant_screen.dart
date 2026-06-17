@@ -7,7 +7,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../core/constants.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 
 /// Shows the Voice Assistant overlay as a modal bottom sheet.
 Future<void> showVoiceAssistant(BuildContext context) {
@@ -349,7 +349,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     String responseText = 'Perintah tidak dikenali';
     bool recognized = false;
 
-    final currentState = FirebaseService().stateNotifier.value;
+    final currentState = SmartHomeService().stateNotifier.value;
 
     // IoT Control Logic based on voice commands
     // 0. Global Master commands (all devices or all lights)
@@ -357,22 +357,22 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       bool targetState = !cmd.contains('manual');
       
       if (cmd.contains('lampu')) {
-        await FirebaseService().updateOtomatisasi('mode_auto_lampu', targetState);
-        await FirebaseService().updateOtomatisasi('auto_lampu_tamu', targetState);
-        await FirebaseService().updateOtomatisasi('auto_lampu_kamar', targetState);
-        await FirebaseService().updateOtomatisasi('auto_lampu_dapur', targetState);
-        await FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', targetState);
+        await SmartHomeService().updateOtomatisasi('mode_auto_lampu', targetState);
+        await SmartHomeService().updateOtomatisasi('auto_lampu_tamu', targetState);
+        await SmartHomeService().updateOtomatisasi('auto_lampu_kamar', targetState);
+        await SmartHomeService().updateOtomatisasi('auto_lampu_dapur', targetState);
+        await SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', targetState);
         responseText = targetState 
             ? 'Mode otomatis untuk semua lampu telah diaktifkan' 
             : 'Otomatisasi semua lampu dinonaktifkan, beralih ke mode manual';
       } else {
         // All devices (lights and fan)
-        await FirebaseService().updateOtomatisasi('mode_auto_lampu', targetState);
-        await FirebaseService().updateOtomatisasi('auto_lampu_tamu', targetState);
-        await FirebaseService().updateOtomatisasi('auto_lampu_kamar', targetState);
-        await FirebaseService().updateOtomatisasi('auto_lampu_dapur', targetState);
-        await FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', targetState);
-        await FirebaseService().updateOtomatisasi('mode_auto_kipas', targetState);
+        await SmartHomeService().updateOtomatisasi('mode_auto_lampu', targetState);
+        await SmartHomeService().updateOtomatisasi('auto_lampu_tamu', targetState);
+        await SmartHomeService().updateOtomatisasi('auto_lampu_kamar', targetState);
+        await SmartHomeService().updateOtomatisasi('auto_lampu_dapur', targetState);
+        await SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', targetState);
+        await SmartHomeService().updateOtomatisasi('mode_auto_kipas', targetState);
         responseText = targetState 
             ? 'Seluruh otomatisasi perangkat telah diaktifkan' 
             : 'Seluruh otomatisasi dinonaktifkan, beralih ke mode manual';
@@ -392,32 +392,32 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       
       if (cmd.contains('lampu')) {
         if (cmd.contains('kamar') && !cmd.contains('mandi')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_kamar', targetAutoState);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_kamar', targetAutoState);
           if (targetAutoState) {
-            await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+            await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           }
           responseText = targetAutoState ? 'Mode auto lampu kamar diaktifkan' : 'Mode auto lampu kamar dinonaktifkan';
         } else if (cmd.contains('tamu')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_tamu', targetAutoState);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_tamu', targetAutoState);
           if (targetAutoState) {
-            await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+            await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           }
           responseText = targetAutoState ? 'Mode auto lampu ruang tamu diaktifkan' : 'Mode auto lampu ruang tamu dinonaktifkan';
         } else if (cmd.contains('dapur')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_dapur', targetAutoState);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_dapur', targetAutoState);
           if (targetAutoState) {
-            await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+            await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           }
           responseText = targetAutoState ? 'Mode auto lampu dapur diaktifkan' : 'Mode auto lampu dapur dinonaktifkan';
         } else if (cmd.contains('mandi')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', targetAutoState);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', targetAutoState);
           if (targetAutoState) {
-            await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+            await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           }
           responseText = targetAutoState ? 'Mode auto lampu kamar mandi diaktifkan' : 'Mode auto lampu kamar mandi dinonaktifkan';
         } else {
           final bool alreadyInState = ((currentState?.otomatisasi.modeAutoLampu ?? false) == targetAutoState);
-          await FirebaseService().updateOtomatisasi('mode_auto_lampu', targetAutoState);
+          await SmartHomeService().updateOtomatisasi('mode_auto_lampu', targetAutoState);
           responseText = targetAutoState
               ? (alreadyInState ? 'Mode auto lampu sudah aktif' : 'Mode auto lampu diaktifkan')
               : (alreadyInState ? 'Mode manual lampu sudah aktif' : 'Mode auto lampu dinonaktifkan, beralih ke manual');
@@ -425,7 +425,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
         recognized = true;
       } else if (cmd.contains('kipas')) {
         final bool alreadyInState = ((currentState?.otomatisasi.modeAutoKipas ?? false) == targetAutoState);
-        await FirebaseService().updateOtomatisasi('mode_auto_kipas', targetAutoState);
+        await SmartHomeService().updateOtomatisasi('mode_auto_kipas', targetAutoState);
         responseText = targetAutoState
             ? (alreadyInState ? 'Mode auto kipas sudah aktif' : 'Mode auto kipas diaktifkan')
             : (alreadyInState ? 'Mode manual kipas sudah aktif' : 'Mode auto kipas dinonaktifkan, beralih ke manual');
@@ -439,24 +439,24 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
           cmd.contains('lampu')) {
         if (cmd.contains('kamar') && !cmd.contains('mandi')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_kamar', true);
-          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_kamar', true);
+          await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = 'Mode auto lampu kamar diaktifkan';
         } else if (cmd.contains('tamu')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_tamu', true);
-          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_tamu', true);
+          await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = 'Mode auto lampu ruang tamu diaktifkan';
         } else if (cmd.contains('dapur')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_dapur', true);
-          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_dapur', true);
+          await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = 'Mode auto lampu dapur diaktifkan';
         } else if (cmd.contains('mandi')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', true);
-          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', true);
+          await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = 'Mode auto lampu kamar mandi diaktifkan';
         } else {
           final bool alreadyOn = currentState?.otomatisasi.modeAutoLampu ?? false;
-          await FirebaseService().updateOtomatisasi('mode_auto_lampu', true);
+          await SmartHomeService().updateOtomatisasi('mode_auto_lampu', true);
           responseText = alreadyOn
               ? 'Mode auto lampu sudah aktif'
               : 'Mode auto lampu diaktifkan';
@@ -465,21 +465,21 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       } else if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
           cmd.contains('kipas')) {
         final bool alreadyOn = currentState?.otomatisasi.modeAutoKipas ?? false;
-        await FirebaseService().updateOtomatisasi('mode_auto_kipas', true);
+        await SmartHomeService().updateOtomatisasi('mode_auto_kipas', true);
         responseText = alreadyOn
             ? 'Mode auto kipas sudah aktif'
             : 'Mode auto kipas diaktifkan';
         recognized = true;
       } else if (cmd.contains('lampu') && cmd.contains('mandi')) {
         final bool alreadyOn = currentState?.perangkat.lampuKamarMandi ?? false;
-        await FirebaseService().updatePerangkat('lampu_kamar_mandi', true);
+        await SmartHomeService().updatePerangkat('lampu_kamar_mandi', true);
         responseText = alreadyOn
             ? 'Lampu kamar mandi sudah menyala'
             : 'Lampu kamar mandi dinyalakan';
         recognized = true;
       } else if (cmd.contains('lampu') && cmd.contains('kamar')) {
         final bool alreadyOn = currentState?.perangkat.lampuKamar ?? false;
-        await FirebaseService().updatePerangkat('lampu_kamar', true);
+        await SmartHomeService().updatePerangkat('lampu_kamar', true);
         responseText = alreadyOn
             ? 'Lampu kamar sudah menyala'
             : 'Lampu kamar dinyalakan';
@@ -487,22 +487,22 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       } else if (cmd.contains('lampu') &&
           (cmd.contains('tamu') || cmd.contains('ruang tamu'))) {
         final bool alreadyOn = currentState?.perangkat.lampuTamu ?? false;
-        await FirebaseService().updatePerangkat('lampu_tamu', true);
+        await SmartHomeService().updatePerangkat('lampu_tamu', true);
         responseText = alreadyOn
             ? 'Lampu ruang tamu sudah menyala'
             : 'Lampu ruang tamu dinyalakan';
         recognized = true;
       } else if (cmd.contains('lampu') && cmd.contains('dapur')) {
         final bool alreadyOn = currentState?.perangkat.lampuDapur ?? false;
-        await FirebaseService().updatePerangkat('lampu_dapur', true);
+        await SmartHomeService().updatePerangkat('lampu_dapur', true);
         responseText = alreadyOn
             ? 'Lampu dapur sudah menyala'
             : 'Lampu dapur dinyalakan';
         recognized = true;
       } else if (cmd.contains('kipas')) {
         final bool alreadyOn = currentState?.perangkat.kipasKamar ?? false;
-        await FirebaseService().updatePerangkat('kipas_kamar', true);
-        await FirebaseService().updatePerangkat('kecepatan_kipas', 255);
+        await SmartHomeService().updatePerangkat('kipas_kamar', true);
+        await SmartHomeService().updatePerangkat('kecepatan_kipas', 255);
         responseText = alreadyOn
             ? 'Kipas kamar sudah menyala'
             : 'Kipas kamar dinyalakan';
@@ -511,7 +511,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           cmd.contains('sirine') ||
           cmd.contains('buzzer')) {
         final bool alreadyOn = currentState?.perangkat.buzzerAlrm ?? false;
-        await FirebaseService().updatePerangkat('buzzer_alrm', true);
+        await SmartHomeService().updatePerangkat('buzzer_alrm', true);
         responseText = alreadyOn
             ? 'Alarm darurat sudah aktif'
             : 'Alarm darurat diaktifkan';
@@ -521,7 +521,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           cmd.contains('kunci')) {
         final bool alreadyOpen =
             !(currentState?.perangkat.kunciPintuRfid ?? true);
-        await FirebaseService().updatePerangkat(
+        await SmartHomeService().updatePerangkat(
           'kunci_pintu_rfid',
           false,
         ); // unlock
@@ -538,21 +538,21 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       if ((cmd.contains('auto') || cmd.contains('otomatis')) &&
           cmd.contains('lampu')) {
         if (cmd.contains('kamar') && !cmd.contains('mandi')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_kamar', false);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_kamar', false);
           responseText = 'Mode auto lampu kamar dimatikan';
         } else if (cmd.contains('tamu')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_tamu', false);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_tamu', false);
           responseText = 'Mode auto lampu ruang tamu dimatikan';
         } else if (cmd.contains('dapur')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_dapur', false);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_dapur', false);
           responseText = 'Mode auto lampu dapur dimatikan';
         } else if (cmd.contains('mandi')) {
-          await FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', false);
+          await SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', false);
           responseText = 'Mode auto lampu kamar mandi dimatikan';
         } else {
           final bool alreadyOff =
               !(currentState?.otomatisasi.modeAutoLampu ?? true);
-          await FirebaseService().updateOtomatisasi('mode_auto_lampu', false);
+          await SmartHomeService().updateOtomatisasi('mode_auto_lampu', false);
           responseText = alreadyOff
               ? 'Mode auto lampu sudah mati'
               : 'Mode auto lampu dimatikan';
@@ -562,7 +562,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           cmd.contains('kipas')) {
         final bool alreadyOff =
             !(currentState?.otomatisasi.modeAutoKipas ?? true);
-        await FirebaseService().updateOtomatisasi('mode_auto_kipas', false);
+        await SmartHomeService().updateOtomatisasi('mode_auto_kipas', false);
         responseText = alreadyOff
             ? 'Mode auto kipas sudah mati'
             : 'Mode auto kipas dimatikan';
@@ -570,14 +570,14 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       } else if (cmd.contains('lampu') && cmd.contains('mandi')) {
         final bool alreadyOff =
             !(currentState?.perangkat.lampuKamarMandi ?? true);
-        await FirebaseService().updatePerangkat('lampu_kamar_mandi', false);
+        await SmartHomeService().updatePerangkat('lampu_kamar_mandi', false);
         responseText = alreadyOff
             ? 'Lampu kamar mandi sudah mati'
             : 'Lampu kamar mandi dimatikan';
         recognized = true;
       } else if (cmd.contains('lampu') && cmd.contains('kamar')) {
         final bool alreadyOff = !(currentState?.perangkat.lampuKamar ?? true);
-        await FirebaseService().updatePerangkat('lampu_kamar', false);
+        await SmartHomeService().updatePerangkat('lampu_kamar', false);
         responseText = alreadyOff
             ? 'Lampu kamar sudah mati'
             : 'Lampu kamar dimatikan';
@@ -585,21 +585,21 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       } else if (cmd.contains('lampu') &&
           (cmd.contains('tamu') || cmd.contains('ruang tamu'))) {
         final bool alreadyOff = !(currentState?.perangkat.lampuTamu ?? true);
-        await FirebaseService().updatePerangkat('lampu_tamu', false);
+        await SmartHomeService().updatePerangkat('lampu_tamu', false);
         responseText = alreadyOff
             ? 'Lampu ruang tamu sudah mati'
             : 'Lampu ruang tamu dimatikan';
         recognized = true;
       } else if (cmd.contains('lampu') && cmd.contains('dapur')) {
         final bool alreadyOff = !(currentState?.perangkat.lampuDapur ?? true);
-        await FirebaseService().updatePerangkat('lampu_dapur', false);
+        await SmartHomeService().updatePerangkat('lampu_dapur', false);
         responseText = alreadyOff
             ? 'Lampu dapur sudah mati'
             : 'Lampu dapur dimatikan';
         recognized = true;
       } else if (cmd.contains('kipas')) {
         final bool alreadyOff = !(currentState?.perangkat.kipasKamar ?? true);
-        await FirebaseService().updatePerangkat('kipas_kamar', false);
+        await SmartHomeService().updatePerangkat('kipas_kamar', false);
         responseText = alreadyOff
             ? 'Kipas kamar sudah mati'
             : 'Kipas kamar dimatikan';
@@ -608,7 +608,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           cmd.contains('sirine') ||
           cmd.contains('buzzer')) {
         final bool alreadyOff = !(currentState?.perangkat.buzzerAlrm ?? true);
-        await FirebaseService().disarmAllAlarms();
+        await SmartHomeService().disarmAllAlarms();
         responseText = alreadyOff
             ? 'Alarm darurat sudah mati'
             : 'Alarm darurat dimatikan';
@@ -618,7 +618,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
           cmd.contains('kunci')) {
         final bool alreadyLocked =
             currentState?.perangkat.kunciPintuRfid ?? false;
-        await FirebaseService().updatePerangkat(
+        await SmartHomeService().updatePerangkat(
           'kunci_pintu_rfid',
           true,
         ); // lock

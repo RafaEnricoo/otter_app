@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../models/notification_model.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/notification_service.dart';
 import '../services/system_settings_service.dart';
 import '../services/climate_history_service.dart';
@@ -113,7 +113,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
       _localLuminance = percentage;
     });
 
-    FirebaseService().updateSensor('cahaya_atap', percentage.toInt());
+    SmartHomeService().updateSensor('cahaya_atap', percentage.toInt());
   }
 
   @override
@@ -122,7 +122,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
     final bool isMobile = screenWidth < 768;
 
     return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
+      valueListenable: SmartHomeService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
           return Center(

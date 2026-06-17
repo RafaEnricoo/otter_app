@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../services/system_settings_service.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/profile_service.dart';
 import 'edit_profile_screen.dart';
 import 'rfid_management_screen.dart';
@@ -731,7 +731,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
 
   // Bento Card: System details & Factory reset
   Widget _buildSystemCard() {
-    final fb = FirebaseService();
+    final fb = SmartHomeService();
     final isOffline = fb.isUsingFallback;
 
     return Container(
@@ -941,7 +941,7 @@ class _SettingsScreenState extends State<SettingsScreen> with TickerProviderStat
                 onPressed: () async {
                   HapticFeedback.heavyImpact();
                   SystemSettingsService().resetToDefaults();
-                  await FirebaseService().resetDatabase();
+                  await SmartHomeService().resetDatabase();
                   setState(() {
                     _glassOpacity = SystemSettingsService().glassOpacity.value;
                     _activeAccent = SystemSettingsService().activeAccent.value;

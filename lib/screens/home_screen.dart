@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
 import '../models/notification_model.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/notification_service.dart';
 import '../services/system_settings_service.dart';
 import '../services/climate_history_service.dart';
@@ -22,7 +22,7 @@ class HomeScreen extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
+      valueListenable: SmartHomeService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
           return Center(
@@ -253,7 +253,7 @@ class HomeScreen extends StatelessWidget {
                             accentColor: const Color(0xFFFFD54F),
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
-                              FirebaseService().updatePerangkat('lampu_tamu', !perangkat.lampuTamu);
+                              SmartHomeService().updatePerangkat('lampu_tamu', !perangkat.lampuTamu);
                             },
                           ),
                           const SizedBox(width: 12),
@@ -266,7 +266,7 @@ class HomeScreen extends StatelessWidget {
                             badgeText: perangkat.kunciPintuRfid ? 'Aman' : 'Terbuka',
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
-                              FirebaseService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
+                              SmartHomeService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
                             },
                           ),
                           const SizedBox(width: 12),
@@ -280,7 +280,7 @@ class HomeScreen extends StatelessWidget {
                             accentColor: const Color(0xFF81C784),
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
-                              FirebaseService().updatePerangkat('kipas_kamar', !perangkat.kipasKamar);
+                              SmartHomeService().updatePerangkat('kipas_kamar', !perangkat.kipasKamar);
                             },
                           ),
                           const SizedBox(width: 12),
@@ -292,7 +292,7 @@ class HomeScreen extends StatelessWidget {
                             accentColor: const Color(0xFFFFB74D),
                             width: isMobile ? screenWidth * 0.42 : 180,
                             onTap: () {
-                              FirebaseService().updatePerangkat('lampu_dapur', !perangkat.lampuDapur);
+                              SmartHomeService().updatePerangkat('lampu_dapur', !perangkat.lampuDapur);
                             },
                           ),
                         ],

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/notification_service.dart';
 import '../models/notification_model.dart';
 import '../widgets/quick_status_banner.dart';
@@ -63,7 +63,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     if (isCurrentlyActive) {
       // Disarm Alarm
       HapticFeedback.heavyImpact();
-      FirebaseService().disarmAllAlarms();
+      SmartHomeService().disarmAllAlarms();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -141,8 +141,8 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     } else {
       // Arm / Trigger active Alarm
       HapticFeedback.vibrate();
-      FirebaseService().updatePerangkat('buzzer_alrm', true);
-      FirebaseService().updatePerangkat('led_merah_dapur', true);
+      SmartHomeService().updatePerangkat('buzzer_alrm', true);
+      SmartHomeService().updatePerangkat('led_merah_dapur', true);
     }
   }
 
@@ -174,7 +174,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
         // Toggle state in Firebase
         final nextLockedState = !currentLockedState;
-        FirebaseService().updatePerangkat('kunci_pintu_rfid', nextLockedState);
+        SmartHomeService().updatePerangkat('kunci_pintu_rfid', nextLockedState);
 
         // Trigger Auto-Lock timers if configured
         if (!nextLockedState && _isAutoLockOn) {
@@ -198,10 +198,10 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
   void _triggerAutoLockTimer() {
     Future.delayed(const Duration(seconds: 8), () {
       if (mounted && _isAutoLockOn) {
-        final state = FirebaseService().stateNotifier.value;
+        final state = SmartHomeService().stateNotifier.value;
         if (state != null && !state.perangkat.kunciPintuRfid) {
           HapticFeedback.mediumImpact();
-          FirebaseService().updatePerangkat('kunci_pintu_rfid', true);
+          SmartHomeService().updatePerangkat('kunci_pintu_rfid', true);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('🔒 Pintu utama terkunci otomatis (Auto-Lock aktif).'),
@@ -218,7 +218,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     final bool isMobile = screenWidth < 768;
 
     return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
+      valueListenable: SmartHomeService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
           return Center(

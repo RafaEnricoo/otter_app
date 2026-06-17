@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:firebase_core/firebase_core.dart' hide FirebaseService;
+import 'package:firebase_core/firebase_core.dart' hide SmartHomeService;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import 'firebase_options.dart';
@@ -18,7 +18,7 @@ import 'screens/security_screen.dart';
 import 'screens/notification_screen.dart';
 import 'screens/settings_screen.dart';
 
-import 'services/firebase_service.dart';
+import 'services/smarthome_service.dart';
 import 'services/system_settings_service.dart';
 import 'services/notification_service.dart';
 import 'services/profile_service.dart';
@@ -30,7 +30,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await SystemSettingsService().init();
-  await FirebaseService().init();
+  await SmartHomeService().init();
   NotificationService().init();
   await ClimateHistoryService().init();
   runApp(const MyApp());
@@ -91,7 +91,7 @@ class _MainLayoutState extends State<MainLayout> {
   void initState() {
     super.initState();
     MainLayout.onUserInteraction = _resetAutoLockTimer;
-    FirebaseService().stateNotifier.addListener(_onStateChanged);
+    SmartHomeService().stateNotifier.addListener(_onStateChanged);
     SystemSettingsService().enableAlarmSound.addListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.addListener(_onSettingsChanged);
     SystemSettingsService().lockScreenTrigger.addListener(_onLockTriggered);
@@ -139,7 +139,7 @@ class _MainLayoutState extends State<MainLayout> {
     if (MainLayout.onUserInteraction == _resetAutoLockTimer) {
       MainLayout.onUserInteraction = null;
     }
-    FirebaseService().stateNotifier.removeListener(_onStateChanged);
+    SmartHomeService().stateNotifier.removeListener(_onStateChanged);
     SystemSettingsService().enableAlarmSound.removeListener(_onSettingsChanged);
     SystemSettingsService().enableVibration.removeListener(_onSettingsChanged);
     SystemSettingsService().lockScreenTrigger.removeListener(_onLockTriggered);
@@ -163,7 +163,7 @@ class _MainLayoutState extends State<MainLayout> {
     if (!mounted) return;
     if (_isAlarmRunning) {
       _stopAlarmFeedback();
-      final state = FirebaseService().stateNotifier.value;
+      final state = SmartHomeService().stateNotifier.value;
       final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
       if (isAlarmActive) {
         _startAlarmFeedback();
@@ -177,7 +177,7 @@ class _MainLayoutState extends State<MainLayout> {
     _alarmDebounceTimer?.cancel();
     _alarmDebounceTimer = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
-      final state = FirebaseService().stateNotifier.value;
+      final state = SmartHomeService().stateNotifier.value;
       final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
 
       if (isAlarmActive && !_isAlarmRunning) {
@@ -271,7 +271,7 @@ class _MainLayoutState extends State<MainLayout> {
       onPointerDown: (_) => _resetAutoLockTimer(),
       onPointerMove: (_) => _resetAutoLockTimer(),
       child: ValueListenableBuilder<SmarthomeState?>(
-        valueListenable: FirebaseService().stateNotifier,
+        valueListenable: SmartHomeService().stateNotifier,
         builder: (context, state, child) {
           final bool isAlarmActive = state != null && state.perangkat.buzzerAlrm;
 

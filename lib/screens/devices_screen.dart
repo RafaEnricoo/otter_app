@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/constants.dart';
 import '../models/device_model.dart';
-import '../services/firebase_service.dart';
+import '../services/smarthome_service.dart';
 import '../services/system_settings_service.dart';
 import '../widgets/quick_status_banner.dart';
 import '../widgets/animated_temp_text.dart';
@@ -44,7 +44,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     final bool isMobile = screenWidth < 768;
 
     return ValueListenableBuilder<SmarthomeState?>(
-      valueListenable: FirebaseService().stateNotifier,
+      valueListenable: SmartHomeService().stateNotifier,
       builder: (context, state, child) {
         if (state == null) {
           return Center(
@@ -121,10 +121,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isAuto: otomatisasi.autoLampuTamu,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_tamu', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_tamu', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('lampu_tamu', val);
+                        SmartHomeService().updatePerangkat('lampu_tamu', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
@@ -152,7 +152,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isOn: perangkat.buzzerAlrm,
                       icon: Icons.campaign_rounded,
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('buzzer_alrm', val);
+                        SmartHomeService().updatePerangkat('buzzer_alrm', val);
                       },
                       activeColor: const Color(0xFFFF4963),
                     ),
@@ -173,10 +173,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isAuto: otomatisasi.autoLampuKamar,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_kamar', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_kamar', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('lampu_kamar', val);
+                        SmartHomeService().updatePerangkat('lampu_kamar', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
@@ -191,12 +191,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       speed: fanSpeedLevel,
                       isAuto: otomatisasi.modeAutoKipas,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('mode_auto_kipas', val);
+                        SmartHomeService().updateOtomatisasi('mode_auto_kipas', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('kipas_kamar', val);
+                        SmartHomeService().updatePerangkat('kipas_kamar', val);
                         if (val && fanSpeedLevel == 0) {
-                          FirebaseService().updatePerangkat('kecepatan_kipas', 255);
+                          SmartHomeService().updatePerangkat('kecepatan_kipas', 255);
                         }
                       },
                       onSpeedChanged: (val) {
@@ -204,8 +204,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                         if (val == 1.0) mappedSpeed = 85;
                         if (val == 2.0) mappedSpeed = 170;
                         if (val == 3.0) mappedSpeed = 255;
-                        FirebaseService().updatePerangkat('kecepatan_kipas', mappedSpeed);
-                        FirebaseService().updatePerangkat('kipas_kamar', val > 0);
+                        SmartHomeService().updatePerangkat('kecepatan_kipas', mappedSpeed);
+                        SmartHomeService().updatePerangkat('kipas_kamar', val > 0);
                       },
                       isFullWidth: true,
                       activeColor: const Color(0xFF81C784),
@@ -279,10 +279,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isAuto: otomatisasi.autoLampuDapur,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_dapur', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_dapur', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('lampu_dapur', val);
+                        SmartHomeService().updatePerangkat('lampu_dapur', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
@@ -311,7 +311,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isOn: perangkat.ledMerahDapur,
                       icon: Icons.circle_notifications_rounded,
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('led_merah_dapur', val);
+                        SmartHomeService().updatePerangkat('led_merah_dapur', val);
                       },
                       activeColor: Colors.redAccent,
                     ),
@@ -384,10 +384,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isAuto: otomatisasi.autoLampuKamarMandi,
                       icon: Icons.lightbulb_rounded,
                       onModeChanged: (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', val);
                       },
                       onToggle: (val) {
-                        FirebaseService().updatePerangkat('lampu_kamar_mandi', val);
+                        SmartHomeService().updatePerangkat('lampu_kamar_mandi', val);
                       },
                       onSliderChanged: (val) {},
                       hasSlider: false,
@@ -415,7 +415,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       isActive: perangkat.kunciPintuRfid,
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        FirebaseService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
+                        SmartHomeService().updatePerangkat('kunci_pintu_rfid', !perangkat.kunciPintuRfid);
                       },
                     ),
 
@@ -577,7 +577,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   CustomToggleSwitch(
                     value: otomatisasi.modeAutoLampu,
                     onChanged: (val) {
-                      FirebaseService().updateOtomatisasi('mode_auto_lampu', val);
+                      SmartHomeService().updateOtomatisasi('mode_auto_lampu', val);
                     },
                   ),
                 ],
@@ -589,19 +589,19 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   child: Column(
                     children: [
                       _buildSubAutoToggleRow('Auto Lampu Ruang Tamu', otomatisasi.autoLampuTamu, (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_tamu', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_tamu', val);
                       }),
                       const SizedBox(height: 8),
                       _buildSubAutoToggleRow('Auto Lampu Kamar Tidur', otomatisasi.autoLampuKamar, (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_kamar', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_kamar', val);
                       }),
                       const SizedBox(height: 8),
                       _buildSubAutoToggleRow('Auto Lampu Dapur', otomatisasi.autoLampuDapur, (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_dapur', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_dapur', val);
                       }),
                       const SizedBox(height: 8),
                       _buildSubAutoToggleRow('Auto Lampu Kamar Mandi', otomatisasi.autoLampuKamarMandi, (val) {
-                        FirebaseService().updateOtomatisasi('auto_lampu_kamar_mandi', val);
+                        SmartHomeService().updateOtomatisasi('auto_lampu_kamar_mandi', val);
                       }),
                     ],
                   ),
@@ -627,7 +627,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   });
                 },
                 onChangeEnd: (val) {
-                  FirebaseService().updateOtomatisasi('batas_gelap_lampu', val.toInt());
+                  SmartHomeService().updateOtomatisasi('batas_gelap_lampu', val.toInt());
                   setState(() {
                     _draggedBatasGelapLampu = null;
                   });
@@ -668,7 +668,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   CustomToggleSwitch(
                     value: otomatisasi.modeAutoKipas,
                     onChanged: (val) {
-                      FirebaseService().updateOtomatisasi('mode_auto_kipas', val);
+                      SmartHomeService().updateOtomatisasi('mode_auto_kipas', val);
                     },
                   ),
                 ],
@@ -693,7 +693,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   });
                 },
                 onChangeEnd: (val) {
-                  FirebaseService().updateOtomatisasi('batas_panas_kamar', val);
+                  SmartHomeService().updateOtomatisasi('batas_panas_kamar', val);
                   setState(() {
                     _draggedBatasPanasKamar = null;
                   });
@@ -763,7 +763,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       setSheetState(() => currentVal = val.toInt());
                     },
                     onChangeEnd: (val) {
-                      FirebaseService().updateSensor('cahaya_atap', val.toInt());
+                      SmartHomeService().updateSensor('cahaya_atap', val.toInt());
                     },
                   ),
                 ],
@@ -839,7 +839,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       setSheetState(() => currentTemp = val);
                     },
                     onChangeEnd: (val) {
-                      FirebaseService().updateSensor(isBedroom ? 'kamar_suhu' : 'dapur_suhu', val);
+                      SmartHomeService().updateSensor(isBedroom ? 'kamar_suhu' : 'dapur_suhu', val);
                     },
                   ),
                   const SizedBox(height: 16),
@@ -879,7 +879,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                       setSheetState(() => currentHumid = val);
                     },
                     onChangeEnd: (val) {
-                      FirebaseService().updateSensor(isBedroom ? 'kamar_kelembapan' : 'dapur_kelembapan', val);
+                      SmartHomeService().updateSensor(isBedroom ? 'kamar_kelembapan' : 'dapur_kelembapan', val);
                     },
                   ),
                 ],
@@ -936,7 +936,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     value: hasFlame,
                     onChanged: (val) {
                       setSheetState(() => hasFlame = val);
-                      FirebaseService().updateSensor('dapur_flame', val ? 1 : 0);
+                      SmartHomeService().updateSensor('dapur_flame', val ? 1 : 0);
                     },
                   ),
                 ],
@@ -989,7 +989,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                     value: hasMotion,
                     onChanged: (val) {
                       setSheetState(() => hasMotion = val);
-                      FirebaseService().updateSensor('tamu_gerak', val);
+                      SmartHomeService().updateSensor('tamu_gerak', val);
                     },
                   ),
                 ],
