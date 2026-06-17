@@ -174,7 +174,24 @@ class SmartHomeService {
       stateNotifier.value = _localState;
       _runAutomationRulesIfNeeded();
     } else {
-      print("Sensors are updated via MQTT: $key -> $value");
+      try {
+        final res = await http.post(
+          Uri.parse('${AppConfig.apiBaseUrl}/sensor'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({key: value}),
+        );
+        if (res.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(res.body);
+          if (data['status'] == 'sukses' && data['sensor'] != null) {
+            final sensorMap = _localState!.sensor.toMap();
+            sensorMap[key] = value;
+            _localState = _localState!.copyWith(sensor: SmarthomeSensor.fromMap(sensorMap));
+            stateNotifier.value = _localState;
+          }
+        }
+      } catch (e) {
+        print("Gagal update/simulasi sensor di server: $e");
+      }
     }
   }
 
