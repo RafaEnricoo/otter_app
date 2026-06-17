@@ -119,7 +119,7 @@ class Header extends StatelessWidget {
                       // ─── User Avatar (Opens Profile/Settings) ───
                       GestureDetector(
                         onTap: onSettingsPressed,
-                        child: const _UserAvatar(),
+                        child: _UserAvatar(accentColor: accentColor),
                       ),
                     ],
                   ),
@@ -516,7 +516,8 @@ class _NotificationButtonState extends State<_NotificationButton>
 // User Avatar with status ring
 // ─────────────────────────────────────────────────────────
 class _UserAvatar extends StatefulWidget {
-  const _UserAvatar();
+  final Color accentColor;
+  const _UserAvatar({required this.accentColor});
 
   @override
   State<_UserAvatar> createState() => _UserAvatarState();
@@ -553,19 +554,18 @@ class _UserAvatarState extends State<_UserAvatar> {
                         end: Alignment.bottomRight,
                         colors: _isHovered
                             ? [
-                                Color(AppColors.secondaryContainer),
-                                Color(AppColors.primary),
+                                widget.accentColor,
+                                widget.accentColor.withValues(alpha: 0.7),
                               ]
                             : [
-                                Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
-                                Color(AppColors.primary).withValues(alpha: 0.2),
+                                widget.accentColor.withValues(alpha: 0.4),
+                                widget.accentColor.withValues(alpha: 0.2),
                               ],
                       ),
                       boxShadow: _isHovered
                           ? [
                               BoxShadow(
-                                color:
-                                    Color(AppColors.secondaryContainer).withValues(alpha: 0.3),
+                                color: widget.accentColor.withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 spreadRadius: 0,
                               ),
@@ -587,7 +587,7 @@ class _UserAvatarState extends State<_UserAvatar> {
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(AppColors.secondaryContainer),
+                                    color: widget.accentColor,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -618,7 +618,7 @@ class _UserAvatarState extends State<_UserAvatar> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
-                                                color: Color(AppColors.secondaryContainer),
+                                                color: widget.accentColor,
                                                 letterSpacing: 0.5,
                                               ),
                                             ),
