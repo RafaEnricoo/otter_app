@@ -332,21 +332,6 @@ class SmartHomeService {
       );
       stateNotifier.value = _localState;
     } else {
-      // Optimistic update: Update state lokal secara instan agar tombol langsung merespon
-      final perangkatMap = _localState!.perangkat.toMap();
-      perangkatMap['buzzer_alrm'] = false;
-      perangkatMap['led_merah_dapur'] = false;
-
-      final sensorMap = _localState!.sensor.toMap();
-      sensorMap['tamu_gerak'] = false;
-      sensorMap['dapur_flame'] = 0;
-
-      _localState = _localState!.copyWith(
-        perangkat: SmarthomePerangkat.fromMap(perangkatMap),
-        sensor: SmarthomeSensor.fromMap(sensorMap),
-      );
-      stateNotifier.value = _localState;
-
       try {
         // Reset sensor simulasi di server agar tidak men-trigger alarm lagi
         await http.post(
@@ -358,10 +343,14 @@ class SmartHomeService {
           }),
         );
 
+        final updatedPerangkat = _localState!.perangkat.toMap();
+        updatedPerangkat['buzzer_alrm'] = false;
+        updatedPerangkat['led_merah_dapur'] = false;
+
         await http.put(
           Uri.parse('${AppConfig.apiBaseUrl}/perangkat'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(perangkatMap),
+          body: jsonEncode(updatedPerangkat),
         );
       } catch (e) {
         print("Gagal disarm perangkat di server: $e");
