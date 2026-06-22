@@ -17,20 +17,11 @@ class SecurityScreen extends StatefulWidget {
 }
 
 class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStateMixin {
-  // ─── Security Settings ───
-  bool _isAutoLockOn = true;
   String _activeFilter = 'All'; // 'All', 'Alerts', 'Routine'
   bool _isLogExpanded = false;
 
-  // ─── Biometric Scanner States ───
-  bool _isBiometricScanning = false;
-  String _biometricStatusText = 'Scanning Biometrics...';
-  double _biometricProgress = 0.0;
-  Timer? _biometricTimer;
-
   // ─── Animation Controllers ───
   late AnimationController _pulseController;         // Soundwave concentric pulse
-  late AnimationController _biometricScannerController; // Biometric scan line sliding
 
   @override
   void initState() {
@@ -41,19 +32,11 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     )..repeat();
-
-    // 3. Biometric scanner glowing horizontal line
-    _biometricScannerController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
-    _biometricScannerController.dispose();
-    _biometricTimer?.cancel();
     super.dispose();
   }
 
@@ -146,70 +129,23 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     }
   }
 
-  // ─── Biometric Scanner Unlock Trigger ───
-  void _triggerBiometricUnlock(bool currentLockedState) {
+  // ─── Direct Unlock Trigger ───
+  void _triggerUnlock(bool currentLockedState) {
     HapticFeedback.mediumImpact();
-    setState(() {
-      _isBiometricScanning = true;
-      _biometricProgress = 0.0;
-      _biometricStatusText = 'Memverifikasi RFID & Biometrik...';
-    });
+    // Toggle state instantly
+    final nextLockedState = !currentLockedState;
+    SmartHomeService().updatePerangkat('kunci_pintu_rfid', nextLockedState);
 
-    const int totalSteps = 15;
-    int currentStep = 0;
-    
-    _biometricTimer?.cancel();
-    _biometricTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      currentStep++;
-      setState(() {
-        _biometricProgress = currentStep / totalSteps;
-      });
-
-      if (currentStep >= totalSteps) {
-        timer.cancel();
-        HapticFeedback.mediumImpact();
-        setState(() {
-          _isBiometricScanning = false;
-        });
-
-        // Toggle state in Firebase
-        final nextLockedState = !currentLockedState;
-        SmartHomeService().updatePerangkat('kunci_pintu_rfid', nextLockedState);
-
-        // Trigger Auto-Lock timers if configured
-        if (!nextLockedState && _isAutoLockOn) {
-          _triggerAutoLockTimer();
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(!nextLockedState 
-                ? '🔓 Pintu utama berhasil dibuka!' 
-                : '🔒 Pintu utama berhasil dikunci!'),
-            backgroundColor: !nextLockedState 
-                ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
-                : const Color(AppColors.surfaceContainerHigh),
-          ),
-        );
-      }
-    });
-  }
-
-  void _triggerAutoLockTimer() {
-    Future.delayed(const Duration(seconds: 8), () {
-      if (mounted && _isAutoLockOn) {
-        final state = SmartHomeService().stateNotifier.value;
-        if (state != null && !state.perangkat.kunciPintuRfid) {
-          HapticFeedback.mediumImpact();
-          SmartHomeService().updatePerangkat('kunci_pintu_rfid', true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🔒 Pintu utama terkunci otomatis (Auto-Lock aktif).'),
-            ),
-          );
-        }
-      }
-    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(!nextLockedState 
+            ? '🔓 Pintu utama berhasil dibuka!' 
+            : '🔒 Pintu utama berhasil dikunci!'),
+        backgroundColor: !nextLockedState 
+            ? Color(AppColors.secondaryContainer).withValues(alpha: 0.12)
+            : const Color(AppColors.surfaceContainerHigh),
+      ),
+    );
   }
 
   @override
@@ -362,10 +298,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                     ),
                   ),
                 ),
-
-                // ─── Biometric Scanner Glass Overlay ───
-                if (_isBiometricScanning)
-                  _buildBiometricScannerOverlay(perangkat.kunciPintuRfid),
               ],
             );
           },
@@ -622,130 +554,154 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
 
   Widget _buildSecurityModeCard(SmarthomeOtomatisasi otomatisasi) {
     final bool isSecured = otomatisasi.modeKeamananAktif;
+    final Color securityColor = isSecured ? const Color(0xFF00E676) : Color(AppColors.secondaryContainer);
+
     return _SecurityGlassCard(
-      glowColor: isSecured ? Color(AppColors.secondaryContainer).withValues(alpha: 0.1) : null,
+      glowColor: isSecured ? securityColor.withValues(alpha: 0.15) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSecured
-                          ? Color(AppColors.secondaryContainer).withValues(alpha: 0.1)
-                          : Colors.white.withValues(alpha: 0.04),
-                      border: Border.all(
-                        color: isSecured
-                            ? Color(AppColors.secondaryContainer).withValues(alpha: 0.25)
-                            : Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    child: Icon(
-                      isSecured ? Icons.shield_rounded : Icons.shield_outlined,
-                      color: isSecured ? Color(AppColors.secondaryContainer) : const Color(AppColors.tertiary),
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      const Text(
-                        'MODE KEAMANAN (RUMAH KOSONG)',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(AppColors.onSurfaceVariant),
-                          letterSpacing: 0.8,
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSecured
+                              ? securityColor.withValues(alpha: 0.12)
+                              : Colors.white.withValues(alpha: 0.04),
+                          border: Border.all(
+                            color: isSecured
+                                ? securityColor.withValues(alpha: 0.35)
+                                : Colors.white.withValues(alpha: 0.08),
+                            width: 1.5,
+                          ),
+                          boxShadow: isSecured
+                              ? [
+                                  BoxShadow(
+                                    color: securityColor.withValues(alpha: 0.25),
+                                    blurRadius: 12,
+                                  )
+                                ]
+                              : null,
+                        ),
+                        child: Icon(
+                          isSecured ? Icons.shield_rounded : Icons.shield_outlined,
+                          color: isSecured ? securityColor : const Color(AppColors.tertiary).withValues(alpha: 0.6),
+                          size: 20,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        isSecured ? 'SIAGA (Rumah Kosong)' : 'NONAKTIF (Ada Orang)',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: isSecured ? Color(AppColors.secondaryContainer) : const Color(AppColors.onSurface),
-                        ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'PROTEKSI RUMAH KOSONG',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(AppColors.onSurfaceVariant),
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              if (isSecured) ...[
+                                _BlinkingLedDot(color: securityColor),
+                                const SizedBox(width: 6),
+                              ],
+                              Text(
+                                isSecured ? 'SIAGA (Rumah Kosong)' : 'DEAKTIF (Ada Orang)',
+                                style: TextStyle(
+                                  fontFamily: 'Sora',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSecured ? securityColor : const Color(AppColors.onSurface),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ],
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      SmartHomeService().updateOtomatisasi('mode_keamanan_aktif', !isSecured);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      width: 50,
+                      height: 26,
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(99),
+                        color: isSecured 
+                            ? securityColor.withValues(alpha: 0.2) 
+                            : Colors.white.withValues(alpha: 0.06),
+                        border: Border.all(
+                          color: isSecured 
+                              ? securityColor.withValues(alpha: 0.5) 
+                              : Colors.white.withValues(alpha: 0.12),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          AnimatedAlign(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            alignment: isSecured ? Alignment.centerRight : Alignment.centerLeft,
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSecured ? securityColor : const Color(AppColors.tertiary),
+                                boxShadow: isSecured 
+                                    ? [
+                                        BoxShadow(
+                                          color: securityColor.withValues(alpha: 0.4),
+                                          blurRadius: 8,
+                                        )
+                                      ] 
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.mediumImpact();
-                  SmartHomeService().updateOtomatisasi('mode_keamanan_aktif', !isSecured);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  width: 44,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(99),
-                    color: isSecured 
-                        ? Color(AppColors.secondaryContainer).withValues(alpha: 0.2) 
-                        : Colors.white.withValues(alpha: 0.06),
-                    border: Border.all(
-                      color: isSecured 
-                          ? Color(AppColors.secondaryContainer).withValues(alpha: 0.5) 
-                          : Colors.white.withValues(alpha: 0.12),
-                      width: 1.0,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      AnimatedAlign(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeInOut,
-                        alignment: isSecured ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          width: 16,
-                          height: 16,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSecured ? Color(AppColors.secondaryContainer) : const Color(AppColors.tertiary),
-                            boxShadow: isSecured 
-                                ? [
-                                    BoxShadow(
-                                      color: Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
-                                      blurRadius: 6,
-                                    )
-                                  ] 
-                                : null,
-                          ),
-                        ),
-                      ),
-                    ],
+              const SizedBox(height: 16),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: Text(
+                  isSecured
+                      ? 'Sistem siaga penuh mendeteksi ancaman penyusup. Setiap gerakan terdeteksi di ruang tamu akan langsung memicu sirine alarm keras!'
+                      : 'Sensor gerakan (PIR) diabaikan sementara. Anda dapat beraktivitas dengan bebas di dalam rumah tanpa khawatir memicu alarm.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    height: 1.45,
+                    color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.75),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            isSecured
-                ? 'Sistem siaga tempur. Pergerakan sekecil apapun terdeteksi oleh PIR sensor akan langsung memicu sirine alarm!'
-                : 'Sensor gerak (PIR) diabaikan. Aman bagi aktivitas penghuni rumah tanpa memicu alarm anomali.',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 11,
-              height: 1.4,
-              color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.7),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -820,111 +776,10 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
             ],
           ),
 
-          const SizedBox(height: 24),
-
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              color: const Color(AppColors.surfaceContainerLow).withValues(alpha: 0.5),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.04),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Auto-Lock',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(AppColors.onSurface),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Kunci pintu setelah 8 detik',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 10,
-                          color: const Color(AppColors.onSurfaceVariant).withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      _isAutoLockOn = !_isAutoLockOn;
-                    });
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOut,
-                    width: 44,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(99),
-                      color: _isAutoLockOn 
-                          ? Color(AppColors.secondaryContainer).withValues(alpha: 0.2) 
-                          : Colors.white.withValues(alpha: 0.06),
-                      border: Border.all(
-                        color: _isAutoLockOn 
-                            ? Color(AppColors.secondaryContainer).withValues(alpha: 0.5) 
-                            : Colors.white.withValues(alpha: 0.12),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        AnimatedAlign(
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          alignment: _isAutoLockOn ? Alignment.centerRight : Alignment.centerLeft,
-                          child: Container(
-                            width: 16,
-                            height: 16,
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: _isAutoLockOn ? Color(AppColors.secondaryContainer) : const Color(AppColors.tertiary),
-                              boxShadow: _isAutoLockOn 
-                                  ? [
-                                      BoxShadow(
-                                        color: Color(AppColors.secondaryContainer).withValues(alpha: 0.4),
-                                        blurRadius: 6,
-                                      )
-                                    ] 
-                                  : null,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
           const SizedBox(height: 18),
 
-          GestureDetector(
-            onTap: () => _triggerBiometricUnlock(kunciPintuRfid),
+           GestureDetector(
+            onTap: () => _triggerUnlock(kunciPintuRfid),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -940,13 +795,13 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.fingerprint_rounded,
+                    kunciPintuRfid ? Icons.lock_open_rounded : Icons.lock_rounded,
                     size: 18,
                     color: Color(AppColors.secondaryContainer),
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    kunciPintuRfid ? 'BUKA BIOMETRIK DARURAT' : 'KUNCI RFID AMAN',
+                    kunciPintuRfid ? 'BUKA PINTU UTAMA' : 'KUNCI PINTU UTAMA',
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 12,
@@ -1173,144 +1028,7 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildBiometricScannerOverlay(bool currentLockedState) {
-    return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.75),
-        child: BackdropFilter(
-          filter: const ColorFilter.mode(
-            Colors.transparent,
-            BlendMode.multiply,
-          ),
-          child: Center(
-            child: Container(
-              width: 260,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: const Color(AppColors.surfaceContainerHigh),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.12),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(AppColors.secondaryContainer).withValues(alpha: 0.1),
-                    blurRadius: 30,
-                  )
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: 110,
-                    height: 110,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 110,
-                          height: 110,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Color(AppColors.secondaryContainer).withValues(alpha: 0.2),
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                        
-                        Icon(
-                          Icons.fingerprint_rounded,
-                          size: 72,
-                          color: Color(AppColors.secondaryContainer),
-                        ),
 
-                        AnimatedBuilder(
-                          animation: _biometricScannerController,
-                          builder: (context, _) {
-                            final double translation = -36.0 + (_biometricScannerController.value * 72.0);
-                            return Transform.translate(
-                              offset: Offset(0, translation),
-                              child: Container(
-                                width: 84,
-                                height: 2,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      Color(AppColors.secondaryContainer),
-                                      Color(AppColors.secondaryContainer).withValues(alpha: 0.8),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Color(AppColors.secondaryContainer).withValues(alpha: 0.8),
-                                      blurRadius: 6,
-                                      spreadRadius: 1,
-                                    )
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  Text(
-                    _biometricStatusText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'Sora',
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  Container(
-                    width: 180,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      color: Colors.white.withValues(alpha: 0.06),
-                    ),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: FractionallySizedBox(
-                        widthFactor: _biometricProgress,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            color: Color(AppColors.secondaryContainer),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(AppColors.secondaryContainer).withValues(alpha: 0.5),
-                                blurRadius: 4,
-                              )
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   // Context-aware icon helper to standardize icons
   IconData _getNotificationIcon(NotificationModel notif) {
