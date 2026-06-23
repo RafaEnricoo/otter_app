@@ -23,9 +23,6 @@ class SmartHomeService {
   
   SmarthomeState? _localState;
   Timer? _pollingTimer;
-  int _lastSmokeValue = 0;
-  bool _lastPirValue = false;
-  Timer? _flameBlinkerTimer;
   Timer? _settingsNotificationTimer;
   Map<String, dynamic> _localRfidCards = {};
   final _rfidStreamController = StreamController<Map<String, dynamic>>.broadcast();
@@ -319,9 +316,6 @@ class SmartHomeService {
 
   Future<void> disarmAllAlarms() async {
     if (_localState == null) return;
-
-    _flameBlinkerTimer?.cancel();
-    _flameBlinkerTimer = null;
 
     NotificationService().addNotification(
       title: 'Sistem Keamanan Dinonaktifkan',
@@ -645,53 +639,7 @@ class SmartHomeService {
       }
     }
 
-    if (state.sensor.dapurFlame > 0) {
-      if (_lastSmokeValue == 0) {
-        NotificationService().addNotification(
-          title: 'Kebakaran Terdeteksi!',
-          message: 'Sensor mendeteksi adanya kobaran api di Dapur! Alarm aktif.',
-          category: NotificationCategory.security,
-          priority: NotificationPriority.critical,
-        );
-      }
-      if (!state.perangkat.buzzerAlrm) {
-        newBuzzerAlrm = true;
-        changed = true;
-      }
-      if (_flameBlinkerTimer == null || !_flameBlinkerTimer!.isActive) {
-        _flameBlinkerTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-          if (_localState != null && _localState!.sensor.dapurFlame > 0) {
-            final nextLedValue = !_localState!.perangkat.ledMerahDapur;
-            updatePerangkat('led_merah_dapur', nextLedValue);
-          } else {
-            timer.cancel();
-            _flameBlinkerTimer = null;
-          }
-        });
-      }
-    } else {
-      if (state.sensor.dapurFlame == 0 && _lastSmokeValue > 0) {
-        newLedMerahDapur = false;
-        changed = true;
-        _flameBlinkerTimer?.cancel();
-        _flameBlinkerTimer = null;
-      }
-    }
-    _lastSmokeValue = state.sensor.dapurFlame;
 
-    if (state.sensor.tamuGerak && state.otomatisasi.modeKeamananAktif) {
-      if (!_lastPirValue) {
-        NotificationService().addNotification(
-          title: 'Anomali Terdeteksi',
-          message: 'Ada anomali terdeteksi oleh PIR sensor di Ruang Tamu.',
-          category: NotificationCategory.security,
-          priority: NotificationPriority.critical,
-        );
-        newBuzzerAlrm = true;
-        changed = true;
-      }
-    }
-    _lastPirValue = state.sensor.tamuGerak;
 
     if (changed) {
       final updatedPerangkat = state.perangkat.toMap();
@@ -720,6 +668,5 @@ class SmartHomeService {
   void dispose() {
     _pollingTimer?.cancel();
     _rfidPollingTimer?.cancel();
-    _flameBlinkerTimer?.cancel();
   }
 }
