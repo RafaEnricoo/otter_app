@@ -11,7 +11,6 @@ import 'core/theme.dart';
 import 'core/constants.dart';
 import 'widgets/header.dart';
 import 'widgets/navbar.dart';
-import 'widgets/floating_notification_banner.dart';
 import 'screens/home_screen.dart';
 import 'screens/devices_screen.dart';
 import 'screens/monitor_screen.dart';
