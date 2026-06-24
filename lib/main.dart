@@ -311,7 +311,6 @@ class _MainLayoutState extends State<MainLayout> {
                 const IgnorePointer(
                   child: _FullSirenVignette(),
                 ),
-              const FloatingNotificationBanner(),
               if (_isLocked)
                 _LockScreenOverlay(
                   onUnlock: () {

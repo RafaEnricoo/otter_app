@@ -244,10 +244,10 @@ class NotificationService {
       );
 
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
-        'otter_channel_id',
-        'Otter Smart Home Notifications',
+        'otter_channel_v2',
+        'Otter Smart Home Notifications v2',
         description: 'This channel is used for smart home notifications.',
-        importance: Importance.high,
+        importance: Importance.max,
         playSound: true,
       );
 
@@ -270,11 +270,11 @@ class NotificationService {
     try {
       final AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
-        'otter_channel_id',
-        'Otter Smart Home Notifications',
+        'otter_channel_v2',
+        'Otter Smart Home Notifications v2',
         channelDescription: 'This channel is used for smart home notifications.',
         importance: Importance.max,
-        priority: Priority.high,
+        priority: Priority.max,
         showWhen: true,
         playSound: settings.enableNotificationSound.value,
       );
