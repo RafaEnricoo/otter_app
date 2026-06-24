@@ -355,7 +355,7 @@ class _NotificationTileState extends State<NotificationTile>
                                       NotificationCategory.security)
                                     (() {
                                       final t = widget.notification.title.toLowerCase();
-                                      final isRfidRelated = t.contains('rfid') || t.contains('pintu');
+                                      final isRfidRelated = t.contains('rfid');
                                       if (isRfidRelated) {
                                         return TextButton.icon(
                                           style: TextButton.styleFrom(
