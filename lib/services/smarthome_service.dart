@@ -53,20 +53,8 @@ class SmartHomeService {
           if (res.statusCode == 200) {
             final Map<String, dynamic> data = jsonDecode(res.body);
             
-            final oldLockState = _localState?.perangkat.kunciPintuRfid;
-            final newLockState = data['perangkat']?['kunci_pintu_rfid'] as bool?;
-
             _localState = SmarthomeState.fromMap(data);
             stateNotifier.value = _localState;
-
-            if (oldLockState != null && newLockState != null && oldLockState != newLockState) {
-              NotificationService().addNotification(
-                title: newLockState == true ? 'RFID Pintu Terkunci' : 'RFID Pintu Terbuka',
-                message: 'Pintu utama berhasil ${newLockState == true ? 'dikunci secara aman' : 'dibuka menggunakan akses RFID/Biometrik'}.',
-                category: NotificationCategory.security,
-                priority: newLockState == true ? NotificationPriority.info : NotificationPriority.warning,
-              );
-            }
 
             _runAutomationRulesIfNeeded();
           }
@@ -229,11 +217,7 @@ class SmartHomeService {
       message = 'Sirine keamanan darurat telah ${value == true ? 'diaktifkan' : 'dinonaktifkan'}.';
       category = NotificationCategory.security;
       priority = value == true ? NotificationPriority.critical : NotificationPriority.info;
-    } else if (key == 'kunci_pintu_rfid') {
-      title = value == true ? 'RFID Pintu Terkunci' : 'RFID Pintu Terbuka';
-      message = 'Pintu utama berhasil ${value == true ? 'dikunci secara aman' : 'dibuka menggunakan akses RFID/Biometrik'}.';
-      category = NotificationCategory.security;
-      priority = value == true ? NotificationPriority.info : NotificationPriority.warning;
+
     } else if (key == 'kecepatan_kipas') {
       title = 'Kecepatan Kipas Diubah';
       message = 'Kecepatan kipas kamar tidur disetel ke tingkat ${value == 255 ? '3 (Maksimal)' : value == 170 ? '2 (Sedang)' : '1 (Rendah)'}.';

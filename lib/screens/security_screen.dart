@@ -125,7 +125,6 @@ class _SecurityScreenState extends State<SecurityScreen> with TickerProviderStat
       // Arm / Trigger active Alarm
       HapticFeedback.vibrate();
       SmartHomeService().updatePerangkat('buzzer_alrm', true);
-      SmartHomeService().updatePerangkat('led_merah_dapur', true);
     }
   }
 
