@@ -383,7 +383,15 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       responseText = 'Kecepatan kipas disetel ke tingkat $level';
       recognized = true;
     } else if ((cmd.contains('auto') || cmd.contains('otomatis') || cmd.contains('manual')) && cmd.contains('semua')) {
-      bool targetState = !cmd.contains('manual');
+      bool targetState = true;
+      if (cmd.contains('manual') ||
+          cmd.contains('mati') ||
+          cmd.contains('off') ||
+          cmd.contains('nonaktif') ||
+          cmd.contains('non-aktif') ||
+          cmd.contains('tidak')) {
+        targetState = false;
+      }
       
       if (cmd.contains('lampu')) {
         await SmartHomeService().updateOtomatisasi('mode_auto_lampu', targetState);
