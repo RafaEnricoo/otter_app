@@ -276,7 +276,11 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
         cmd.contains('kunci') ||
         cmd.contains('nonaktif');
 
-    if (!hasActive && !hasInactive && !isAutoOrManualCmd) return false;
+    // Check if it is a speed control command for fan
+    final isSpeedCmd = cmd.contains('kipas') &&
+        (cmd.contains('level') || cmd.contains('kecepatan') || cmd.contains('speed') || cmd.contains('setel'));
+
+    if (!hasActive && !hasInactive && !isAutoOrManualCmd && !isSpeedCmd) return false;
 
     // Check device types
     final hasLampu = cmd.contains('lampu');
@@ -352,8 +356,33 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
     final currentState = SmartHomeService().stateNotifier.value;
 
     // IoT Control Logic based on voice commands
-    // 0. Global Master commands (all devices or all lights)
-    if ((cmd.contains('auto') || cmd.contains('otomatis') || cmd.contains('manual')) && cmd.contains('semua')) {
+    // 0. Kecepatan Kipas (Level 1 - 3)
+    final isSpeedCmd = cmd.contains('kipas') &&
+        (cmd.contains('level') || cmd.contains('kecepatan') || cmd.contains('speed') || cmd.contains('setel'));
+
+    if (isSpeedCmd) {
+      int targetSpeed = 85;
+      int level = 1;
+
+      if (cmd.contains('3') || cmd.contains('tiga') || cmd.contains('maksimal') || cmd.contains('cepat') || cmd.contains('kencang')) {
+        targetSpeed = 255;
+        level = 3;
+      } else if (cmd.contains('2') || cmd.contains('dua') || cmd.contains('sedang')) {
+        targetSpeed = 170;
+        level = 2;
+      } else if (cmd.contains('1') || cmd.contains('satu') || cmd.contains('lambat') || cmd.contains('pelan')) {
+        targetSpeed = 85;
+        level = 1;
+      } else {
+        targetSpeed = 85;
+        level = 1;
+      }
+
+      await SmartHomeService().updatePerangkat('kipas_kamar', true);
+      await SmartHomeService().updatePerangkat('kecepatan_kipas', targetSpeed);
+      responseText = 'Kecepatan kipas disetel ke tingkat $level';
+      recognized = true;
+    } else if ((cmd.contains('auto') || cmd.contains('otomatis') || cmd.contains('manual')) && cmd.contains('semua')) {
       bool targetState = !cmd.contains('manual');
       
       if (cmd.contains('lampu')) {
@@ -502,7 +531,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet>
       } else if (cmd.contains('kipas')) {
         final bool alreadyOn = currentState?.perangkat.kipasKamar ?? false;
         await SmartHomeService().updatePerangkat('kipas_kamar', true);
-        await SmartHomeService().updatePerangkat('kecepatan_kipas', 255);
+        await SmartHomeService().updatePerangkat('kecepatan_kipas', 85);
         responseText = alreadyOn
             ? 'Kipas kamar sudah menyala'
             : 'Kipas kamar dinyalakan';
